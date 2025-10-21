@@ -1,0 +1,4 @@
+psycopg2-binary>=2.9.11
+watchdog>=6.0.0
+PyInstaller>=6.16.0
+configparser>=5.3.0
