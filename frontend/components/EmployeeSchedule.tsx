@@ -51,19 +51,19 @@ export function EmployeeSchedule() {
       const data = await apiRequest(endpoint)
       setScheduleData(data)
       
-      // Р•СЃР»Рё РґР°С‚Р° РЅРµ Р±С‹Р»Р° СѓСЃС‚Р°РЅРѕРІР»РµРЅР°, СѓСЃС‚Р°РЅР°РІР»РёРІР°РµРј РґР°С‚Сѓ РёР· РѕС‚РІРµС‚Р° API
+ // Если дата не была установлена, устанавливаем дату из ответа API
       if (!date && data.date) {
         setCurrentDate(data.date)
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'РћС€РёР±РєР° Р·Р°РіСЂСѓР·РєРё РґР°РЅРЅС‹С…')
-      console.error('РћС€РёР±РєР° Р·Р°РіСЂСѓР·РєРё СЂР°СЃРїРёСЃР°РЅРёСЏ:', err)
+      setError(err instanceof Error ? err.message : 'Ошибка загрузки данных')
+      console.error('Ошибка загрузки расписания:', err)
     } finally {
       setLoading(false)
     }
   }
 
-  // РџРµСЂРІРѕРЅР°С‡Р°Р»СЊРЅР°СЏ Р·Р°РіСЂСѓР·РєР° Р±РµР· СѓРєР°Р·Р°РЅРёСЏ РґР°С‚С‹ - API РІС‹Р±РµСЂРµС‚ РїРѕСЃР»РµРґРЅСЋСЋ РґРѕСЃС‚СѓРїРЅСѓСЋ
+    // Первоначальная загрузка без указания даты - API выберет последнюю доступную
   useEffect(() => {
     if (!initialized) {
       fetchSchedule()
@@ -71,7 +71,7 @@ export function EmployeeSchedule() {
     }
   }, [initialized])
 
-  // Р—Р°РіСЂСѓР·РєР° РїСЂРё РёР·РјРµРЅРµРЅРёРё РґР°С‚С‹ РїРѕР»СЊР·РѕРІР°С‚РµР»РµРј
+   // Загрузка при изменении даты пользователем
   useEffect(() => {
     if (currentDate && initialized) {
       fetchSchedule(currentDate)
@@ -84,46 +84,46 @@ export function EmployeeSchedule() {
 
   const exportToExcel = () => {
     if (!scheduleData || !scheduleData.employees.length) {
-      alert('РќРµС‚ РґР°РЅРЅС‹С… РґР»СЏ СЌРєСЃРїРѕСЂС‚Р°')
+      alert('Нет данных для экспорта')
       return
     }
 
-    // РџРѕРґРіРѕС‚Р°РІР»РёРІР°РµРј РґР°РЅРЅС‹Рµ РґР»СЏ Excel
+ // Подготавливаем данные для Excel
     const excelData = scheduleData.employees.map((employee, index) => ({
-      'в„–': index + 1,
-      'Р¤РРћ': employee.full_name,
-      'РџСЂРёС€РµР»': employee.first_entry || '-',
-      'РЈС€РµР»': employee.last_exit || '-',
-      'Р§Р°СЃС‹ СЂР°Р±РѕС‚С‹': employee.work_hours ? `${employee.work_hours.toFixed(1)} С‡` : '-',
-      'РЎС‚Р°С‚СѓСЃ': employee.status || (employee.is_late ? 'РћРїРѕР·РґР°Р»' : 'Р’ РЅРѕСЂРјРµ'),
-      'РћРїРѕР·РґР°РЅРёРµ (РјРёРЅ)': employee.is_late ? employee.late_minutes : 0,
+'№': index + 1,
+      'ФИО': employee.full_name,
+      'Пришел': employee.first_entry || '-',
+      'Ушел': employee.last_exit || '-',
+      'Часы работы': employee.work_hours ? `${employee.work_hours.toFixed(1)} ч` : '-',
+      'Статус': employee.status || (employee.is_late ? 'Опоздал' : 'В норме'),
+      'Опоздание (мин)': employee.is_late ? employee.late_minutes : 0,
     }))
 
-    // РЎРѕР·РґР°РµРј СЂР°Р±РѕС‡СѓСЋ РєРЅРёРіСѓ
+  // Создаем рабочую книгу
     const ws = XLSX.utils.json_to_sheet(excelData)
     const wb = XLSX.utils.book_new()
     
-    // РќР°СЃС‚СЂР°РёРІР°РµРј С€РёСЂРёРЅСѓ РєРѕР»РѕРЅРѕРє
+// Настраиваем ширину колонок
     const colWidths = [
-      { wch: 5 },   // в„–
-      { wch: 25 },  // Р¤РРћ
-      { wch: 12 },  // РџСЂРёС€РµР»
-      { wch: 15 },  // РњРµСЃС‚Рѕ РІС…РѕРґР°
-      { wch: 12 },  // РЈС€РµР»
-      { wch: 15 },  // РњРµСЃС‚Рѕ РІС‹С…РѕРґР°
-      { wch: 12 },  // Р§Р°СЃС‹ СЂР°Р±РѕС‚С‹
-      { wch: 15 },  // РЎС‚Р°С‚СѓСЃ
-      { wch: 12 },  // РћРїРѕР·РґР°РЅРёРµ
-      { wch: 20 }   // РСЃРєР»СЋС‡РµРЅРёРµ
+         { wch: 5 },   // №
+      { wch: 25 },  // ФИО
+      { wch: 12 },  // Пришел
+      { wch: 15 },  // Место входа
+      { wch: 12 },  // Ушел
+      { wch: 15 },  // Место выхода
+      { wch: 12 },  // Часы работы
+      { wch: 15 },  // Статус
+      { wch: 12 },  // Опоздание
+      { wch: 20 }   // Исключение
     ]
     ws['!cols'] = colWidths
 
-    XLSX.utils.book_append_sheet(wb, ws, 'Р Р°СЃРїРёСЃР°РЅРёРµ')
+       XLSX.utils.book_append_sheet(wb, ws, 'Расписание')
     
-    // Р“РµРЅРµСЂРёСЂСѓРµРј РёРјСЏ С„Р°Р№Р»Р° СЃ РґР°С‚РѕР№
-    const fileName = `Р Р°СЃРїРёСЃР°РЅРёРµ_СЃРѕС‚СЂСѓРґРЅРёРєРѕРІ_${scheduleData.date}.xlsx`
+ // Генерируем имя файла с датой
+    const fileName = `Расписание_сотрудников_${scheduleData.date}.xlsx`
     
-    // РЎРєР°С‡РёРІР°РµРј С„Р°Р№Р»
+    // Скачиваем файл
     XLSX.writeFile(wb, fileName)
   }
 
@@ -132,7 +132,7 @@ export function EmployeeSchedule() {
       {/* Date selector */}
       <div className="bg-white rounded-lg shadow p-6">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-medium text-gray-900">Р’С‹Р±РµСЂРёС‚Рµ РґР°С‚Сѓ</h3>
+           <h3 className="text-lg font-medium text-gray-900">Выберите дату</h3>
           <input
             type="date"
             value={currentDate}
@@ -150,7 +150,7 @@ export function EmployeeSchedule() {
               <div className="flex items-center">
                 <User className="h-8 w-8 text-blue-600" />
                 <div className="ml-3">
-                  <p className="text-sm font-medium text-blue-600">Р’СЃРµРіРѕ СЃРѕС‚СЂСѓРґРЅРёРєРѕРІ</p>
+                           <p className="text-sm font-medium text-blue-600">Всего сотрудников</p>
                   <p className="text-2xl font-bold text-blue-900">{scheduleData.total_count}</p>
                 </div>
               </div>
@@ -160,7 +160,7 @@ export function EmployeeSchedule() {
               <div className="flex items-center">
                 <Clock className="h-8 w-8 text-red-600" />
                 <div className="ml-3">
-                  <p className="text-sm font-medium text-red-600">РћРїРѕР·РґР°РЅРёР№</p>
+            <p className="text-sm font-medium text-red-600">Опозданий</p>
                   <p className="text-2xl font-bold text-red-900">{scheduleData.late_count}</p>
                 </div>
               </div>
@@ -170,7 +170,7 @@ export function EmployeeSchedule() {
               <div className="flex items-center">
                 <Calendar className="h-8 w-8 text-green-600" />
                 <div className="ml-3">
-                  <p className="text-sm font-medium text-green-600">Р”Р°С‚Р°</p>
+           <p className="text-sm font-medium text-green-600">Дата</p>
                   <p className="text-2xl font-bold text-green-900">{scheduleData.date}</p>
                 </div>
               </div>
@@ -182,14 +182,14 @@ export function EmployeeSchedule() {
       {/* Employee table */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-          <h3 className="text-lg font-medium text-gray-900">Р Р°СЃРїРёСЃР°РЅРёРµ СЃРѕС‚СЂСѓРґРЅРёРєРѕРІ</h3>
+          <h3 className="text-lg font-medium text-gray-900">Расписание сотрудников</h3>
           {scheduleData && scheduleData.employees.length > 0 && (
             <button
               onClick={exportToExcel}
               className="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
             >
               <Download className="h-4 w-4 mr-2" />
-              Р’С‹РіСЂСѓР·РёС‚СЊ РѕС‚С‡РµС‚
+                Выгрузить отчет
             </button>
           )}
         </div>
@@ -198,40 +198,40 @@ export function EmployeeSchedule() {
           {loading ? (
             <div className="p-6 text-center">
               <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-              <p className="mt-2 text-gray-600">Р—Р°РіСЂСѓР·РєР° РґР°РЅРЅС‹С…...</p>
+               <p className="mt-2 text-gray-600">Загрузка данных...</p>
             </div>
           ) : error ? (
             <div className="p-6 text-center text-red-600">
-              <p>РћС€РёР±РєР°: {error}</p>
+     <p>Ошибка: {error}</p>
               <button
                 onClick={() => fetchSchedule(currentDate)}
                 className="mt-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
               >
-                РџРѕРІС‚РѕСЂРёС‚СЊ
+                  Повторить
               </button>
             </div>
           ) : scheduleData?.employees.length === 0 ? (
             <div className="p-6 text-center text-gray-600">
-              РќРµС‚ РґР°РЅРЅС‹С… Р·Р° РІС‹Р±СЂР°РЅРЅСѓСЋ РґР°С‚Сѓ
+             Нет данных за выбранную дату
             </div>
           ) : (
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Р¤РРћ
+                    ФИО
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    РџСЂРёС€РµР»
+                      Пришел
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    РЈС€РµР»
+                             Ушел
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Р§Р°СЃС‹ СЂР°Р±РѕС‚С‹
+               Часы работы
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    РЎС‚Р°С‚СѓСЃ
+                   Статус
                   </th>
                 </tr>
               </thead>
@@ -276,7 +276,7 @@ export function EmployeeSchedule() {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {employee.work_hours ? `${employee.work_hours.toFixed(1)} С‡` : '-'}
+                                {employee.work_hours ? `${employee.work_hours.toFixed(1)} ч` : '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center space-x-2">
@@ -289,11 +289,11 @@ export function EmployeeSchedule() {
                               : 'bg-green-100 text-green-800'
                           }`}
                         >
-                          {employee.status || (employee.is_late ? 'РћРїРѕР·РґР°Р»' : 'Р’ РЅРѕСЂРјРµ')}
+      {employee.status || (employee.is_late ? 'Опоздал' : 'В норме')}
                         </span>
                         {employee.exception?.has_exception && (
                           <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-purple-100 text-purple-800">
-                            рџ›ЎпёЏ {employee.exception.reason}
+                            🛡️ {employee.exception.reason}
                           </span>
                         )}
                       </div>
