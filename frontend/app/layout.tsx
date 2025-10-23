@@ -1,12 +1,9 @@
 ﻿import './globals.css'
 import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
 import { LayoutWrapper } from '@/components/LayoutWrapper'
 
-const inter = Inter({ subsets: ['latin'] })
-
 export const metadata: Metadata = {
-  title: 'РЎРљРЈР” РЎРёСЃС‚РµРјР°',
+  title: 'РЎРЉРЈР" РЎРёСЃС‚РµРјР°',
   description: 'РЎРёСЃС‚РµРјР° РєРѕРЅС‚СЂРѕР»СЏ Рё СѓРїСЂР°РІР»РµРЅРёСЏ РґРѕСЃС‚СѓРїРѕРј',
 }
 
@@ -17,7 +14,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ru">
-      <body className={inter.className}>
+      <body className="font-sans">
         <LayoutWrapper>
           {children}
         </LayoutWrapper>

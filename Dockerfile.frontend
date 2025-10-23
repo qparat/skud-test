@@ -12,6 +12,9 @@ RUN npm ci --only=production
 # Копируем исходный код frontend
 COPY frontend/ .
 
+# Устанавливаем переменную окружения для API
+ENV NEXT_PUBLIC_API_URL=/api
+
 # Собираем приложение
 RUN npm run build
 
