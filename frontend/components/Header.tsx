@@ -33,7 +33,7 @@ export function Header() {
       <div className="flex items-center justify-between h-16 px-6">
         <div className="flex items-center space-x-4">
           <h2 className="text-lg font-semibold text-gray-900">
-            РЎРёСЃС‚РµРјР° РєРѕРЅС‚СЂРѕР»СЏ РґРѕСЃС‚СѓРїР°
+            Система контроля доступа
           </h2>
         </div>
         
@@ -49,14 +49,14 @@ export function Header() {
               <WifiOff className="h-4 w-4 text-red-500" />
             )}
             <span className="text-sm text-gray-600">
-              {isOnline ? 'РџРѕРґРєР»СЋС‡РµРЅРѕ' : 'РќРµС‚ СЃРІСЏР·Рё'}
+                 {isOnline ? 'Подключено' : 'Нет связи'}
             </span>
           </div>
           
           <button
             onClick={handleRefresh}
             className="p-2 text-gray-400 hover:text-gray-600 rounded-md hover:bg-gray-100"
-            title="РћР±РЅРѕРІРёС‚СЊ РґР°РЅРЅС‹Рµ"
+           title="Обновить данные"
           >
             <RefreshCw className="h-4 w-4" />
           </button>
