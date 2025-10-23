@@ -1,0 +1,67 @@
+version: '3.8'
+
+services:
+  # Backend API сервис
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: skud-backend
+    restart: unless-stopped
+    expose:
+      - "8003"
+    volumes:
+      # Монтируем базу данных для персистентности
+      - ./real_skud_data.db:/app/real_skud_data.db
+      # Монтируем конфигурацию
+      - ./real_skud_config.ini:/app/real_skud_config.ini
+      # Монтируем директории для загрузки данных
+      - ./data_input:/app/data_input
+      - ./uploads:/app/uploads
+    environment:
+      - PYTHONUNBUFFERED=1
+    networks:
+      - skud-network
+
+  # Frontend сервис
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: skud-frontend
+    restart: unless-stopped
+    expose:
+      - "3000"
+    environment:
+      - NODE_ENV=production
+      - NEXT_TELEMETRY_DISABLED=1
+      - NEXT_PUBLIC_API_URL=http://localhost/api
+    depends_on:
+      - backend
+    networks:
+      - skud-network
+
+  # Nginx reverse proxy
+  nginx:
+    image: nginx:alpine
+    container_name: skud-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "8080:8080"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - backend
+      - frontend
+    networks:
+      - skud-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/nginx-health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  skud-network:
+    driver: bridge
