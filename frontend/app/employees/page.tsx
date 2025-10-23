@@ -32,8 +32,8 @@ export default function EmployeesPage() {
         const data = await apiRequest('/employees')
         setDepartmentsData(data)
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'РћС€РёР±РєР° Р·Р°РіСЂСѓР·РєРё РґР°РЅРЅС‹С…')
-        console.error('РћС€РёР±РєР° Р·Р°РіСЂСѓР·РєРё СЃРїРёСЃРєР° СЃРѕС‚СЂСѓРґРЅРёРєРѕРІ:', err)
+        setError(err instanceof Error ? err.message : 'Ошибка загрузки данных сотрудников')
+        console.error('Ошибка загрузки данных сотрудников:', err)
       } finally {
         setLoading(false)
       }
@@ -50,7 +50,7 @@ export default function EmployeesPage() {
     router.push('/schedule')
   }
 
-  // Р¤РёР»СЊС‚СЂР°С†РёСЏ СЃРѕС‚СЂСѓРґРЅРёРєРѕРІ РїРѕ РїРѕРёСЃРєРѕРІРѕРјСѓ Р·Р°РїСЂРѕСЃСѓ
+  // Фильтрация сотрудников по введенному запросу
   const getFilteredDepartments = () => {
     if (!departmentsData || !searchTerm) return departmentsData?.departments || {}
     
@@ -75,7 +75,7 @@ export default function EmployeesPage() {
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
           <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-          <p className="mt-4 text-gray-600">Р—Р°РіСЂСѓР·РєР° СЃРїРёСЃРєР° СЃРѕС‚СЂСѓРґРЅРёРєРѕРІ...</p>
+          <p className="mt-4 text-gray-600">Загрузка списка сотрудников...</p>
         </div>
       </div>
     )
@@ -84,14 +84,14 @@ export default function EmployeesPage() {
   if (error) {
     return (
       <div className="text-center py-12">
-        <div className="text-red-600 text-6xl mb-4">вљ пёЏ</div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">РћС€РёР±РєР° Р·Р°РіСЂСѓР·РєРё</h2>
+        <div className="text-red-600 text-6xl mb-4">⚠️</div>
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">Ошибка загрузки</h2>
         <p className="text-gray-600 mb-4">{error}</p>
         <button
           onClick={() => window.location.reload()}
           className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
         >
-          РџРѕРїСЂРѕР±РѕРІР°С‚СЊ СЃРЅРѕРІР°
+       Попробовать снова
         </button>
       </div>
     )
@@ -107,12 +107,12 @@ export default function EmployeesPage() {
         <div>
           <h1 className="text-2xl font-semibold text-gray-900 flex items-center gap-2">
             <Users className="h-7 w-7" />
-            РЎРїРёСЃРѕРє СЃРѕС‚СЂСѓРґРЅРёРєРѕРІ
+              Список сотрудников
           </h1>
           <p className="mt-1 text-sm text-gray-600">
-            Р’СЃРµРіРѕ СЃРѕС‚СЂСѓРґРЅРёРєРѕРІ: {departmentsData?.total_employees || 0}
+            Всего сотрудников: {departmentsData?.total_employees || 0}
             {searchTerm && totalFiltered !== departmentsData?.total_employees && 
-              ` (РЅР°Р№РґРµРЅРѕ: ${totalFiltered})`
+              ` (найдено: ${totalFiltered})`
             }
           </p>
         </div>
@@ -122,7 +122,7 @@ export default function EmployeesPage() {
           className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
         >
           <Calendar className="h-4 w-4" />
-          Р Р°СЃРїРёСЃР°РЅРёРµ РЅР° СЃРµРіРѕРґРЅСЏ
+          Расписание на сегодня
         </button>
       </div>
 
@@ -131,7 +131,7 @@ export default function EmployeesPage() {
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
         <input
           type="text"
-          placeholder="РџРѕРёСЃРє РїРѕ Р¤РРћ РёР»Рё РґРѕР»Р¶РЅРѕСЃС‚Рё..."
+          placeholder="Поиск по ФИО или должности..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -144,10 +144,10 @@ export default function EmployeesPage() {
           <div className="text-center py-12">
             <Users className="h-16 w-16 text-gray-300 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">
-              {searchTerm ? 'РЎРѕС‚СЂСѓРґРЅРёРєРё РЅРµ РЅР°Р№РґРµРЅС‹' : 'РќРµС‚ РґР°РЅРЅС‹С…'}
+              {searchTerm ? 'Сотрудники не найдены' : 'Нет сотрудников'}
             </h3>
             <p className="text-gray-600">
-              {searchTerm ? 'РџРѕРїСЂРѕР±СѓР№С‚Рµ РёР·РјРµРЅРёС‚СЊ РїРѕРёСЃРєРѕРІС‹Р№ Р·Р°РїСЂРѕСЃ' : 'РЎРїРёСЃРѕРє СЃРѕС‚СЂСѓРґРЅРёРєРѕРІ РїСѓСЃС‚'}
+              {searchTerm ? 'Попробуйте изменить запрос поиска' : 'Список сотрудников пуст'}
             </p>
           </div>
         ) : (
