@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { apiRequest } from '@/lib/api';
 
 interface Department {
   id: number;
@@ -80,25 +81,23 @@ export default function DepartmentDetailPage() {
       setLoading(true);
       
       // Получаем данные о службе
-      const deptResponse = await fetch(`http://localhost:8003/departments/${departmentId}`);
-      if (!deptResponse.ok) {
-        throw new Error('Служба не найдена');
-      }
-      const deptData = await deptResponse.json();
+      const deptData = await apiRequest(`/departments/${departmentId}`);
       setDepartment(deptData);
 
       // Получаем должности службы
-      const posResponse = await fetch(`http://localhost:8003/department-positions/${departmentId}`);
-      if (posResponse.ok) {
-        const posData = await posResponse.json();
+      try {
+        const posData = await apiRequest(`/department-positions/${departmentId}`);
         setPositions(posData.map((dp: DepartmentPosition) => dp.position));
+      } catch (err) {
+        console.log('Должности не найдены');
       }
 
       // Получаем сотрудников службы
-      const empResponse = await fetch(`http://localhost:8003/employees/by-department/${departmentId}`);
-      if (empResponse.ok) {
-        const empData: EmployeesResponse = await empResponse.json();
+      try {
+        const empData: EmployeesResponse = await apiRequest(`/employees/by-department/${departmentId}`);
         setEmployees(empData.employees);
+      } catch (err) {
+        console.log('Сотрудники не найдены');
       }
 
       setError(null);
@@ -111,11 +110,8 @@ export default function DepartmentDetailPage() {
 
   const fetchAllPositions = async () => {
     try {
-      const response = await fetch('http://localhost:8003/positions');
-      if (response.ok) {
-        const data = await response.json();
-        setAllPositions(data);
-      }
+      const data = await apiRequest('/positions');
+      setAllPositions(data);
     } catch (err) {
       console.error('Ошибка при загрузке всех должностей:', err);
     }
@@ -123,11 +119,8 @@ export default function DepartmentDetailPage() {
 
   const fetchAllEmployees = async () => {
     try {
-      const response = await fetch('http://localhost:8003/employees/unassigned');
-      if (response.ok) {
-        const data = await response.json();
-        setAllEmployees(data);
-      }
+      const data = await apiRequest('/employees/unassigned');
+      setAllEmployees(data);
     } catch (err) {
       console.error('Ошибка при загрузке всех сотрудников:', err);
     }
@@ -137,20 +130,13 @@ export default function DepartmentDetailPage() {
     if (!selectedPositionId) return;
 
     try {
-      const response = await fetch('http://localhost:8003/department-positions', {
+      await apiRequest('/department-positions', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({
           department_id: departmentId,
           position_id: selectedPositionId,
         }),
       });
-
-      if (!response.ok) {
-        throw new Error('Ошибка при добавлении должности');
-      }
 
       setShowAddPosition(false);
       setSelectedPositionId(null);
@@ -166,13 +152,9 @@ export default function DepartmentDetailPage() {
     }
 
     try {
-      const response = await fetch(`http://localhost:8003/department-positions/${departmentId}/${positionId}`, {
+      await apiRequest(`/department-positions/${departmentId}/${positionId}`, {
         method: 'DELETE',
       });
-
-      if (!response.ok) {
-        throw new Error('Ошибка при удалении должности');
-      }
 
       await fetchDepartmentDetails();
     } catch (err) {
@@ -188,13 +170,9 @@ export default function DepartmentDetailPage() {
     }
 
     try {
-      const response = await fetch(`http://localhost:8003/departments/${departmentId}`, {
+      await apiRequest(`/departments/${departmentId}`, {
         method: 'DELETE',
       });
-
-      if (!response.ok) {
-        throw new Error('Ошибка при удалении службы');
-      }
 
       router.push('/departments');
     } catch (err) {
@@ -206,19 +184,12 @@ export default function DepartmentDetailPage() {
     if (!selectedEmployeeId) return;
 
     try {
-      const response = await fetch(`http://localhost:8003/employees/${selectedEmployeeId}/department`, {
+      await apiRequest(`/employees/${selectedEmployeeId}/department`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({
           department_id: departmentId,
         }),
       });
-
-      if (!response.ok) {
-        throw new Error('Ошибка при назначении сотрудника');
-      }
 
       setShowAddEmployee(false);
       setSelectedEmployeeId(null);
@@ -235,19 +206,12 @@ export default function DepartmentDetailPage() {
     }
 
     try {
-      const response = await fetch(`http://localhost:8003/employees/${employeeId}/department`, {
+      await apiRequest(`/employees/${employeeId}/department`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({
           department_id: null,
         }),
       });
-
-      if (!response.ok) {
-        throw new Error('Ошибка при удалении сотрудника из службы');
-      }
 
       await fetchDepartmentDetails();
       await fetchAllEmployees();

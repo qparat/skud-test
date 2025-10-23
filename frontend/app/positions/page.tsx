@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
@@ -30,7 +30,7 @@ export default function PositionsPage() {
       setPositions(data);
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Неизвестная ошибка');
+      setError(err instanceof Error ? err.message : 'РќРµРёР·РІРµСЃС‚РЅР°СЏ РѕС€РёР±РєР°');
     } finally {
       setLoading(false);
     }
@@ -53,7 +53,7 @@ export default function PositionsPage() {
       setShowCreateForm(false);
       await fetchPositions();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Ошибка при создании должности');
+      setError(err instanceof Error ? err.message : 'РћС€РёР±РєР° РїСЂРё СЃРѕР·РґР°РЅРёРё РґРѕР»Р¶РЅРѕСЃС‚Рё');
     } finally {
       setCreating(false);
     }
@@ -74,12 +74,12 @@ export default function PositionsPage() {
       setEditingPosition(null);
       await fetchPositions();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Ошибка при обновлении должности');
+      setError(err instanceof Error ? err.message : 'РћС€РёР±РєР° РїСЂРё РѕР±РЅРѕРІР»РµРЅРёРё РґРѕР»Р¶РЅРѕСЃС‚Рё');
     }
   };
 
   const deletePosition = async (id: number, name: string) => {
-    if (!confirm(`Вы уверены, что хотите удалить должность "${name}"?`)) {
+    if (!confirm(`Р’С‹ СѓРІРµСЂРµРЅС‹, С‡С‚Рѕ С…РѕС‚РёС‚Рµ СѓРґР°Р»РёС‚СЊ РґРѕР»Р¶РЅРѕСЃС‚СЊ "${name}"?`)) {
       return;
     }
 
@@ -90,14 +90,14 @@ export default function PositionsPage() {
 
       await fetchPositions();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Ошибка при удалении должности');
+      setError(err instanceof Error ? err.message : 'РћС€РёР±РєР° РїСЂРё СѓРґР°Р»РµРЅРёРё РґРѕР»Р¶РЅРѕСЃС‚Рё');
     }
   };
 
   if (loading) {
     return (
       <div className="container mx-auto px-4 py-8">
-        <div className="text-center">Загрузка должностей...</div>
+        <div className="text-center">Р—Р°РіСЂСѓР·РєР° РґРѕР»Р¶РЅРѕСЃС‚РµР№...</div>
       </div>
     );
   }
@@ -105,19 +105,19 @@ export default function PositionsPage() {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Управление должностями</h1>
+        <h1 className="text-3xl font-bold">РЈРїСЂР°РІР»РµРЅРёРµ РґРѕР»Р¶РЅРѕСЃС‚СЏРјРё</h1>
         <div className="flex gap-2">
           <Link
             href="/positions/manage"
             className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md"
           >
-            Назначить должности
+            РќР°Р·РЅР°С‡РёС‚СЊ РґРѕР»Р¶РЅРѕСЃС‚Рё
           </Link>
           <button
             onClick={() => setShowCreateForm(true)}
             className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md"
           >
-            Добавить должность
+            Р”РѕР±Р°РІРёС‚СЊ РґРѕР»Р¶РЅРѕСЃС‚СЊ
           </button>
         </div>
       </div>
@@ -130,12 +130,12 @@ export default function PositionsPage() {
 
       {showCreateForm && (
         <div className="bg-white border rounded-lg p-6 mb-6 shadow-sm">
-          <h2 className="text-xl font-semibold mb-4">Создать новую должность</h2>
+          <h2 className="text-xl font-semibold mb-4">РЎРѕР·РґР°С‚СЊ РЅРѕРІСѓСЋ РґРѕР»Р¶РЅРѕСЃС‚СЊ</h2>
           <form onSubmit={createPosition}>
             <div className="mb-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Название должности *
+                  РќР°Р·РІР°РЅРёРµ РґРѕР»Р¶РЅРѕСЃС‚Рё *
                 </label>
                 <input
                   type="text"
@@ -152,7 +152,7 @@ export default function PositionsPage() {
                 disabled={creating}
                 className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md disabled:opacity-50"
               >
-                {creating ? 'Создание...' : 'Создать'}
+                {creating ? 'РЎРѕР·РґР°РЅРёРµ...' : 'РЎРѕР·РґР°С‚СЊ'}
               </button>
               <button
                 type="button"
@@ -162,7 +162,7 @@ export default function PositionsPage() {
                 }}
                 className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-md"
               >
-                Отмена
+                РћС‚РјРµРЅР°
               </button>
             </div>
           </form>
@@ -175,9 +175,9 @@ export default function PositionsPage() {
             <table className="w-full">
               <thead>
                 <tr className="border-b">
-                  <th className="text-left py-3 px-4">Название</th>
-                  <th className="text-left py-3 px-4">Количество сотрудников</th>
-                  <th className="text-right py-3 px-4">Действия</th>
+                  <th className="text-left py-3 px-4">РќР°Р·РІР°РЅРёРµ</th>
+                  <th className="text-left py-3 px-4">РљРѕР»РёС‡РµСЃС‚РІРѕ СЃРѕС‚СЂСѓРґРЅРёРєРѕРІ</th>
+                  <th className="text-right py-3 px-4">Р”РµР№СЃС‚РІРёСЏ</th>
                 </tr>
               </thead>
               <tbody>
@@ -200,13 +200,13 @@ export default function PositionsPage() {
                               onClick={updatePosition}
                               className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm"
                             >
-                              Сохранить
+                              РЎРѕС…СЂР°РЅРёС‚СЊ
                             </button>
                             <button
                               onClick={() => setEditingPosition(null)}
                               className="bg-gray-500 hover:bg-gray-600 text-white px-3 py-1 rounded text-sm"
                             >
-                              Отмена
+                              РћС‚РјРµРЅР°
                             </button>
                           </div>
                         </td>
@@ -221,13 +221,13 @@ export default function PositionsPage() {
                               onClick={() => setEditingPosition(position)}
                               className="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded text-sm"
                             >
-                              Изменить
+                              РР·РјРµРЅРёС‚СЊ
                             </button>
                             <button
                               onClick={() => deletePosition(position.id, position.name)}
                               className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm"
                             >
-                              Удалить
+                              РЈРґР°Р»РёС‚СЊ
                             </button>
                           </div>
                         </td>
@@ -240,12 +240,12 @@ export default function PositionsPage() {
 
             {positions.length === 0 && (
               <div className="text-center py-12">
-                <p className="text-gray-500 text-lg">Должности не найдены</p>
+                <p className="text-gray-500 text-lg">Р”РѕР»Р¶РЅРѕСЃС‚Рё РЅРµ РЅР°Р№РґРµРЅС‹</p>
                 <button
                   onClick={() => setShowCreateForm(true)}
                   className="mt-4 bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-md"
                 >
-                  Создать первую должность
+                  РЎРѕР·РґР°С‚СЊ РїРµСЂРІСѓСЋ РґРѕР»Р¶РЅРѕСЃС‚СЊ
                 </button>
               </div>
             )}
@@ -255,3 +255,4 @@ export default function PositionsPage() {
     </div>
   );
 }
+

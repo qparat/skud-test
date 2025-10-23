@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
@@ -29,7 +29,7 @@ export default function DepartmentsPage() {
       setDepartments(data);
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Неизвестная ошибка');
+      setError(err instanceof Error ? err.message : 'РќРµРёР·РІРµСЃС‚РЅР°СЏ РѕС€РёР±РєР°');
     } finally {
       setLoading(false);
     }
@@ -52,14 +52,14 @@ export default function DepartmentsPage() {
       setShowCreateForm(false);
       await fetchDepartments();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Ошибка при создании службы');
+      setError(err instanceof Error ? err.message : 'РћС€РёР±РєР° РїСЂРё СЃРѕР·РґР°РЅРёРё СЃР»СѓР¶Р±С‹');
     } finally {
       setCreating(false);
     }
   };
 
   const deleteDepartment = async (id: number, name: string) => {
-    if (!confirm(`Вы уверены, что хотите удалить службу "${name}"?`)) {
+    if (!confirm(`Р’С‹ СѓРІРµСЂРµРЅС‹, С‡С‚Рѕ С…РѕС‚РёС‚Рµ СѓРґР°Р»РёС‚СЊ СЃР»СѓР¶Р±Сѓ "${name}"?`)) {
       return;
     }
 
@@ -70,14 +70,14 @@ export default function DepartmentsPage() {
 
       await fetchDepartments();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Ошибка при удалении службы');
+      setError(err instanceof Error ? err.message : 'РћС€РёР±РєР° РїСЂРё СѓРґР°Р»РµРЅРёРё СЃР»СѓР¶Р±С‹');
     }
   };
 
   if (loading) {
     return (
       <div className="container mx-auto px-4 py-8">
-        <div className="text-center">Загрузка служб...</div>
+        <div className="text-center">Р—Р°РіСЂСѓР·РєР° СЃР»СѓР¶Р±...</div>
       </div>
     );
   }
@@ -85,12 +85,12 @@ export default function DepartmentsPage() {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Управление службами</h1>
+        <h1 className="text-3xl font-bold">РЈРїСЂР°РІР»РµРЅРёРµ СЃР»СѓР¶Р±Р°РјРё</h1>
         <button
           onClick={() => setShowCreateForm(true)}
           className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md"
         >
-          Добавить службу
+          Р”РѕР±Р°РІРёС‚СЊ СЃР»СѓР¶Р±Сѓ
         </button>
       </div>
 
@@ -102,12 +102,12 @@ export default function DepartmentsPage() {
 
       {showCreateForm && (
         <div className="bg-white border rounded-lg p-6 mb-6 shadow-sm">
-          <h2 className="text-xl font-semibold mb-4">Создать новую службу</h2>
+          <h2 className="text-xl font-semibold mb-4">РЎРѕР·РґР°С‚СЊ РЅРѕРІСѓСЋ СЃР»СѓР¶Р±Сѓ</h2>
           <form onSubmit={createDepartment}>
             <div className="mb-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Название службы *
+                  РќР°Р·РІР°РЅРёРµ СЃР»СѓР¶Р±С‹ *
                 </label>
                 <input
                   type="text"
@@ -124,7 +124,7 @@ export default function DepartmentsPage() {
                 disabled={creating}
                 className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md disabled:opacity-50"
               >
-                {creating ? 'Создание...' : 'Создать'}
+                {creating ? 'РЎРѕР·РґР°РЅРёРµ...' : 'РЎРѕР·РґР°С‚СЊ'}
               </button>
               <button
                 type="button"
@@ -134,7 +134,7 @@ export default function DepartmentsPage() {
                 }}
                 className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-md"
               >
-                Отмена
+                РћС‚РјРµРЅР°
               </button>
             </div>
           </form>
@@ -156,9 +156,9 @@ export default function DepartmentsPage() {
               <button
                 onClick={() => deleteDepartment(department.id, department.name)}
                 className="text-red-500 hover:text-red-700 text-sm"
-                title="Удалить службу"
+                title="РЈРґР°Р»РёС‚СЊ СЃР»СѓР¶Р±Сѓ"
               >
-                ✕
+                вњ•
               </button>
             </div>
             <div className="flex gap-2">
@@ -166,13 +166,13 @@ export default function DepartmentsPage() {
                 href={`/departments/${department.id}`}
                 className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm"
               >
-                Просмотр
+                РџСЂРѕСЃРјРѕС‚СЂ
               </Link>
               <Link
                 href={`/departments/${department.id}/edit`}
                 className="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded text-sm"
               >
-                Редактировать
+                Р РµРґР°РєС‚РёСЂРѕРІР°С‚СЊ
               </Link>
             </div>
           </div>
@@ -181,15 +181,16 @@ export default function DepartmentsPage() {
 
       {departments.length === 0 && !loading && (
         <div className="text-center py-12">
-          <p className="text-gray-500 text-lg">Службы не найдены</p>
+          <p className="text-gray-500 text-lg">РЎР»СѓР¶Р±С‹ РЅРµ РЅР°Р№РґРµРЅС‹</p>
           <button
             onClick={() => setShowCreateForm(true)}
             className="mt-4 bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-md"
           >
-            Создать первую службу
+            РЎРѕР·РґР°С‚СЊ РїРµСЂРІСѓСЋ СЃР»СѓР¶Р±Сѓ
           </button>
         </div>
       )}
     </div>
   );
 }
+

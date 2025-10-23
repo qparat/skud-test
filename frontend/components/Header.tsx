@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useEffect } from 'react'
 import { RefreshCw, Wifi, WifiOff } from 'lucide-react'
@@ -33,7 +33,7 @@ export function Header() {
       <div className="flex items-center justify-between h-16 px-6">
         <div className="flex items-center space-x-4">
           <h2 className="text-lg font-semibold text-gray-900">
-            Система контроля доступа
+            РЎРёСЃС‚РµРјР° РєРѕРЅС‚СЂРѕР»СЏ РґРѕСЃС‚СѓРїР°
           </h2>
         </div>
         
@@ -49,14 +49,14 @@ export function Header() {
               <WifiOff className="h-4 w-4 text-red-500" />
             )}
             <span className="text-sm text-gray-600">
-              {isOnline ? 'Подключено' : 'Нет связи'}
+              {isOnline ? 'РџРѕРґРєР»СЋС‡РµРЅРѕ' : 'РќРµС‚ СЃРІСЏР·Рё'}
             </span>
           </div>
           
           <button
             onClick={handleRefresh}
             className="p-2 text-gray-400 hover:text-gray-600 rounded-md hover:bg-gray-100"
-            title="Обновить данные"
+            title="РћР±РЅРѕРІРёС‚СЊ РґР°РЅРЅС‹Рµ"
           >
             <RefreshCw className="h-4 w-4" />
           </button>
@@ -65,3 +65,4 @@ export function Header() {
     </header>
   )
 }
+

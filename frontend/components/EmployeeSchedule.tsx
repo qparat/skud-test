@@ -1,9 +1,10 @@
-'use client'
+﻿'use client'
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Calendar, Clock, MapPin, User, Download } from 'lucide-react'
 import * as XLSX from 'xlsx'
+import { apiRequest } from '@/lib/api'
 
 interface Employee {
   employee_id: number
@@ -43,31 +44,26 @@ export function EmployeeSchedule() {
     setError(null)
     
     try {
-      const url = date 
-        ? `http://localhost:8004/employee-schedule?date=${date}`
-        : `http://localhost:8004/employee-schedule`
+      const endpoint = date 
+        ? `employee-schedule?date=${date}`
+        : `employee-schedule`
         
-      const response = await fetch(url)
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
-      }
-      
-      const data = await response.json()
+      const data = await apiRequest(endpoint)
       setScheduleData(data)
       
-      // Если дата не была установлена, устанавливаем дату из ответа API
+      // Р•СЃР»Рё РґР°С‚Р° РЅРµ Р±С‹Р»Р° СѓСЃС‚Р°РЅРѕРІР»РµРЅР°, СѓСЃС‚Р°РЅР°РІР»РёРІР°РµРј РґР°С‚Сѓ РёР· РѕС‚РІРµС‚Р° API
       if (!date && data.date) {
         setCurrentDate(data.date)
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Ошибка загрузки данных')
-      console.error('Ошибка загрузки расписания:', err)
+      setError(err instanceof Error ? err.message : 'РћС€РёР±РєР° Р·Р°РіСЂСѓР·РєРё РґР°РЅРЅС‹С…')
+      console.error('РћС€РёР±РєР° Р·Р°РіСЂСѓР·РєРё СЂР°СЃРїРёСЃР°РЅРёСЏ:', err)
     } finally {
       setLoading(false)
     }
   }
 
-  // Первоначальная загрузка без указания даты - API выберет последнюю доступную
+  // РџРµСЂРІРѕРЅР°С‡Р°Р»СЊРЅР°СЏ Р·Р°РіСЂСѓР·РєР° Р±РµР· СѓРєР°Р·Р°РЅРёСЏ РґР°С‚С‹ - API РІС‹Р±РµСЂРµС‚ РїРѕСЃР»РµРґРЅСЋСЋ РґРѕСЃС‚СѓРїРЅСѓСЋ
   useEffect(() => {
     if (!initialized) {
       fetchSchedule()
@@ -75,7 +71,7 @@ export function EmployeeSchedule() {
     }
   }, [initialized])
 
-  // Загрузка при изменении даты пользователем
+  // Р—Р°РіСЂСѓР·РєР° РїСЂРё РёР·РјРµРЅРµРЅРёРё РґР°С‚С‹ РїРѕР»СЊР·РѕРІР°С‚РµР»РµРј
   useEffect(() => {
     if (currentDate && initialized) {
       fetchSchedule(currentDate)
@@ -88,46 +84,46 @@ export function EmployeeSchedule() {
 
   const exportToExcel = () => {
     if (!scheduleData || !scheduleData.employees.length) {
-      alert('Нет данных для экспорта')
+      alert('РќРµС‚ РґР°РЅРЅС‹С… РґР»СЏ СЌРєСЃРїРѕСЂС‚Р°')
       return
     }
 
-    // Подготавливаем данные для Excel
+    // РџРѕРґРіРѕС‚Р°РІР»РёРІР°РµРј РґР°РЅРЅС‹Рµ РґР»СЏ Excel
     const excelData = scheduleData.employees.map((employee, index) => ({
-      '№': index + 1,
-      'ФИО': employee.full_name,
-      'Пришел': employee.first_entry || '-',
-      'Ушел': employee.last_exit || '-',
-      'Часы работы': employee.work_hours ? `${employee.work_hours.toFixed(1)} ч` : '-',
-      'Статус': employee.status || (employee.is_late ? 'Опоздал' : 'В норме'),
-      'Опоздание (мин)': employee.is_late ? employee.late_minutes : 0,
+      'в„–': index + 1,
+      'Р¤РРћ': employee.full_name,
+      'РџСЂРёС€РµР»': employee.first_entry || '-',
+      'РЈС€РµР»': employee.last_exit || '-',
+      'Р§Р°СЃС‹ СЂР°Р±РѕС‚С‹': employee.work_hours ? `${employee.work_hours.toFixed(1)} С‡` : '-',
+      'РЎС‚Р°С‚СѓСЃ': employee.status || (employee.is_late ? 'РћРїРѕР·РґР°Р»' : 'Р’ РЅРѕСЂРјРµ'),
+      'РћРїРѕР·РґР°РЅРёРµ (РјРёРЅ)': employee.is_late ? employee.late_minutes : 0,
     }))
 
-    // Создаем рабочую книгу
+    // РЎРѕР·РґР°РµРј СЂР°Р±РѕС‡СѓСЋ РєРЅРёРіСѓ
     const ws = XLSX.utils.json_to_sheet(excelData)
     const wb = XLSX.utils.book_new()
     
-    // Настраиваем ширину колонок
+    // РќР°СЃС‚СЂР°РёРІР°РµРј С€РёСЂРёРЅСѓ РєРѕР»РѕРЅРѕРє
     const colWidths = [
-      { wch: 5 },   // №
-      { wch: 25 },  // ФИО
-      { wch: 12 },  // Пришел
-      { wch: 15 },  // Место входа
-      { wch: 12 },  // Ушел
-      { wch: 15 },  // Место выхода
-      { wch: 12 },  // Часы работы
-      { wch: 15 },  // Статус
-      { wch: 12 },  // Опоздание
-      { wch: 20 }   // Исключение
+      { wch: 5 },   // в„–
+      { wch: 25 },  // Р¤РРћ
+      { wch: 12 },  // РџСЂРёС€РµР»
+      { wch: 15 },  // РњРµСЃС‚Рѕ РІС…РѕРґР°
+      { wch: 12 },  // РЈС€РµР»
+      { wch: 15 },  // РњРµСЃС‚Рѕ РІС‹С…РѕРґР°
+      { wch: 12 },  // Р§Р°СЃС‹ СЂР°Р±РѕС‚С‹
+      { wch: 15 },  // РЎС‚Р°С‚СѓСЃ
+      { wch: 12 },  // РћРїРѕР·РґР°РЅРёРµ
+      { wch: 20 }   // РСЃРєР»СЋС‡РµРЅРёРµ
     ]
     ws['!cols'] = colWidths
 
-    XLSX.utils.book_append_sheet(wb, ws, 'Расписание')
+    XLSX.utils.book_append_sheet(wb, ws, 'Р Р°СЃРїРёСЃР°РЅРёРµ')
     
-    // Генерируем имя файла с датой
-    const fileName = `Расписание_сотрудников_${scheduleData.date}.xlsx`
+    // Р“РµРЅРµСЂРёСЂСѓРµРј РёРјСЏ С„Р°Р№Р»Р° СЃ РґР°С‚РѕР№
+    const fileName = `Р Р°СЃРїРёСЃР°РЅРёРµ_СЃРѕС‚СЂСѓРґРЅРёРєРѕРІ_${scheduleData.date}.xlsx`
     
-    // Скачиваем файл
+    // РЎРєР°С‡РёРІР°РµРј С„Р°Р№Р»
     XLSX.writeFile(wb, fileName)
   }
 
@@ -136,7 +132,7 @@ export function EmployeeSchedule() {
       {/* Date selector */}
       <div className="bg-white rounded-lg shadow p-6">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-medium text-gray-900">Выберите дату</h3>
+          <h3 className="text-lg font-medium text-gray-900">Р’С‹Р±РµСЂРёС‚Рµ РґР°С‚Сѓ</h3>
           <input
             type="date"
             value={currentDate}
@@ -154,7 +150,7 @@ export function EmployeeSchedule() {
               <div className="flex items-center">
                 <User className="h-8 w-8 text-blue-600" />
                 <div className="ml-3">
-                  <p className="text-sm font-medium text-blue-600">Всего сотрудников</p>
+                  <p className="text-sm font-medium text-blue-600">Р’СЃРµРіРѕ СЃРѕС‚СЂСѓРґРЅРёРєРѕРІ</p>
                   <p className="text-2xl font-bold text-blue-900">{scheduleData.total_count}</p>
                 </div>
               </div>
@@ -164,7 +160,7 @@ export function EmployeeSchedule() {
               <div className="flex items-center">
                 <Clock className="h-8 w-8 text-red-600" />
                 <div className="ml-3">
-                  <p className="text-sm font-medium text-red-600">Опозданий</p>
+                  <p className="text-sm font-medium text-red-600">РћРїРѕР·РґР°РЅРёР№</p>
                   <p className="text-2xl font-bold text-red-900">{scheduleData.late_count}</p>
                 </div>
               </div>
@@ -174,7 +170,7 @@ export function EmployeeSchedule() {
               <div className="flex items-center">
                 <Calendar className="h-8 w-8 text-green-600" />
                 <div className="ml-3">
-                  <p className="text-sm font-medium text-green-600">Дата</p>
+                  <p className="text-sm font-medium text-green-600">Р”Р°С‚Р°</p>
                   <p className="text-2xl font-bold text-green-900">{scheduleData.date}</p>
                 </div>
               </div>
@@ -186,14 +182,14 @@ export function EmployeeSchedule() {
       {/* Employee table */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-          <h3 className="text-lg font-medium text-gray-900">Расписание сотрудников</h3>
+          <h3 className="text-lg font-medium text-gray-900">Р Р°СЃРїРёСЃР°РЅРёРµ СЃРѕС‚СЂСѓРґРЅРёРєРѕРІ</h3>
           {scheduleData && scheduleData.employees.length > 0 && (
             <button
               onClick={exportToExcel}
               className="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
             >
               <Download className="h-4 w-4 mr-2" />
-              Выгрузить отчет
+              Р’С‹РіСЂСѓР·РёС‚СЊ РѕС‚С‡РµС‚
             </button>
           )}
         </div>
@@ -202,40 +198,40 @@ export function EmployeeSchedule() {
           {loading ? (
             <div className="p-6 text-center">
               <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-              <p className="mt-2 text-gray-600">Загрузка данных...</p>
+              <p className="mt-2 text-gray-600">Р—Р°РіСЂСѓР·РєР° РґР°РЅРЅС‹С…...</p>
             </div>
           ) : error ? (
             <div className="p-6 text-center text-red-600">
-              <p>Ошибка: {error}</p>
+              <p>РћС€РёР±РєР°: {error}</p>
               <button
                 onClick={() => fetchSchedule(currentDate)}
                 className="mt-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
               >
-                Повторить
+                РџРѕРІС‚РѕСЂРёС‚СЊ
               </button>
             </div>
           ) : scheduleData?.employees.length === 0 ? (
             <div className="p-6 text-center text-gray-600">
-              Нет данных за выбранную дату
+              РќРµС‚ РґР°РЅРЅС‹С… Р·Р° РІС‹Р±СЂР°РЅРЅСѓСЋ РґР°С‚Сѓ
             </div>
           ) : (
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    ФИО
+                    Р¤РРћ
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Пришел
+                    РџСЂРёС€РµР»
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Ушел
+                    РЈС€РµР»
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Часы работы
+                    Р§Р°СЃС‹ СЂР°Р±РѕС‚С‹
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Статус
+                    РЎС‚Р°С‚СѓСЃ
                   </th>
                 </tr>
               </thead>
@@ -280,7 +276,7 @@ export function EmployeeSchedule() {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {employee.work_hours ? `${employee.work_hours.toFixed(1)} ч` : '-'}
+                      {employee.work_hours ? `${employee.work_hours.toFixed(1)} С‡` : '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center space-x-2">
@@ -293,11 +289,11 @@ export function EmployeeSchedule() {
                               : 'bg-green-100 text-green-800'
                           }`}
                         >
-                          {employee.status || (employee.is_late ? 'Опоздал' : 'В норме')}
+                          {employee.status || (employee.is_late ? 'РћРїРѕР·РґР°Р»' : 'Р’ РЅРѕСЂРјРµ')}
                         </span>
                         {employee.exception?.has_exception && (
                           <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-purple-100 text-purple-800">
-                            🛡️ {employee.exception.reason}
+                            рџ›ЎпёЏ {employee.exception.reason}
                           </span>
                         )}
                       </div>
@@ -312,3 +308,4 @@ export function EmployeeSchedule() {
     </div>
   )
 }
+

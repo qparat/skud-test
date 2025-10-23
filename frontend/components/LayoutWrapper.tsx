@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { usePathname } from 'next/navigation'
 import { Sidebar } from '@/components/Sidebar'
@@ -11,7 +11,7 @@ interface LayoutWrapperProps {
 export function LayoutWrapper({ children }: LayoutWrapperProps) {
   const pathname = usePathname()
   
-  // Страницы, которые должны отображаться без Sidebar (только главная)
+  // РЎС‚СЂР°РЅРёС†С‹, РєРѕС‚РѕСЂС‹Рµ РґРѕР»Р¶РЅС‹ РѕС‚РѕР±СЂР°Р¶Р°С‚СЊСЃСЏ Р±РµР· Sidebar (С‚РѕР»СЊРєРѕ РіР»Р°РІРЅР°СЏ)
   const fullWidthPages = ['/']
   
   const isFullWidth = fullWidthPages.includes(pathname)
@@ -24,7 +24,7 @@ export function LayoutWrapper({ children }: LayoutWrapperProps) {
     )
   }
 
-  // Страницы отдельных сотрудников не используют стандартный layout
+  // РЎС‚СЂР°РЅРёС†С‹ РѕС‚РґРµР»СЊРЅС‹С… СЃРѕС‚СЂСѓРґРЅРёРєРѕРІ РЅРµ РёСЃРїРѕР»СЊР·СѓСЋС‚ СЃС‚Р°РЅРґР°СЂС‚РЅС‹Р№ layout
   if (pathname.startsWith('/employees/') && pathname !== '/employees') {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -45,3 +45,4 @@ export function LayoutWrapper({ children }: LayoutWrapperProps) {
     </div>
   )
 }
+

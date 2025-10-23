@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { apiRequest } from '@/lib/api';
 
 interface Department {
   id: number;
@@ -30,11 +31,7 @@ export default function EditDepartmentPage() {
   const fetchDepartment = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`http://localhost:8003/departments/${departmentId}`);
-      if (!response.ok) {
-        throw new Error('Служба не найдена');
-      }
-      const data = await response.json();
+      const data = await apiRequest(`/departments/${departmentId}`);
       setDepartment(data);
       setFormData({
         name: data.name,
@@ -53,19 +50,12 @@ export default function EditDepartmentPage() {
 
     try {
       setSaving(true);
-      const response = await fetch(`http://localhost:8003/departments/${departmentId}`, {
+      await apiRequest(`/departments/${departmentId}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({
           name: formData.name.trim(),
         }),
       });
-
-      if (!response.ok) {
-        throw new Error('Ошибка при сохранении службы');
-      }
 
       router.push(`/departments/${departmentId}`);
     } catch (err) {

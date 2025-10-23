@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, Calendar, Clock, TrendingUp, User } from 'lucide-react'
+import { apiRequest } from '@/lib/api'
 
 interface DailyRecord {
   date: string
@@ -41,12 +42,7 @@ export default function EmployeePage({ params }: EmployeePageProps) {
         setLoading(true)
         setError(null)
         
-        const response = await fetch(`http://localhost:8003/employee-history/${params.id}`)
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`)
-        }
-        
-        const data = await response.json()
+        const data = await apiRequest(`/employee-history/${params.id}`)
         setEmployeeData(data)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Ошибка загрузки данных')

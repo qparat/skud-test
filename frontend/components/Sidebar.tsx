@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -13,13 +13,13 @@ import {
 } from 'lucide-react'
 
 const navigation = [
-  { name: 'Главная панель', href: '/', icon: LayoutDashboard },
-  { name: 'Список сотрудников', href: '/employees', icon: Users },
-  { name: 'Расписание на день', href: '/schedule', icon: Calendar },
-  { name: 'Загрузка файлов', href: '/upload', icon: Upload },
-  { name: 'Службы', href: '/departments', icon: Building2 },
-  { name: 'Должности', href: '/positions', icon: Briefcase },
-  { name: 'Исключения', href: '/exceptions', icon: Shield },
+  { name: 'Р“Р»Р°РІРЅР°СЏ РїР°РЅРµР»СЊ', href: '/', icon: LayoutDashboard },
+  { name: 'РЎРїРёСЃРѕРє СЃРѕС‚СЂСѓРґРЅРёРєРѕРІ', href: '/employees', icon: Users },
+  { name: 'Р Р°СЃРїРёСЃР°РЅРёРµ РЅР° РґРµРЅСЊ', href: '/schedule', icon: Calendar },
+  { name: 'Р—Р°РіСЂСѓР·РєР° С„Р°Р№Р»РѕРІ', href: '/upload', icon: Upload },
+  { name: 'РЎР»СѓР¶Р±С‹', href: '/departments', icon: Building2 },
+  { name: 'Р”РѕР»Р¶РЅРѕСЃС‚Рё', href: '/positions', icon: Briefcase },
+  { name: 'РСЃРєР»СЋС‡РµРЅРёСЏ', href: '/exceptions', icon: Shield },
 ]
 
 export function Sidebar() {
@@ -29,7 +29,7 @@ export function Sidebar() {
     <div className="hidden md:flex md:w-64 md:flex-col">
       <div className="flex flex-col flex-grow pt-5 pb-4 overflow-y-auto bg-white border-r">
         <div className="flex items-center flex-shrink-0 px-4">
-          <h1 className="text-xl font-bold text-gray-900">🏢 СКУД Система</h1>
+          <h1 className="text-xl font-bold text-gray-900">рџЏў РЎРљРЈР” РЎРёСЃС‚РµРјР°</h1>
         </div>
         <div className="mt-5 flex-grow flex flex-col">
           <nav className="flex-1 px-2 space-y-1">
@@ -63,3 +63,4 @@ export function Sidebar() {
     </div>
   )
 }
+
