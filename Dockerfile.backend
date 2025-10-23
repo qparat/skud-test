@@ -6,12 +6,6 @@ WORKDIR /app
 # Копируем файлы requirements
 COPY requirements.txt .
 
-# Обновляем requirements.txt для FastAPI
-RUN echo "fastapi>=0.104.0" >> requirements.txt && \
-    echo "uvicorn>=0.24.0" >> requirements.txt && \
-    echo "pydantic>=2.5.0" >> requirements.txt && \
-    echo "python-multipart>=0.0.6" >> requirements.txt
-
 # Устанавливаем зависимости
 RUN pip install --no-cache-dir -r requirements.txt
 
