@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Calendar, Clock, MapPin, User, Download } from 'lucide-react'
 import * as XLSX from 'xlsx'
+import { apiRequest } from '@/lib/api'
 
 interface Employee {
   employee_id: number
@@ -43,16 +44,11 @@ export function EmployeeSchedule() {
     setError(null)
     
     try {
-      const url = date 
-        ? `http://localhost:8004/employee-schedule?date=${date}`
-        : `http://localhost:8004/employee-schedule`
+      const endpoint = date 
+        ? `employee-schedule?date=${date}`
+        : `employee-schedule`
         
-      const response = await fetch(url)
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
-      }
-      
-      const data = await response.json()
+      const data = await apiRequest(endpoint)
       setScheduleData(data)
       
       // Если дата не была установлена, устанавливаем дату из ответа API
