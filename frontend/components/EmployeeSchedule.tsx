@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Calendar, Clock, MapPin, User, Download } from 'lucide-react'
+import { Calendar, Clock, MapPin, User, Download, ChevronUp, ChevronDown } from 'lucide-react'
 import * as XLSX from 'xlsx'
 import { apiRequest } from '@/lib/api'
 
@@ -38,6 +38,7 @@ export function EmployeeSchedule() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [initialized, setInitialized] = useState(false)
+  const [sortBy, setSortBy] = useState<'none' | 'late-first' | 'normal-first'>('none')
 
   const fetchSchedule = async (date?: string) => {
     setLoading(true)
@@ -50,6 +51,9 @@ export function EmployeeSchedule() {
         
       const data = await apiRequest(endpoint)
       setScheduleData(data)
+      
+      // Сбрасываем сортировку при загрузке новых данных
+      setSortBy('none')
       
       // Если дата не была установлена, устанавливаем дату из ответа API
       if (!date && data.date) {
@@ -82,6 +86,50 @@ export function EmployeeSchedule() {
     router.push(`/employees/${employeeId}`)
   }
 
+  const handleStatusSort = () => {
+    if (sortBy === 'none') {
+      setSortBy('late-first')
+    } else if (sortBy === 'late-first') {
+      setSortBy('normal-first')
+    } else {
+      setSortBy('none')
+    }
+  }
+
+  const getSortedEmployees = () => {
+    if (!scheduleData?.employees) return []
+
+    const employees = [...scheduleData.employees]
+
+    switch (sortBy) {
+      case 'late-first':
+        return employees.sort((a, b) => {
+          if (a.is_late && !b.is_late) return -1
+          if (!a.is_late && b.is_late) return 1
+          return a.full_name.localeCompare(b.full_name)
+        })
+      case 'normal-first':
+        return employees.sort((a, b) => {
+          if (!a.is_late && b.is_late) return -1
+          if (a.is_late && !b.is_late) return 1
+          return a.full_name.localeCompare(b.full_name)
+        })
+      default:
+        return employees
+    }
+  }
+
+  const getSortIcon = () => {
+    switch (sortBy) {
+      case 'late-first':
+        return <ChevronDown className="h-4 w-4" />
+      case 'normal-first':
+        return <ChevronUp className="h-4 w-4" />
+      default:
+        return null
+    }
+  }
+
   const exportToExcel = () => {
     if (!scheduleData || !scheduleData.employees.length) {
       alert('Нет данных для экспорта')
@@ -112,7 +160,7 @@ export function EmployeeSchedule() {
       { wch: 12 },  // Ушел
       { wch: 15 },  // Место выхода
       { wch: 12 },  // Часы работы
-      { wch: 15 },  // Статус
+      { wch: 25 },  // Статус
       { wch: 12 },  // Опоздание
       { wch: 20 }   // Исключение
     ]
@@ -151,7 +199,11 @@ export function EmployeeSchedule() {
                   <div className="flex items-center">
                     <Clock className="h-6 w-6 text-red-600" />
                     <div className="ml-2">
-                      <p className="text-xs font-medium text-red-600">Опозданий</p>
+                      <p className="text-xs font-medium text-red-600">
+                        Опозданий
+                        {sortBy === 'late-first' && ' (сверху)'}
+                        {sortBy === 'normal-first' && ' (снизу)'}
+                      </p>
                       <p className="text-lg font-bold text-red-900">{scheduleData.late_count}</p>
                     </div>
                   </div>
@@ -222,13 +274,26 @@ export function EmployeeSchedule() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Часы работы
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Статус
+                  <th 
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                    onClick={handleStatusSort}
+                    title={
+                      sortBy === 'none' 
+                        ? 'Нажмите для сортировки: сначала опоздавшие'
+                        : sortBy === 'late-first'
+                        ? 'Нажмите для сортировки: сначала без опозданий'
+                        : 'Нажмите для сброса сортировки'
+                    }
+                  >
+                    <div className="flex items-center space-x-1">
+                      <span>Статус</span>
+                      {getSortIcon()}
+                    </div>
                   </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {scheduleData?.employees.map((employee) => (
+                {getSortedEmployees().map((employee) => (
                   <tr
                     key={employee.employee_id}
                     className={`hover:bg-gray-50 ${employee.is_late ? 'bg-red-50' : ''}`}
