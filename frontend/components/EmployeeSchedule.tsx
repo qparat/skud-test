@@ -24,9 +24,34 @@ interface Employee {
   } | null
 }
 
+interface DayData {
+  date: string
+  first_entry: string | null
+  last_exit: string | null
+  first_entry_door: string | null
+  last_exit_door: string | null
+  is_late: boolean
+  late_minutes: number
+  work_hours: number | null
+  status: string
+  exception?: {
+    has_exception: boolean
+    reason: string
+    type: string
+  } | null
+}
+
+interface EmployeeWithDays {
+  employee_id: number
+  full_name: string
+  days: DayData[]
+}
+
 interface ScheduleData {
   date: string
-  employees: Employee[]
+  start_date?: string
+  end_date?: string
+  employees: Employee[] | EmployeeWithDays[]
   total_count: number
   late_count: number
 }
@@ -34,20 +59,27 @@ interface ScheduleData {
 export function EmployeeSchedule() {
   const router = useRouter()
   const [currentDate, setCurrentDate] = useState('')
+  const [startDate, setStartDate] = useState('')
+  const [endDate, setEndDate] = useState('')
+  const [isRangeMode, setIsRangeMode] = useState(false)
   const [scheduleData, setScheduleData] = useState<ScheduleData | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [initialized, setInitialized] = useState(false)
   const [sortBy, setSortBy] = useState<'none' | 'late-first' | 'normal-first'>('none')
 
-  const fetchSchedule = async (date?: string) => {
+  const fetchSchedule = async (date?: string, start?: string, end?: string) => {
     setLoading(true)
     setError(null)
     
     try {
-      const endpoint = date 
-        ? `employee-schedule?date=${date}`
-        : `employee-schedule`
+      let endpoint = 'employee-schedule'
+      
+      if (start && end) {
+        endpoint = `employee-schedule?start_date=${start}&end_date=${end}`
+      } else if (date) {
+        endpoint = `employee-schedule?date=${date}`
+      }
         
       const data = await apiRequest(endpoint)
       setScheduleData(data)
@@ -56,7 +88,7 @@ export function EmployeeSchedule() {
       setSortBy('none')
       
       // Если дата не была установлена, устанавливаем дату из ответа API
-      if (!date && data.date) {
+      if (!date && !start && data.date) {
         setCurrentDate(data.date)
       }
     } catch (err) {
@@ -77,10 +109,14 @@ export function EmployeeSchedule() {
 
   // Загрузка при изменении даты пользователем
   useEffect(() => {
-    if (currentDate && initialized) {
-      fetchSchedule(currentDate)
+    if (initialized) {
+      if (isRangeMode && startDate && endDate) {
+        fetchSchedule(undefined, startDate, endDate)
+      } else if (!isRangeMode && currentDate) {
+        fetchSchedule(currentDate)
+      }
     }
-  }, [currentDate, initialized])
+  }, [currentDate, startDate, endDate, isRangeMode, initialized])
 
   const handleEmployeeClick = (employeeId: number) => {
     router.push(`/employees/${employeeId}`)
@@ -101,21 +137,32 @@ export function EmployeeSchedule() {
 
     const employees = [...scheduleData.employees]
 
-    switch (sortBy) {
-      case 'late-first':
-        return employees.sort((a, b) => {
-          if (a.is_late && !b.is_late) return -1
-          if (!a.is_late && b.is_late) return 1
-          return a.full_name.localeCompare(b.full_name)
-        })
-      case 'normal-first':
-        return employees.sort((a, b) => {
-          if (!a.is_late && b.is_late) return -1
-          if (a.is_late && !b.is_late) return 1
-          return a.full_name.localeCompare(b.full_name)
-        })
-      default:
-        return employees
+    // Проверяем, работаем ли мы с диапазоном дат (EmployeeWithDays) или одной датой (Employee)
+    const isRangeData = employees.length > 0 && 'days' in employees[0]
+
+    if (!isRangeData) {
+      // Логика для одной даты (как было раньше)
+      switch (sortBy) {
+        case 'late-first':
+          return (employees as Employee[]).sort((a, b) => {
+            if (a.is_late && !b.is_late) return -1
+            if (!a.is_late && b.is_late) return 1
+            return a.full_name.localeCompare(b.full_name)
+          })
+        case 'normal-first':
+          return (employees as Employee[]).sort((a, b) => {
+            if (!a.is_late && b.is_late) return -1
+            if (a.is_late && !b.is_late) return 1
+            return a.full_name.localeCompare(b.full_name)
+          })
+        default:
+          return employees as Employee[]
+      }
+    } else {
+      // Логика для диапазона дат - пока сортируем только по имени
+      return (employees as EmployeeWithDays[]).sort((a, b) => 
+        a.full_name.localeCompare(b.full_name)
+      )
     }
   }
 
@@ -220,12 +267,55 @@ export function EmployeeSchedule() {
                 </div>
               </div>
             )}
-            <input
-            type="date"
-            value={currentDate}
-            onChange={(e) => setCurrentDate(e.target.value)}
-            className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2">
+                <label className="flex items-center">
+                  <input
+                    type="radio"
+                    checked={!isRangeMode}
+                    onChange={() => setIsRangeMode(false)}
+                    className="mr-1"
+                  />
+                  <span className="text-sm text-gray-700">Одна дата</span>
+                </label>
+                <label className="flex items-center">
+                  <input
+                    type="radio"
+                    checked={isRangeMode}
+                    onChange={() => setIsRangeMode(true)}
+                    className="mr-1"
+                  />
+                  <span className="text-sm text-gray-700">Диапазон</span>
+                </label>
+              </div>
+              
+              {!isRangeMode ? (
+                <input
+                  type="date"
+                  value={currentDate}
+                  onChange={(e) => setCurrentDate(e.target.value)}
+                  className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              ) : (
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="От"
+                  />
+                  <span className="text-gray-500">до</span>
+                  <input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="До"
+                  />
+                </div>
+              )}
+            </div>
             {scheduleData && scheduleData.employees.length > 0 && (
               <button
                 onClick={exportToExcel}
@@ -265,98 +355,167 @@ export function EmployeeSchedule() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     ФИО
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Пришел
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Ушел
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Часы работы
-                  </th>
-                  <th 
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
-                    onClick={handleStatusSort}
-                    title={
-                      sortBy === 'none' 
-                        ? 'Нажмите для сортировки: сначала опоздавшие'
-                        : sortBy === 'late-first'
-                        ? 'Нажмите для сортировки: сначала без опозданий'
-                        : 'Нажмите для сброса сортировки'
-                    }
-                  >
-                    <div className="flex items-center space-x-1">
-                      <span>Статус</span>
-                      {getSortIcon()}
-                    </div>
-                  </th>
+                  {!isRangeMode ? (
+                    <>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Пришел
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Ушел
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Часы работы
+                      </th>
+                      <th 
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                        onClick={handleStatusSort}
+                        title={
+                          sortBy === 'none' 
+                            ? 'Нажмите для сортировки: сначала опоздавшие'
+                            : sortBy === 'late-first'
+                            ? 'Нажмите для сортировки: сначала без опозданий'
+                            : 'Нажмите для сброса сортировки'
+                        }
+                      >
+                        <div className="flex items-center space-x-1">
+                          <span>Статус</span>
+                          {getSortIcon()}
+                        </div>
+                      </th>
+                    </>
+                  ) : (
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Данные по дням
+                    </th>
+                  )}
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {getSortedEmployees().map((employee) => (
-                  <tr
-                    key={employee.employee_id}
-                    className={`hover:bg-gray-50 ${employee.is_late ? 'bg-red-50' : ''}`}
-                  >
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <button
-                        onClick={() => handleEmployeeClick(employee.employee_id)}
-                        className={`text-left font-medium ${
-                          employee.is_late 
-                            ? 'text-red-600 hover:text-red-800' 
-                            : 'text-blue-600 hover:text-blue-800'
-                        }`}
+                {getSortedEmployees().map((employee) => {
+                  const isRangeData = 'days' in employee
+                  
+                  if (!isRangeData) {
+                    // Отображение для одной даты
+                    const emp = employee as Employee
+                    return (
+                      <tr
+                        key={emp.employee_id}
+                        className={`hover:bg-gray-50 ${emp.is_late ? 'bg-red-50' : ''}`}
                       >
-                        {employee.full_name}
-                      </button>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      <div>
-                        {employee.first_entry || '-'}
-                        {employee.first_entry_door && (
-                          <div className="flex items-center mt-1 text-xs text-gray-500">
-                            <MapPin className="h-3 w-3 mr-1" />
-                            {employee.first_entry_door}
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <button
+                            onClick={() => handleEmployeeClick(emp.employee_id)}
+                            className={`text-left font-medium ${
+                              emp.is_late 
+                                ? 'text-red-600 hover:text-red-800' 
+                                : 'text-blue-600 hover:text-blue-800'
+                            }`}
+                          >
+                            {emp.full_name}
+                          </button>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          <div>
+                            {emp.first_entry || '-'}
+                            {emp.first_entry_door && (
+                              <div className="flex items-center mt-1 text-xs text-gray-500">
+                                <MapPin className="h-3 w-3 mr-1" />
+                                {emp.first_entry_door}
+                              </div>
+                            )}
                           </div>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      <div>
-                        {employee.last_exit || '-'}
-                        {employee.last_exit_door && (
-                          <div className="flex items-center mt-1 text-xs text-gray-500">
-                            <MapPin className="h-3 w-3 mr-1" />
-                            {employee.last_exit_door}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          <div>
+                            {emp.last_exit || '-'}
+                            {emp.last_exit_door && (
+                              <div className="flex items-center mt-1 text-xs text-gray-500">
+                                <MapPin className="h-3 w-3 mr-1" />
+                                {emp.last_exit_door}
+                              </div>
+                            )}
                           </div>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {employee.work_hours ? `${employee.work_hours.toFixed(1)} ч` : '-'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center space-x-2">
-                        <span
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            employee.exception?.has_exception
-                              ? 'bg-blue-100 text-blue-800'
-                              : employee.is_late
-                              ? 'bg-red-100 text-red-800'
-                              : 'bg-green-100 text-green-800'
-                          }`}
-                        >
-                          {employee.status || (employee.is_late ? 'Опоздал' : 'В норме')}
-                        </span>
-                        {employee.exception?.has_exception && (
-                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-purple-100 text-purple-800">
-                            🛡️ {employee.exception.reason}
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {emp.work_hours ? `${emp.work_hours.toFixed(1)} ч` : '-'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center space-x-2">
+                            <span
+                              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                emp.exception?.has_exception
+                                  ? 'bg-blue-100 text-blue-800'
+                                  : emp.is_late
+                                  ? 'bg-red-100 text-red-800'
+                                  : 'bg-green-100 text-green-800'
+                              }`}
+                            >
+                              {emp.status || (emp.is_late ? 'Опоздал' : 'В норме')}
+                            </span>
+                            {emp.exception?.has_exception && (
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-purple-100 text-purple-800">
+                                🛡️ {emp.exception.reason}
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  } else {
+                    // Отображение для диапазона дат
+                    const empWithDays = employee as EmployeeWithDays
+                    return (
+                      <tr key={empWithDays.employee_id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 align-top">
+                          <button
+                            onClick={() => handleEmployeeClick(empWithDays.employee_id)}
+                            className="text-left font-medium text-blue-600 hover:text-blue-800"
+                          >
+                            {empWithDays.full_name}
+                          </button>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="space-y-2">
+                            {empWithDays.days.map((day, index) => (
+                              <div key={index} className={`p-2 rounded ${day.is_late ? 'bg-red-50' : 'bg-gray-50'} border-l-4 ${day.is_late ? 'border-red-400' : 'border-green-400'}`}>
+                                <div className="flex items-center justify-between">
+                                  <span className="font-medium text-sm text-gray-900">
+                                    {new Date(day.date).toLocaleDateString('ru-RU', { 
+                                      weekday: 'short', 
+                                      day: '2-digit', 
+                                      month: '2-digit' 
+                                    })}
+                                  </span>
+                                  <span className={`text-xs px-2 py-1 rounded ${
+                                    day.exception?.has_exception
+                                      ? 'bg-blue-100 text-blue-800'
+                                      : day.is_late
+                                      ? 'bg-red-100 text-red-800'
+                                      : 'bg-green-100 text-green-800'
+                                  }`}>
+                                    {day.status || (day.is_late ? 'Опоздал' : 'В норме')}
+                                  </span>
+                                </div>
+                                <div className="flex space-x-4 mt-1 text-xs text-gray-600">
+                                  <span>Пришел: {day.first_entry || '-'}</span>
+                                  <span>Ушел: {day.last_exit || '-'}</span>
+                                  {day.work_hours && <span>Часов: {day.work_hours.toFixed(1)}</span>}
+                                </div>
+                                {day.exception?.has_exception && (
+                                  <div className="mt-1">
+                                    <span className="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded">
+                                      🛡️ {day.exception.reason}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  }
+                })}
               </tbody>
             </table>
           )}
