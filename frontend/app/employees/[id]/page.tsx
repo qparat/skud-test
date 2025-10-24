@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Calendar, Clock, TrendingUp, User } from 'lucide-react'
+import { ArrowLeft, Calendar, Clock, TrendingUp, User, Edit2, Save, X } from 'lucide-react'
 import { apiRequest } from '@/lib/api'
 
 interface DailyRecord {
@@ -24,6 +24,24 @@ interface EmployeeHistory {
   daily_records: DailyRecord[]
 }
 
+interface EmployeeDetails {
+  id: number
+  full_name: string
+  birth_date?: string
+  card_number?: string
+  is_active: boolean
+  created_at: string
+  updated_at?: string
+  department?: {
+    id: number
+    name: string
+  }
+  position?: {
+    id: number
+    name: string
+  }
+}
+
 interface EmployeePageProps {
   params: {
     id: string
@@ -33,8 +51,14 @@ interface EmployeePageProps {
 export default function EmployeePage({ params }: EmployeePageProps) {
   const router = useRouter()
   const [employeeData, setEmployeeData] = useState<EmployeeHistory | null>(null)
+  const [employeeDetails, setEmployeeDetails] = useState<EmployeeDetails | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  
+  // Состояния для редактирования
+  const [isEditingBirthDate, setIsEditingBirthDate] = useState(false)
+  const [newBirthDate, setNewBirthDate] = useState('')
+  const [updating, setUpdating] = useState(false)
 
   useEffect(() => {
     const fetchEmployeeData = async () => {
@@ -42,8 +66,14 @@ export default function EmployeePage({ params }: EmployeePageProps) {
         setLoading(true)
         setError(null)
         
-        const data = await apiRequest(`/employee-history/${params.id}`)
-        setEmployeeData(data)
+        // Загружаем историю сотрудника и его детальную информацию параллельно
+        const [historyData, detailsData] = await Promise.all([
+          apiRequest(`/employee-history/${params.id}`),
+          apiRequest(`/employees/${params.id}`)
+        ])
+        
+        setEmployeeData(historyData)
+        setEmployeeDetails(detailsData)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Ошибка загрузки данных')
         console.error('Ошибка загрузки данных сотрудника:', err)
@@ -54,6 +84,37 @@ export default function EmployeePage({ params }: EmployeePageProps) {
 
     fetchEmployeeData()
   }, [params.id])
+
+  const handleEditBirthDate = () => {
+    setNewBirthDate(employeeDetails?.birth_date || '')
+    setIsEditingBirthDate(true)
+  }
+
+  const handleSaveBirthDate = async () => {
+    if (!employeeDetails) return
+
+    setUpdating(true)
+    try {
+      await apiRequest(`/employees/${employeeDetails.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ birth_date: newBirthDate })
+      })
+
+      // Обновляем локальное состояние
+      setEmployeeDetails(prev => prev ? { ...prev, birth_date: newBirthDate } : null)
+      setIsEditingBirthDate(false)
+    } catch (err) {
+      console.error('Ошибка обновления даты рождения:', err)
+      alert('Ошибка обновления даты рождения')
+    } finally {
+      setUpdating(false)
+    }
+  }
+
+  const handleCancelEdit = () => {
+    setIsEditingBirthDate(false)
+    setNewBirthDate('')
+  }
 
   if (loading) {
     return (
@@ -125,7 +186,15 @@ export default function EmployeePage({ params }: EmployeePageProps) {
                   <h1 className="text-xl font-semibold text-gray-900">
                     {employeeData.employee_name}
                   </h1>
-                  <p className="text-sm text-gray-500">Профиль сотрудника</p>
+                  <div className="flex items-center space-x-4 text-sm text-gray-500">
+                    <span>Профиль сотрудника</span>
+                    {employeeDetails?.birth_date && (
+                      <>
+                        <span>•</span>
+                        <span>Дата рождения: {employeeDetails.birth_date}</span>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -187,6 +256,96 @@ export default function EmployeePage({ params }: EmployeePageProps) {
             </div>
           </div>
         </div>
+
+        {/* Personal Information */}
+        {employeeDetails && (
+          <div className="bg-white rounded-lg shadow-sm border mb-8">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900">Персональная информация</h3>
+            </div>
+            <div className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <p className="text-sm text-gray-600 mb-1">ФИО</p>
+                  <p className="text-lg font-medium text-gray-900">{employeeDetails.full_name}</p>
+                </div>
+                
+                <div className="bg-blue-50 rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-1">
+                    <p className="text-sm text-gray-600">Дата рождения</p>
+                    {!isEditingBirthDate && (
+                      <button
+                        onClick={handleEditBirthDate}
+                        className="text-blue-600 hover:text-blue-800 p-1 rounded"
+                        title="Редактировать дату рождения"
+                      >
+                        <Edit2 className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
+                  
+                  {isEditingBirthDate ? (
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="date"
+                        value={newBirthDate}
+                        onChange={(e) => setNewBirthDate(e.target.value)}
+                        className="flex-1 px-2 py-1 border rounded text-sm"
+                        disabled={updating}
+                      />
+                      <button
+                        onClick={handleSaveBirthDate}
+                        disabled={updating}
+                        className="text-green-600 hover:text-green-800 p-1 rounded disabled:opacity-50"
+                        title="Сохранить"
+                      >
+                        <Save className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={handleCancelEdit}
+                        disabled={updating}
+                        className="text-red-600 hover:text-red-800 p-1 rounded disabled:opacity-50"
+                        title="Отменить"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <p className="text-lg font-medium text-blue-900">
+                      {employeeDetails.birth_date || 'Не указана'}
+                    </p>
+                  )}
+                </div>
+                
+                {employeeDetails.department && (
+                  <div className="bg-green-50 rounded-lg p-4">
+                    <p className="text-sm text-gray-600 mb-1">Отдел</p>
+                    <p className="text-lg font-medium text-green-900">{employeeDetails.department.name}</p>
+                  </div>
+                )}
+                
+                {employeeDetails.position && (
+                  <div className="bg-purple-50 rounded-lg p-4">
+                    <p className="text-sm text-gray-600 mb-1">Должность</p>
+                    <p className="text-lg font-medium text-purple-900">{employeeDetails.position.name}</p>
+                  </div>
+                )}
+                
+                {employeeDetails.card_number && (
+                  <div className="bg-orange-50 rounded-lg p-4">
+                    <p className="text-sm text-gray-600 mb-1">Номер карты</p>
+                    <p className="text-lg font-medium text-orange-900">{employeeDetails.card_number}</p>
+                  </div>
+                )}
+                
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <p className="text-sm text-gray-600 mb-1">ID сотрудника</p>
+                  <p className="text-lg font-medium text-gray-900">{employeeDetails.id}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Average Stats */}
         <div className="bg-white rounded-lg shadow-sm border mb-8">

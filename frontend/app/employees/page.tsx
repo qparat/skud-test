@@ -183,6 +183,11 @@ export default function EmployeesPage() {
                           <p className="text-xs text-gray-500 truncate">
                             {employee.position}
                           </p>
+                          {employee.birth_date && (
+                            <p className="text-xs text-blue-600 truncate">
+                              Дата рождения: {employee.birth_date}
+                            </p>
+                          )}
                           <p className="text-xs text-gray-400">
                             ID: {employee.employee_id}
                           </p>
