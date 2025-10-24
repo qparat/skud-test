@@ -261,7 +261,6 @@ def require_role(min_role: int = 3):
             )
         return user
     return decorator
-        return False
 
 def get_employee_status(is_late, first_entry, exception_info):
     """Определяет статус сотрудника с учетом исключений"""

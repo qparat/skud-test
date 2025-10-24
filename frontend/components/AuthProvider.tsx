@@ -1,7 +1,7 @@
 'use client'
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
-import { apiRequest } from './api'
+import { apiRequest } from '../lib/api'
 
 export interface User {
   id: number

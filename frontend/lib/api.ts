@@ -1,5 +1,5 @@
 ﻿// API Configuration
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8002'
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api'
 
 // Get auth token from localStorage
 const getAuthToken = (): string | null => {
