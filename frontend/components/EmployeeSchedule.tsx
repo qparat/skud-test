@@ -76,7 +76,7 @@ export function EmployeeSchedule() {
       let endpoint = 'employee-schedule'
       
       if (start && end) {
-        endpoint = `employee-schedule?start_date=${start}&end_date=${end}`
+        endpoint = `employee-schedule-range?start_date=${start}&end_date=${end}`
       } else if (date) {
         endpoint = `employee-schedule?date=${date}`
       }
@@ -295,8 +295,15 @@ export function EmployeeSchedule() {
                   <div className="flex items-center">
                     <Calendar className="h-6 w-6 text-green-600" />
                     <div className="ml-2">
-                      <p className="text-xs font-medium text-green-600">Дата</p>
-                      <p className="text-lg font-bold text-green-900">{scheduleData.date}</p>
+                      <p className="text-xs font-medium text-green-600">
+                        {isRangeMode ? 'Период' : 'Дата'}
+                      </p>
+                      <p className="text-lg font-bold text-green-900">
+                        {isRangeMode && scheduleData.start_date && scheduleData.end_date 
+                          ? `${scheduleData.start_date} - ${scheduleData.end_date}`
+                          : scheduleData.date
+                        }
+                      </p>
                     </div>
                   </div>
                 </div>

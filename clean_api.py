@@ -257,6 +257,159 @@ async def get_employee_schedule(date: Optional[str] = Query(None)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка получения расписания: {str(e)}")
 
+@app.get("/employee-schedule-range")
+async def get_employee_schedule_range(start_date: str = Query(...), end_date: str = Query(...)):
+    """Расписание всех сотрудников за диапазон дат с детализацией по дням"""
+    try:
+        from datetime import datetime, timedelta
+        
+        # Валидация дат
+        try:
+            start_dt = datetime.strptime(start_date, '%Y-%m-%d').date()
+            end_dt = datetime.strptime(end_date, '%Y-%m-%d').date()
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Неверный формат даты. Используйте YYYY-MM-DD")
+        
+        if start_dt > end_dt:
+            raise HTTPException(status_code=400, detail="Начальная дата не может быть позже конечной")
+        
+        # Ограничение на диапазон (максимум 31 день)
+        if (end_dt - start_dt).days > 31:
+            raise HTTPException(status_code=400, detail="Максимальный диапазон - 31 день")
+        
+        conn = sqlite3.connect("real_skud_data.db")
+        cursor = conn.cursor()
+        
+        # Получаем всех активных сотрудников
+        cursor.execute("""
+            SELECT id, full_name 
+            FROM employees 
+            WHERE is_active = 1
+            AND full_name NOT IN ('Охрана М.', '1 пост о.', '2 пост о.', 'Крыша К.', 'Водитель 1 В.', 'Водитель 2 В.', 'Дежурный в.', 'Дежурный В.')
+            ORDER BY full_name
+        """)
+        employees = cursor.fetchall()
+        
+        employees_with_days = []
+        total_late_count = 0
+        
+        for emp_id, emp_name in employees:
+            employee_days = []
+            
+            # Проходим по каждому дню в диапазоне
+            current_date = start_dt
+            while current_date <= end_dt:
+                date_str = current_date.strftime('%Y-%m-%d')
+                
+                # Получаем записи доступа за день для этого сотрудника
+                cursor.execute("""
+                    SELECT TIME(access_datetime) as access_time, door_location
+                    FROM access_logs
+                    WHERE employee_id = ? AND DATE(access_datetime) = ?
+                    ORDER BY access_datetime ASC
+                """, (emp_id, date_str))
+                
+                day_logs = cursor.fetchall()
+                
+                if day_logs:
+                    first_entry = day_logs[0][0]
+                    last_exit = day_logs[-1][0]
+                    first_entry_door = day_logs[0][1]
+                    last_exit_door = day_logs[-1][1]
+                    
+                    # Проверка опоздания (после 09:00)
+                    entry_time = datetime.strptime(first_entry, '%H:%M:%S').time()
+                    work_start = datetime.strptime('09:00:00', '%H:%M:%S').time()
+                    is_late = entry_time > work_start
+                    
+                    late_minutes = 0
+                    if is_late:
+                        entry_datetime = datetime.combine(current_date, entry_time)
+                        work_start_datetime = datetime.combine(current_date, work_start)
+                        late_minutes = int((entry_datetime - work_start_datetime).total_seconds() / 60)
+                        total_late_count += 1
+                    
+                    # Расчет рабочих часов
+                    work_hours = None
+                    if first_entry and last_exit:
+                        try:
+                            first_dt = datetime.strptime(first_entry, '%H:%M:%S')
+                            last_dt = datetime.strptime(last_exit, '%H:%M:%S')
+                            if last_dt > first_dt:
+                                work_duration = last_dt - first_dt
+                                work_hours = work_duration.total_seconds() / 3600
+                        except:
+                            pass
+                    
+                    # Проверка исключений
+                    cursor.execute("""
+                        SELECT reason, exception_type
+                        FROM employee_exceptions
+                        WHERE employee_id = ? AND exception_date = ?
+                    """, (emp_id, date_str))
+                    exception_data = cursor.fetchone()
+                    
+                    exception_info = None
+                    if exception_data:
+                        exception_info = {
+                            'has_exception': True,
+                            'reason': exception_data[0],
+                            'type': exception_data[1]
+                        }
+                    
+                    status = get_employee_status(is_late, first_entry, exception_info)
+                    
+                    day_data = {
+                        'date': date_str,
+                        'first_entry': first_entry,
+                        'last_exit': last_exit,
+                        'first_entry_door': first_entry_door,
+                        'last_exit_door': last_exit_door,
+                        'is_late': is_late,
+                        'late_minutes': late_minutes,
+                        'work_hours': work_hours,
+                        'status': status,
+                        'exception': exception_info
+                    }
+                else:
+                    # Нет записей за день
+                    day_data = {
+                        'date': date_str,
+                        'first_entry': None,
+                        'last_exit': None,
+                        'first_entry_door': None,
+                        'last_exit_door': None,
+                        'is_late': False,
+                        'late_minutes': 0,
+                        'work_hours': None,
+                        'status': 'Отсутствовал',
+                        'exception': None
+                    }
+                
+                employee_days.append(day_data)
+                current_date += timedelta(days=1)
+            
+            employees_with_days.append({
+                'employee_id': emp_id,
+                'full_name': emp_name,
+                'days': employee_days
+            })
+        
+        conn.close()
+        
+        return {
+            'start_date': start_date,
+            'end_date': end_date,
+            'employees': employees_with_days,
+            'total_count': len(employees_with_days),
+            'late_count': total_late_count
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка получения расписания за период: {str(e)}")
+
 @app.get("/employee-history/{employee_id}")
 async def get_employee_history(
     employee_id: int, 
