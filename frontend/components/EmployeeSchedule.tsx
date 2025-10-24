@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Calendar, Clock, MapPin, User, Download } from 'lucide-react'
 import * as XLSX from 'xlsx'
-import { apiRequest } from '@/lib/api'
 
 interface Employee {
   employee_id: number
@@ -44,14 +43,19 @@ export function EmployeeSchedule() {
     setError(null)
     
     try {
-      const endpoint = date 
-        ? `employee-schedule?date=${date}`
-        : `employee-schedule`
+      const url = date 
+        ? `http://localhost:8004/employee-schedule?date=${date}`
+        : `http://localhost:8004/employee-schedule`
         
-      const data = await apiRequest(endpoint)
+      const response = await fetch(url)
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+      }
+      
+      const data = await response.json()
       setScheduleData(data)
       
- // Если дата не была установлена, устанавливаем дату из ответа API
+      // Если дата не была установлена, устанавливаем дату из ответа API
       if (!date && data.date) {
         setCurrentDate(data.date)
       }
@@ -63,7 +67,7 @@ export function EmployeeSchedule() {
     }
   }
 
-    // Первоначальная загрузка без указания даты - API выберет последнюю доступную
+  // Первоначальная загрузка без указания даты - API выберет последнюю доступную
   useEffect(() => {
     if (!initialized) {
       fetchSchedule()
@@ -71,7 +75,7 @@ export function EmployeeSchedule() {
     }
   }, [initialized])
 
-   // Загрузка при изменении даты пользователем
+  // Загрузка при изменении даты пользователем
   useEffect(() => {
     if (currentDate && initialized) {
       fetchSchedule(currentDate)
@@ -88,9 +92,9 @@ export function EmployeeSchedule() {
       return
     }
 
- // Подготавливаем данные для Excel
+    // Подготавливаем данные для Excel
     const excelData = scheduleData.employees.map((employee, index) => ({
-'№': index + 1,
+      '№': index + 1,
       'ФИО': employee.full_name,
       'Пришел': employee.first_entry || '-',
       'Ушел': employee.last_exit || '-',
@@ -99,13 +103,13 @@ export function EmployeeSchedule() {
       'Опоздание (мин)': employee.is_late ? employee.late_minutes : 0,
     }))
 
-  // Создаем рабочую книгу
+    // Создаем рабочую книгу
     const ws = XLSX.utils.json_to_sheet(excelData)
     const wb = XLSX.utils.book_new()
     
-// Настраиваем ширину колонок
+    // Настраиваем ширину колонок
     const colWidths = [
-         { wch: 5 },   // №
+      { wch: 5 },   // №
       { wch: 25 },  // ФИО
       { wch: 12 },  // Пришел
       { wch: 15 },  // Место входа
@@ -118,9 +122,9 @@ export function EmployeeSchedule() {
     ]
     ws['!cols'] = colWidths
 
-       XLSX.utils.book_append_sheet(wb, ws, 'Расписание')
+    XLSX.utils.book_append_sheet(wb, ws, 'Расписание')
     
- // Генерируем имя файла с датой
+    // Генерируем имя файла с датой
     const fileName = `Расписание_сотрудников_${scheduleData.date}.xlsx`
     
     // Скачиваем файл
@@ -132,7 +136,7 @@ export function EmployeeSchedule() {
       {/* Date selector */}
       <div className="bg-white rounded-lg shadow p-6">
         <div className="flex items-center justify-between">
-           <h3 className="text-lg font-medium text-gray-900">Выберите дату</h3>
+          <h3 className="text-lg font-medium text-gray-900">Выберите дату</h3>
           <input
             type="date"
             value={currentDate}
@@ -142,49 +146,54 @@ export function EmployeeSchedule() {
         </div>
       </div>
 
-      {/* Employee table */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-          <h3 className="text-lg font-medium text-gray-900">Расписание сотрудников</h3>
-          {/* Statistics */}
+      {/* Statistics */}
       {scheduleData && (
-            <div className="">
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-blue-50 p-4 rounded-lg">
               <div className="flex items-center">
                 <User className="h-8 w-8 text-blue-600" />
                 <div className="ml-3">
-                           <p className="text-sm font-medium text-blue-600">Всего сотрудников</p>
+                  <p className="text-sm font-medium text-blue-600">Всего сотрудников</p>
                   <p className="text-2xl font-bold text-blue-900">{scheduleData.total_count}</p>
                 </div>
               </div>
             </div>
             
-            <div className="">
+            <div className="bg-red-50 p-4 rounded-lg">
               <div className="flex items-center">
                 <Clock className="h-8 w-8 text-red-600" />
                 <div className="ml-3">
-            <p className="text-sm font-medium text-red-600">Опозданий</p>
+                  <p className="text-sm font-medium text-red-600">Опозданий</p>
                   <p className="text-2xl font-bold text-red-900">{scheduleData.late_count}</p>
                 </div>
               </div>
             </div>
             
-            <div className="">
+            <div className="bg-green-50 p-4 rounded-lg">
               <div className="flex items-center">
                 <Calendar className="h-8 w-8 text-green-600" />
                 <div className="ml-3">
-           <p className="text-sm font-medium text-green-600">Дата</p>
+                  <p className="text-sm font-medium text-green-600">Дата</p>
                   <p className="text-2xl font-bold text-green-900">{scheduleData.date}</p>
                 </div>
               </div>
             </div>
+          </div>
+        </div>
       )}
+
+      {/* Employee table */}
+      <div className="bg-white rounded-lg shadow overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+          <h3 className="text-lg font-medium text-gray-900">Расписание сотрудников</h3>
           {scheduleData && scheduleData.employees.length > 0 && (
             <button
               onClick={exportToExcel}
               className="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
             >
               <Download className="h-4 w-4 mr-2" />
-                Выгрузить отчет
+              Выгрузить отчет
             </button>
           )}
         </div>
@@ -193,21 +202,21 @@ export function EmployeeSchedule() {
           {loading ? (
             <div className="p-6 text-center">
               <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-               <p className="mt-2 text-gray-600">Загрузка данных...</p>
+              <p className="mt-2 text-gray-600">Загрузка данных...</p>
             </div>
           ) : error ? (
             <div className="p-6 text-center text-red-600">
-     <p>Ошибка: {error}</p>
+              <p>Ошибка: {error}</p>
               <button
                 onClick={() => fetchSchedule(currentDate)}
                 className="mt-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
               >
-                  Повторить
+                Повторить
               </button>
             </div>
           ) : scheduleData?.employees.length === 0 ? (
             <div className="p-6 text-center text-gray-600">
-             Нет данных за выбранную дату
+              Нет данных за выбранную дату
             </div>
           ) : (
             <table className="min-w-full divide-y divide-gray-200">
@@ -217,16 +226,16 @@ export function EmployeeSchedule() {
                     ФИО
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Пришел
+                    Пришел
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                             Ушел
+                    Ушел
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-               Часы работы
+                    Часы работы
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                   Статус
+                    Статус
                   </th>
                 </tr>
               </thead>
@@ -271,7 +280,7 @@ export function EmployeeSchedule() {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                {employee.work_hours ? `${employee.work_hours.toFixed(1)} ч` : '-'}
+                      {employee.work_hours ? `${employee.work_hours.toFixed(1)} ч` : '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center space-x-2">
@@ -284,7 +293,7 @@ export function EmployeeSchedule() {
                               : 'bg-green-100 text-green-800'
                           }`}
                         >
-      {employee.status || (employee.is_late ? 'Опоздал' : 'В норме')}
+                          {employee.status || (employee.is_late ? 'Опоздал' : 'В норме')}
                         </span>
                         {employee.exception?.has_exception && (
                           <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-purple-100 text-purple-800">
@@ -303,4 +312,3 @@ export function EmployeeSchedule() {
     </div>
   )
 }
-
