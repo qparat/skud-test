@@ -11,7 +11,6 @@ import {
   Briefcase,
   Shield,
   Upload,
-  LogIn,
   UserCog
 } from 'lucide-react'
 
@@ -24,7 +23,6 @@ const navigation = [
   { name: 'Должности', href: '/positions', icon: Briefcase },
   { name: 'Исключения', href: '/exceptions', icon: Shield },
   { name: 'Пользователи', href: '/users', icon: UserCog, requireRole: 2 },
-  { name: 'Войти', href: '/login', icon: LogIn },
 ]
 
 export function Sidebar() {
