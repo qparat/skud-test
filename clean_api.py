@@ -312,22 +312,36 @@ async def get_employee_schedule_range(start_date: str = Query(...), end_date: st
                 day_logs = cursor.fetchall()
                 
                 if day_logs:
-                    first_entry = day_logs[0][0]
-                    last_exit = day_logs[-1][0]
-                    first_entry_door = day_logs[0][1]
-                    last_exit_door = day_logs[-1][1]
+                    # Разделяем на входы и выходы
+                    entries = []
+                    exits = []
+                    
+                    for access_time, door_location in day_logs:
+                        if 'выход' in door_location.lower() or 'exit' in door_location.lower():
+                            exits.append((access_time, door_location))
+                        else:
+                            entries.append((access_time, door_location))
+                    
+                    # Первый вход и последний выход
+                    first_entry = min(entries)[0] if entries else None
+                    first_entry_door = min(entries)[1] if entries else None
+                    last_exit = max(exits)[0] if exits else None
+                    last_exit_door = max(exits)[1] if exits else None
                     
                     # Проверка опоздания (после 09:00)
-                    entry_time = datetime.strptime(first_entry, '%H:%M:%S').time()
-                    work_start = datetime.strptime('09:00:00', '%H:%M:%S').time()
-                    is_late = entry_time > work_start
-                    
+                    is_late = False
                     late_minutes = 0
-                    if is_late:
-                        entry_datetime = datetime.combine(current_date, entry_time)
-                        work_start_datetime = datetime.combine(current_date, work_start)
-                        late_minutes = int((entry_datetime - work_start_datetime).total_seconds() / 60)
-                        total_late_count += 1
+                    
+                    if first_entry:
+                        entry_time = datetime.strptime(first_entry, '%H:%M:%S').time()
+                        work_start = datetime.strptime('09:00:00', '%H:%M:%S').time()
+                        is_late = entry_time > work_start
+                        
+                        if is_late:
+                            entry_datetime = datetime.combine(current_date, entry_time)
+                            work_start_datetime = datetime.combine(current_date, work_start)
+                            late_minutes = int((entry_datetime - work_start_datetime).total_seconds() / 60)
+                            total_late_count += 1
                     
                     # Расчет рабочих часов
                     work_hours = None
