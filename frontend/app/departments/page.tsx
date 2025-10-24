@@ -76,14 +76,14 @@ export default function DepartmentsPage() {
 
   if (loading) {
     return (
-      <div className="container mx-auto px-4 py-8">
+      <div className="container">
         <div className="text-center">Загрузка служб...</div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Управление службами</h1>
         <button
