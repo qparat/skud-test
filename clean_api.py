@@ -335,8 +335,8 @@ async def startup_event():
 # ================================
 
 @app.post("/register", response_model=UserResponse)
-async def register(user: UserCreate):
-    """Регистрация нового пользователя"""
+async def register(user: UserCreate, current_user: dict = Depends(require_role(0))):
+    """Регистрация нового пользователя (только для root)"""
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -446,6 +446,177 @@ async def get_me(current_user: dict = Depends(get_current_user)):
         is_active=current_user["is_active"],
         created_at=""
     )
+
+@app.get("/users")
+async def get_users(current_user: dict = Depends(require_role(2))):
+    """Получение списка всех пользователей (для superadmin и выше)"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT u.id, u.username, u.email, u.full_name, u.role, u.is_active, 
+                   u.created_at, r.name as role_name
+            FROM users u
+            LEFT JOIN roles r ON u.role = r.id
+            ORDER BY u.created_at DESC
+        """)
+        
+        users = []
+        for row in cursor.fetchall():
+            users.append({
+                "id": row[0],
+                "username": row[1],
+                "email": row[2],
+                "full_name": row[3],
+                "role": row[4],
+                "is_active": row[5],
+                "created_at": row[6],
+                "role_name": row[7] if row[7] else f"Роль {row[4]}"
+            })
+        
+        conn.close()
+        return {"users": users}
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка получения пользователей: {str(e)}")
+
+@app.put("/users/{user_id}")
+async def update_user(user_id: int, updates: dict, current_user: dict = Depends(require_role(2))):
+    """Обновление пользователя (для superadmin и выше)"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Проверяем существование пользователя
+        cursor.execute("SELECT id, role FROM users WHERE id = ?", (user_id,))
+        target_user = cursor.fetchone()
+        if not target_user:
+            raise HTTPException(status_code=404, detail="Пользователь не найден")
+        
+        # Запрещаем обычным superadmin изменять root пользователей
+        if current_user["role"] > 0 and target_user[1] == 0:
+            raise HTTPException(status_code=403, detail="Недостаточно прав для изменения root пользователя")
+        
+        # Создаем запрос обновления
+        update_fields = []
+        update_values = []
+        
+        allowed_fields = ["username", "email", "full_name", "role", "is_active"]
+        for field in allowed_fields:
+            if field in updates:
+                update_fields.append(f"{field} = ?")
+                update_values.append(updates[field])
+        
+        if not update_fields:
+            raise HTTPException(status_code=400, detail="Нет полей для обновления")
+        
+        # Обновляем пароль отдельно, если передан
+        if "password" in updates:
+            update_fields.append("password_hash = ?")
+            update_values.append(hash_password(updates["password"]))
+        
+        update_values.append(user_id)
+        
+        cursor.execute(f"""
+            UPDATE users SET {', '.join(update_fields)}
+            WHERE id = ?
+        """, update_values)
+        
+        conn.commit()
+        conn.close()
+        
+        return {"message": "Пользователь обновлен"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка обновления пользователя: {str(e)}")
+
+@app.delete("/users/{user_id}")
+async def delete_user(user_id: int, current_user: dict = Depends(require_role(0))):
+    """Удаление пользователя (только для root)"""
+    try:
+        if user_id == current_user["id"]:
+            raise HTTPException(status_code=400, detail="Нельзя удалить самого себя")
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Проверяем существование пользователя
+        cursor.execute("SELECT id FROM users WHERE id = ?", (user_id,))
+        if not cursor.fetchone():
+            raise HTTPException(status_code=404, detail="Пользователь не найден")
+        
+        # Удаляем пользователя
+        cursor.execute("DELETE FROM users WHERE id = ?", (user_id,))
+        
+        conn.commit()
+        conn.close()
+        
+        return {"message": "Пользователь удален"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка удаления пользователя: {str(e)}")
+
+@app.post("/users/create")
+async def create_user_simple(
+    username: str,
+    password: str,
+    email: str,
+    full_name: str,
+    role: int = 3,  # По умолчанию обычный пользователь
+    current_user: dict = Depends(require_role(2))
+):
+    """Упрощенное создание пользователя"""
+    try:
+        # Запрещаем создавать root пользователей обычным superadmin
+        if current_user["role"] > 0 and role == 0:
+            raise HTTPException(status_code=403, detail="Недостаточно прав для создания root пользователя")
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Проверяем, существует ли пользователь
+        cursor.execute("SELECT id FROM users WHERE username = ? OR email = ?", 
+                      (username, email))
+        if cursor.fetchone():
+            raise HTTPException(status_code=400, detail="Пользователь с таким именем или email уже существует")
+        
+        # Хешируем пароль
+        password_hash = hash_password(password)
+        
+        # Создаем пользователя
+        cursor.execute("""
+            INSERT INTO users (username, email, password_hash, full_name, role, is_active, created_at, created_by)
+            VALUES (?, ?, ?, ?, ?, ?, datetime('now'), ?)
+        """, (username, email, password_hash, full_name, role, True, current_user["id"]))
+        
+        user_id = cursor.lastrowid
+        conn.commit()
+        conn.close()
+        
+        role_names = {0: "root", 2: "superadmin", 3: "user"}
+        
+        return {
+            "message": "Пользователь создан",
+            "user": {
+                "id": user_id,
+                "username": username,
+                "email": email,
+                "full_name": full_name,
+                "role": role,
+                "role_name": role_names.get(role, f"роль {role}"),
+                "is_active": True
+            }
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка создания пользователя: {str(e)}")
 
 @app.post("/logout")
 async def logout(credentials: HTTPAuthorizationCredentials = Depends(security)):
