@@ -145,8 +145,44 @@ export function EmployeeSchedule() {
       {/* Employee table */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-200">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between">
             <h3 className="text-lg font-medium text-gray-900">Расписание сотрудников</h3>
+            
+            {/* Statistics */}
+            {scheduleData && (
+              <div className="flex items-center space-x-4">
+                <div className="bg-blue-50 p-3 rounded-lg">
+                  <div className="flex items-center">
+                    <User className="h-6 w-6 text-blue-600" />
+                    <div className="ml-2">
+                      <p className="text-xs font-medium text-blue-600">Всего сотрудников</p>
+                      <p className="text-lg font-bold text-blue-900">{scheduleData.total_count}</p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="bg-red-50 p-3 rounded-lg">
+                  <div className="flex items-center">
+                    <Clock className="h-6 w-6 text-red-600" />
+                    <div className="ml-2">
+                      <p className="text-xs font-medium text-red-600">Опозданий</p>
+                      <p className="text-lg font-bold text-red-900">{scheduleData.late_count}</p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="bg-green-50 p-3 rounded-lg">
+                  <div className="flex items-center">
+                    <Calendar className="h-6 w-6 text-green-600" />
+                    <div className="ml-2">
+                      <p className="text-xs font-medium text-green-600">Дата</p>
+                      <p className="text-lg font-bold text-green-900">{scheduleData.date}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+            
             {scheduleData && scheduleData.employees.length > 0 && (
               <button
                 onClick={exportToExcel}
@@ -157,41 +193,6 @@ export function EmployeeSchedule() {
               </button>
             )}
           </div>
-          
-          {/* Statistics */}
-          {scheduleData && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-blue-50 p-4 rounded-lg">
-                <div className="flex items-center">
-                  <User className="h-8 w-8 text-blue-600" />
-                  <div className="ml-3">
-                    <p className="text-sm font-medium text-blue-600">Всего сотрудников</p>
-                    <p className="text-2xl font-bold text-blue-900">{scheduleData.total_count}</p>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="bg-red-50 p-4 rounded-lg">
-                <div className="flex items-center">
-                  <Clock className="h-8 w-8 text-red-600" />
-                  <div className="ml-3">
-                    <p className="text-sm font-medium text-red-600">Опозданий</p>
-                    <p className="text-2xl font-bold text-red-900">{scheduleData.late_count}</p>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="bg-green-50 p-4 rounded-lg">
-                <div className="flex items-center">
-                  <Calendar className="h-8 w-8 text-green-600" />
-                  <div className="ml-3">
-                    <p className="text-sm font-medium text-green-600">Дата</p>
-                    <p className="text-2xl font-bold text-green-900">{scheduleData.date}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
         
         <div className="overflow-x-auto">
