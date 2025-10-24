@@ -1,8 +1,16 @@
 ﻿'use client'
 
 import { useState, useEffect } from 'react'
-import { Plus, Edit3, Trash2, Calendar, User, AlertCircle } from 'lucide-react'
+import { Plus, Edit3, Trash2, Calendar, User, AlertCircle, ChevronUp, ChevronDown } from 'lucide-react'
 import { apiRequest } from '@/lib/api'
+
+// Функция для правильного получения даты в формате YYYY-MM-DD без проблем с временной зоной
+const formatDate = (date: Date) => {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
 
 interface Employee {
   id: number
@@ -26,6 +34,17 @@ export default function ExceptionsPage() {
   const [showAddForm, setShowAddForm] = useState(false)
   const [editingException, setEditingException] = useState<Exception | null>(null)
   const [isDateRange, setIsDateRange] = useState(false)
+  
+  // Состояния для календаря
+  const [showCalendar, setShowCalendar] = useState(false)
+  const [currentMonth, setCurrentMonth] = useState(new Date())
+  const [selectedDate, setSelectedDate] = useState('')
+  const [startDate, setStartDate] = useState('')
+  const [endDate, setEndDate] = useState('')
+  
+  // Получаем сегодняшнюю дату для ограничения выбора
+  const today = formatDate(new Date())
+  
   const [formData, setFormData] = useState({
     employee_id: '',
     exception_date: '',
@@ -39,6 +58,97 @@ export default function ExceptionsPage() {
     fetchExceptions()
     fetchEmployees()
   }, [])
+
+  // Закрытие календаря при клике вне его
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element
+      if (showCalendar && !target.closest('.calendar-container')) {
+        setShowCalendar(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [showCalendar])
+
+  // Обработка клика по дате в календаре
+  const handleDateClick = (dateStr: string) => {
+    // Проверяем текущее состояние
+    const hasSelectedDate = selectedDate !== ''
+    const hasRange = startDate !== '' && endDate !== ''
+    
+    if (!hasSelectedDate && !hasRange) {
+      // Ничего не выбрано - выбираем одну дату
+      setSelectedDate(dateStr)
+      setStartDate('')
+      setEndDate('')
+      setFormData(prev => ({ ...prev, exception_date: dateStr, start_date: '', end_date: '' }))
+      setIsDateRange(false)
+    } else if (hasSelectedDate && !hasRange) {
+      // Уже выбрана одна дата - создаем диапазон
+      if (dateStr === selectedDate) {
+        // Клик по той же дате - остается одна дата
+        return
+      }
+      
+      const start = dateStr < selectedDate ? dateStr : selectedDate
+      const end = dateStr < selectedDate ? selectedDate : dateStr
+      
+      setStartDate(start)
+      setEndDate(end)
+      setSelectedDate('')
+      setFormData(prev => ({ ...prev, exception_date: '', start_date: start, end_date: end }))
+      setIsDateRange(true)
+    } else {
+      // Уже есть диапазон или что-то выбрано - сбрасываем и выбираем новую дату
+      setSelectedDate(dateStr)
+      setStartDate('')
+      setEndDate('')
+      setFormData(prev => ({ ...prev, exception_date: dateStr, start_date: '', end_date: '' }))
+      setIsDateRange(false)
+    }
+    
+    setShowCalendar(false)
+  }
+
+  // Сброс выбора дат
+  const clearDates = () => {
+    setSelectedDate('')
+    setStartDate('')
+    setEndDate('')
+    setFormData(prev => ({ ...prev, exception_date: '', start_date: '', end_date: '' }))
+    setIsDateRange(false)
+  }
+
+  // Генерация календаря
+  const generateCalendar = () => {
+    const year = currentMonth.getFullYear()
+    const month = currentMonth.getMonth()
+    
+    const firstDay = new Date(year, month, 1)
+    const startDate = new Date(firstDay)
+    startDate.setDate(startDate.getDate() - firstDay.getDay()) // Начинаем с воскресенья
+    
+    const days = []
+    const currentDate = new Date(startDate)
+    
+    for (let i = 0; i < 42; i++) { // 6 недель по 7 дней
+      days.push(new Date(currentDate))
+      currentDate.setDate(currentDate.getDate() + 1)
+    }
+    
+    return days
+  }
+
+  // Навигация по месяцам
+  const goToPreviousMonth = () => {
+    setCurrentMonth(prev => new Date(prev.getFullYear(), prev.getMonth() - 1))
+  }
+
+  const goToNextMonth = () => {
+    setCurrentMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + 1))
+  }
 
   const fetchExceptions = async () => {
     try {
@@ -131,6 +241,12 @@ export default function ExceptionsPage() {
     setEditingException(null)
     setIsDateRange(false)
     setShowAddForm(false)
+    
+    // Сбрасываем состояния календаря
+    setSelectedDate('')
+    setStartDate('')
+    setEndDate('')
+    setShowCalendar(false)
   }
 
   if (loading) {
@@ -188,17 +304,111 @@ export default function ExceptionsPage() {
               </select>
             </div>
 
-            <div>
+            <div className="calendar-container relative">
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Дата исключения
               </label>
-              <input
-                type="date"
-                value={formData.exception_date}
-                onChange={(e) => setFormData({...formData, exception_date: e.target.value})}
-                className="w-full p-2 border border-gray-300 rounded-lg"
-                required
-              />
+              
+              {/* Кнопка для открытия календаря */}
+              <button
+                type="button"
+                onClick={() => setShowCalendar(!showCalendar)}
+                className="w-full inline-flex items-center justify-between px-3 py-2 border border-gray-300 rounded-lg shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                <div className="flex items-center">
+                  <Calendar className="h-4 w-4 mr-2" />
+                  {startDate && endDate 
+                    ? `${startDate} - ${endDate} (диапазон)`
+                    : selectedDate 
+                    ? selectedDate
+                    : 'Выбрать дату 📅'
+                  }
+                </div>
+              </button>
+              
+              {/* Кнопка сброса */}
+              {(selectedDate || (startDate && endDate)) && (
+                <button
+                  type="button"
+                  onClick={clearDates}
+                  className="absolute right-2 top-8 text-sm text-red-600 hover:text-red-800"
+                >
+                  ✕
+                </button>
+              )}
+              
+              {/* Календарь */}
+              {showCalendar && (
+                <div className="absolute top-full mt-2 z-[9999] bg-white border border-gray-200 rounded-lg shadow-xl p-4" style={{minWidth: '280px', right: 0}}>
+                  {/* Заголовок календаря */}
+                  <div className="flex items-center justify-between mb-4">
+                    <button
+                      type="button"
+                      onClick={goToPreviousMonth}
+                      className="p-1 hover:bg-gray-100 rounded"
+                    >
+                      <ChevronUp className="h-4 w-4 rotate-270" />
+                    </button>
+                    <h3 className="text-sm font-medium">
+                      {currentMonth.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' })}
+                    </h3>
+                    <button
+                      type="button"
+                      onClick={goToNextMonth}
+                      className="p-1 hover:bg-gray-100 rounded"
+                    >
+                      <ChevronDown className="h-4 w-4 rotate-90" />
+                    </button>
+                  </div>
+                  
+                  {/* Дни недели */}
+                  <div className="grid grid-cols-7 gap-1 mb-2">
+                    {['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'].map(day => (
+                      <div key={day} className="text-xs text-center text-gray-500 font-medium py-1">
+                        {day}
+                      </div>
+                    ))}
+                  </div>
+                  
+                  {/* Дни */}
+                  <div className="grid grid-cols-7 gap-1">
+                    {generateCalendar().map((date, index) => {
+                      const dateStr = formatDate(date)
+                      const isCurrentMonth = date.getMonth() === currentMonth.getMonth()
+                      const isToday = dateStr === today
+                      const isSelected = dateStr === selectedDate
+                      const isInRange = startDate && endDate && dateStr >= startDate && dateStr <= endDate
+                      const isStartDate = dateStr === startDate
+                      const isEndDate = dateStr === endDate
+                      
+                      return (
+                        <button
+                          key={index}
+                          type="button"
+                          onClick={() => handleDateClick(dateStr)}
+                          className={`
+                            w-8 h-8 text-xs rounded-full flex items-center justify-center
+                            ${!isCurrentMonth ? 'text-gray-300' : ''}
+                            ${isToday ? 'bg-blue-100 text-blue-600 font-bold' : ''}
+                            ${isSelected ? 'bg-blue-600 text-white' : ''}
+                            ${isStartDate || isEndDate ? 'bg-green-600 text-white' : ''}
+                            ${isInRange && !isStartDate && !isEndDate ? 'bg-green-100 text-green-800' : ''}
+                            ${!isSelected && !isInRange && !isToday && isCurrentMonth ? 'hover:bg-gray-100' : ''}
+                          `}
+                        >
+                          {date.getDate()}
+                        </button>
+                      )
+                    })}
+                  </div>
+                  
+                  <div className="mt-3 pt-3 border-t text-xs text-gray-500">
+                    <p>• Один клик = одна дата</p>
+                    <p>• Два клика = диапазон дат</p>
+                    <p>• Диапазон создаст исключения на все дни</p>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="md:col-span-2">
