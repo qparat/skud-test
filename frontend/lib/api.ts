@@ -13,13 +13,13 @@ export async function apiRequest(endpoint: string, options?: RequestInit) {
   
   // Automatically add auth token if available
   const token = getAuthToken()
-  const headers: HeadersInit = {
+  const headers = new Headers({
     'Content-Type': 'application/json',
     ...options?.headers,
-  }
+  })
   
-  if (token && !headers['Authorization']) {
-    headers['Authorization'] = `Bearer ${token}`
+  if (token && !headers.has('Authorization')) {
+    headers.set('Authorization', `Bearer ${token}`)
   }
   
   const response = await fetch(url, {
