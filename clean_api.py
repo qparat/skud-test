@@ -30,8 +30,19 @@ class UserCreate(BaseModel):
     username: str
     email: str
     password: str
-    full_name: Optional[str] = None
-    role: Optional[int] = 3
+    full_name: str
+    role: int = 3
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "username": "user1",
+                "email": "user1@example.com", 
+                "password": "password123",
+                "full_name": "Имя Пользователя",
+                "role": 3
+            }
+        }
 
 class UserLogin(BaseModel):
     username: str
@@ -563,17 +574,13 @@ async def delete_user(user_id: int, current_user: dict = Depends(require_role(0)
 
 @app.post("/users/create")
 async def create_user_simple(
-    username: str,
-    password: str,
-    email: str,
-    full_name: str,
-    role: int = 3,  # По умолчанию обычный пользователь
+    user_data: UserCreate,
     current_user: dict = Depends(require_role(2))
 ):
     """Упрощенное создание пользователя"""
     try:
         # Запрещаем создавать root пользователей обычным superadmin
-        if current_user["role"] > 0 and role == 0:
+        if current_user["role"] > 0 and user_data.role == 0:
             raise HTTPException(status_code=403, detail="Недостаточно прав для создания root пользователя")
         
         conn = get_db_connection()
@@ -581,18 +588,18 @@ async def create_user_simple(
         
         # Проверяем, существует ли пользователь
         cursor.execute("SELECT id FROM users WHERE username = ? OR email = ?", 
-                      (username, email))
+                      (user_data.username, user_data.email))
         if cursor.fetchone():
             raise HTTPException(status_code=400, detail="Пользователь с таким именем или email уже существует")
         
         # Хешируем пароль
-        password_hash = hash_password(password)
+        password_hash = hash_password(user_data.password)
         
         # Создаем пользователя
         cursor.execute("""
             INSERT INTO users (username, email, password_hash, full_name, role, is_active, created_at, created_by)
             VALUES (?, ?, ?, ?, ?, ?, datetime('now'), ?)
-        """, (username, email, password_hash, full_name, role, True, current_user["id"]))
+        """, (user_data.username, user_data.email, password_hash, user_data.full_name, user_data.role, True, current_user["id"]))
         
         user_id = cursor.lastrowid
         conn.commit()
@@ -604,11 +611,11 @@ async def create_user_simple(
             "message": "Пользователь создан",
             "user": {
                 "id": user_id,
-                "username": username,
-                "email": email,
-                "full_name": full_name,
-                "role": role,
-                "role_name": role_names.get(role, f"роль {role}"),
+                "username": user_data.username,
+                "email": user_data.email,
+                "full_name": user_data.full_name,
+                "role": user_data.role,
+                "role_name": role_names.get(user_data.role, f"роль {user_data.role}"),
                 "is_active": True
             }
         }
