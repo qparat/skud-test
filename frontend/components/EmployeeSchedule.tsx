@@ -362,7 +362,7 @@ export function EmployeeSchedule() {
   return (
     <div className="space-y-6">
       {/* Employee table */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
+      <div className="bg-white rounded-lg shadow overflow-visible">
         <div className="px-6 py-4 border-b border-gray-200">
           <div className="flex items-center justify-between">
             {/* Statistics */}
@@ -448,7 +448,7 @@ export function EmployeeSchedule() {
               
               {/* Календарь */}
               {showCalendar && (
-                <div className="absolute top-full mt-2 z-50 bg-white border border-gray-200 rounded-lg shadow-lg p-4" style={{minWidth: '280px'}}>
+                <div className="absolute top-full mt-2 z-[9999] bg-white border border-gray-200 rounded-lg shadow-xl p-4" style={{minWidth: '280px', right: 0}}>
                   {/* Заголовок календаря */}
                   <div className="flex items-center justify-between mb-4">
                     <button
@@ -532,7 +532,7 @@ export function EmployeeSchedule() {
           </div>
         </div>
         
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto overflow-y-visible">
           {loading ? (
             <div className="p-6 text-center">
               <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
