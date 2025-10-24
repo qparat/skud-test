@@ -9,6 +9,7 @@ interface Employee {
   employee_id: number
   full_name: string
   position: string
+  birth_date?: string
 }
 
 interface DepartmentsData {

@@ -196,6 +196,28 @@ def create_auth_tables():
         print(f"Ошибка создания таблиц авторизации: {e}")
         return False
 
+def update_employees_table():
+    """Добавляет колонку birth_date в таблицу employees, если её нет"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Проверяем, есть ли уже колонка birth_date
+        cursor.execute("PRAGMA table_info(employees)")
+        columns = [column[1] for column in cursor.fetchall()]
+        
+        if 'birth_date' not in columns:
+            # Добавляем колонку birth_date
+            cursor.execute("ALTER TABLE employees ADD COLUMN birth_date DATE")
+            conn.commit()
+            print("✅ Добавлена колонка birth_date в таблицу employees")
+        
+        conn.close()
+        return True
+    except Exception as e:
+        print(f"Ошибка обновления таблицы employees: {e}")
+        return False
+
 # Функции для работы с паролями и токенами
 def hash_password(password: str) -> str:
     """Хеширует пароль"""
@@ -339,6 +361,7 @@ async def startup_event():
     """Инициализация при запуске приложения"""
     create_employee_exceptions_table()
     create_auth_tables()
+    update_employees_table()
     create_initial_admin()
 
 # ================================
@@ -1114,7 +1137,8 @@ async def get_all_employees():
         cursor.execute("""
             SELECT e.id, e.full_name, 
                    p.name as position_name, 
-                   d.name as department_name
+                   d.name as department_name,
+                   e.birth_date
             FROM employees e
             LEFT JOIN departments d ON e.department_id = d.id
             LEFT JOIN positions p ON e.position_id = p.id
@@ -1128,7 +1152,7 @@ async def get_all_employees():
         # Группируем сотрудников по отделам
         departments = {}
         
-        for employee_id, full_name, position, department in employees_data:
+        for employee_id, full_name, position, department, birth_date in employees_data:
             if not department:
                 department = 'Не указан отдел'
             
@@ -1138,7 +1162,8 @@ async def get_all_employees():
             departments[department].append({
                 'employee_id': employee_id,
                 'full_name': full_name,
-                'position': position or 'Не указана должность'
+                'position': position or 'Не указана должность',
+                'birth_date': birth_date
             })
         
         # Сортируем сотрудников в каждом отделе
@@ -1183,6 +1208,97 @@ async def get_employees_simple():
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка получения списка сотрудников: {str(e)}")
+
+@app.put("/employees/{employee_id}")
+async def update_employee(employee_id: int, updates: dict, current_user: dict = Depends(require_role(2))):
+    """Обновление данных сотрудника (для superadmin и выше)"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Проверяем существование сотрудника
+        cursor.execute("SELECT id FROM employees WHERE id = ?", (employee_id,))
+        if not cursor.fetchone():
+            raise HTTPException(status_code=404, detail="Сотрудник не найден")
+        
+        # Создаем запрос обновления
+        update_fields = []
+        update_values = []
+        
+        allowed_fields = ["full_name", "birth_date", "department_id", "position_id", "card_number", "is_active"]
+        for field in allowed_fields:
+            if field in updates:
+                update_fields.append(f"{field} = ?")
+                update_values.append(updates[field])
+        
+        if not update_fields:
+            raise HTTPException(status_code=400, detail="Нет полей для обновления")
+        
+        # Добавляем обновление времени модификации
+        update_fields.append("updated_at = CURRENT_TIMESTAMP")
+        update_values.append(employee_id)
+        
+        cursor.execute(f"""
+            UPDATE employees SET {', '.join(update_fields)}
+            WHERE id = ?
+        """, update_values)
+        
+        conn.commit()
+        conn.close()
+        
+        return {"message": "Данные сотрудника обновлены"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка обновления сотрудника: {str(e)}")
+
+@app.get("/employees/{employee_id}")
+async def get_employee_details(employee_id: int):
+    """Получить подробную информацию о сотруднике"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT e.id, e.full_name, e.birth_date, e.card_number, e.is_active,
+                   e.created_at, e.updated_at,
+                   d.id as department_id, d.name as department_name,
+                   p.id as position_id, p.name as position_name
+            FROM employees e
+            LEFT JOIN departments d ON e.department_id = d.id
+            LEFT JOIN positions p ON e.position_id = p.id
+            WHERE e.id = ?
+        """, (employee_id,))
+        
+        employee_data = cursor.fetchone()
+        conn.close()
+        
+        if not employee_data:
+            raise HTTPException(status_code=404, detail="Сотрудник не найден")
+        
+        return {
+            "id": employee_data[0],
+            "full_name": employee_data[1],
+            "birth_date": employee_data[2],
+            "card_number": employee_data[3],
+            "is_active": employee_data[4],
+            "created_at": employee_data[5],
+            "updated_at": employee_data[6],
+            "department": {
+                "id": employee_data[7],
+                "name": employee_data[8]
+            } if employee_data[7] else None,
+            "position": {
+                "id": employee_data[9],
+                "name": employee_data[10]
+            } if employee_data[9] else None
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка получения данных сотрудника: {str(e)}")
 
 @app.get("/departments")
 async def get_all_departments():
