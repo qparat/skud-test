@@ -129,24 +129,10 @@ export function EmployeeSchedule() {
 
   return (
     <div className="space-y-6">
-      {/* Date selector */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-medium text-gray-900">Выберите дату</h3>
-          <input
-            type="date"
-            value={currentDate}
-            onChange={(e) => setCurrentDate(e.target.value)}
-            className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-      </div>
-
       {/* Employee table */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-200">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-medium text-gray-900">Расписание сотрудников</h3>
             
             {/* Statistics */}
             {scheduleData && (
@@ -182,7 +168,12 @@ export function EmployeeSchedule() {
                 </div>
               </div>
             )}
-            
+            <input
+            type="date"
+            value={currentDate}
+            onChange={(e) => setCurrentDate(e.target.value)}
+            className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
             {scheduleData && scheduleData.employees.length > 0 && (
               <button
                 onClick={exportToExcel}
