@@ -1,6 +1,7 @@
 ﻿import './globals.css'
 import type { Metadata } from 'next'
 import { LayoutWrapper } from '@/components/LayoutWrapper'
+import { AuthProvider } from '@/components/AuthProvider'
 
 export const metadata: Metadata = {
   title: 'СКУД Система',
@@ -15,9 +16,11 @@ export default function RootLayout({
   return (
     <html lang="ru">
       <body className="font-sans">
-        <LayoutWrapper>
-          {children}
-        </LayoutWrapper>
+        <AuthProvider>
+          <LayoutWrapper>
+            {children}
+          </LayoutWrapper>
+        </AuthProvider>
       </body>
     </html>
   )

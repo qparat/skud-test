@@ -1,16 +1,55 @@
 import sqlite3
-from fastapi import FastAPI, HTTPException, Query, UploadFile, File
+from fastapi import FastAPI, HTTPException, Query, UploadFile, File, Depends, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 from datetime import datetime, date, timedelta
-from typing import Optional
+from typing import Optional, List
 import uvicorn
 import os
 import tempfile
 import sys
+import hashlib
+import secrets
+import jwt
+from functools import wraps
 sys.path.append(os.path.join(os.path.dirname(__file__)))
 
 app = FastAPI(title="СКУД API", description="API для системы контроля и управления доступом")
+
+# Конфигурация для JWT
+SECRET_KEY = "your-secret-key-change-in-production"  # В продакшене использовать переменную окружения
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 30
+
+# Security
+security = HTTPBearer()
+
+# Pydantic модели для аутентификации
+class UserCreate(BaseModel):
+    username: str
+    email: str
+    password: str
+    full_name: Optional[str] = None
+    role: Optional[int] = 3
+
+class UserLogin(BaseModel):
+    username: str
+    password: str
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+    user: dict
+
+class UserResponse(BaseModel):
+    id: int
+    username: str
+    email: str
+    full_name: Optional[str]
+    role: int
+    is_active: bool
+    created_at: str
 
 # Pydantic модели для валидации данных
 class DepartmentCreate(BaseModel):
@@ -80,6 +119,150 @@ def create_employee_exceptions_table():
         print(f"Ошибка создания таблицы исключений: {e}")
         return False
 
+def create_auth_tables():
+    """Создает таблицы для системы авторизации"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Создаем таблицу пользователей
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT UNIQUE NOT NULL,
+                email TEXT UNIQUE NOT NULL,
+                password_hash TEXT NOT NULL,
+                full_name TEXT,
+                role INTEGER DEFAULT 3,
+                is_active BOOLEAN DEFAULT 1,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                last_login TIMESTAMP,
+                created_by INTEGER,
+                FOREIGN KEY (created_by) REFERENCES users (id)
+            )
+        """)
+        
+        # Создаем таблицу ролей
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS roles (
+                id INTEGER PRIMARY KEY,
+                name TEXT UNIQUE NOT NULL,
+                description TEXT,
+                permissions TEXT
+            )
+        """)
+        
+        # Создаем таблицу сессий
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS user_sessions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                token_hash TEXT NOT NULL,
+                expires_at TIMESTAMP NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users (id)
+            )
+        """)
+        
+        # Вставляем базовые роли
+        cursor.execute("""
+            INSERT OR IGNORE INTO roles (id, name, description, permissions) VALUES
+            (0, 'root', 'Суперпользователь с полными правами', 'all'),
+            (2, 'superadmin', 'Администратор с расширенными правами', 'read,write,delete,manage_users'),
+            (3, 'user', 'Обычный пользователь с ограниченными правами', 'read')
+        """)
+        
+        # Создаем индексы
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_users_username ON users (username)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_users_email ON users (email)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_sessions_token ON user_sessions (token_hash)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_sessions_expires ON user_sessions (expires_at)")
+        
+        conn.commit()
+        conn.close()
+        return True
+    except Exception as e:
+        print(f"Ошибка создания таблиц авторизации: {e}")
+        return False
+
+# Функции для работы с паролями и токенами
+def hash_password(password: str) -> str:
+    """Хеширует пароль"""
+    return hashlib.sha256(password.encode()).hexdigest()
+
+def verify_password(password: str, hashed_password: str) -> bool:
+    """Проверяет пароль"""
+    return hash_password(password) == hashed_password
+
+def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
+    """Создает JWT токен"""
+    to_encode = data.copy()
+    if expires_delta:
+        expire = datetime.utcnow() + expires_delta
+    else:
+        expire = datetime.utcnow() + timedelta(minutes=15)
+    to_encode.update({"exp": expire})
+    
+    # Используем простое кодирование вместо JWT для упрощения
+    token = secrets.token_urlsafe(32)
+    return token
+
+def verify_token(token: str) -> Optional[dict]:
+    """Проверяет токен и возвращает данные пользователя"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Хешируем токен для поиска в БД
+        token_hash = hashlib.sha256(token.encode()).hexdigest()
+        
+        cursor.execute("""
+            SELECT u.id, u.username, u.email, u.full_name, u.role, u.is_active
+            FROM users u
+            JOIN user_sessions s ON u.id = s.user_id
+            WHERE s.token_hash = ? AND s.expires_at > datetime('now')
+        """, (token_hash,))
+        
+        user_data = cursor.fetchone()
+        conn.close()
+        
+        if user_data:
+            return {
+                "id": user_data[0],
+                "username": user_data[1],
+                "email": user_data[2],
+                "full_name": user_data[3],
+                "role": user_data[4],
+                "is_active": user_data[5]
+            }
+        return None
+    except Exception as e:
+        print(f"Ошибка проверки токена: {e}")
+        return None
+
+def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Получает текущего пользователя из токена"""
+    user = verify_token(credentials.credentials)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid authentication credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return user
+
+def require_role(min_role: int = 3):
+    """Декоратор для проверки роли пользователя (меньше число = больше прав)"""
+    def decorator(user: dict = Depends(get_current_user)):
+        if user["role"] > min_role:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Insufficient permissions"
+            )
+        return user
+    return decorator
+        return False
+
 def get_employee_status(is_late, first_entry, exception_info):
     """Определяет статус сотрудника с учетом исключений"""
     if exception_info and exception_info.get('has_exception'):
@@ -115,10 +298,150 @@ app.add_middleware(
 async def startup_event():
     """Инициализация при запуске приложения"""
     create_employee_exceptions_table()
+    create_auth_tables()
+
+# ================================
+# АУТЕНТИФИКАЦИЯ И АВТОРИЗАЦИЯ
+# ================================
+
+@app.post("/register", response_model=UserResponse)
+async def register(user: UserCreate):
+    """Регистрация нового пользователя"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Проверяем, существует ли пользователь
+        cursor.execute("SELECT id FROM users WHERE username = ? OR email = ?", 
+                      (user.username, user.email))
+        if cursor.fetchone():
+            raise HTTPException(status_code=400, detail="Пользователь уже существует")
+        
+        # Хешируем пароль
+        password_hash = hash_password(user.password)
+        
+        # Создаем пользователя
+        cursor.execute("""
+            INSERT INTO users (username, email, password_hash, full_name, role)
+            VALUES (?, ?, ?, ?, ?)
+        """, (user.username, user.email, password_hash, user.full_name, user.role))
+        
+        user_id = cursor.lastrowid
+        conn.commit()
+        
+        # Получаем созданного пользователя
+        cursor.execute("""
+            SELECT id, username, email, full_name, role, is_active, created_at
+            FROM users WHERE id = ?
+        """, (user_id,))
+        
+        user_data = cursor.fetchone()
+        conn.close()
+        
+        return UserResponse(
+            id=user_data[0],
+            username=user_data[1],
+            email=user_data[2],
+            full_name=user_data[3],
+            role=user_data[4],
+            is_active=user_data[5],
+            created_at=user_data[6]
+        )
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка регистрации: {str(e)}")
+
+@app.post("/login", response_model=Token)
+async def login(user_login: UserLogin):
+    """Вход в систему"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Ищем пользователя
+        cursor.execute("""
+            SELECT id, username, email, password_hash, full_name, role, is_active
+            FROM users WHERE username = ? AND is_active = 1
+        """, (user_login.username,))
+        
+        user_data = cursor.fetchone()
+        if not user_data or not verify_password(user_login.password, user_data[3]):
+            raise HTTPException(status_code=401, detail="Неверные учетные данные")
+        
+        # Создаем токен
+        token = secrets.token_urlsafe(32)
+        token_hash = hashlib.sha256(token.encode()).hexdigest()
+        expires_at = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        
+        # Сохраняем сессию
+        cursor.execute("""
+            INSERT INTO user_sessions (user_id, token_hash, expires_at)
+            VALUES (?, ?, ?)
+        """, (user_data[0], token_hash, expires_at))
+        
+        # Обновляем время последнего входа
+        cursor.execute("""
+            UPDATE users SET last_login = datetime('now') WHERE id = ?
+        """, (user_data[0],))
+        
+        conn.commit()
+        conn.close()
+        
+        return Token(
+            access_token=token,
+            token_type="bearer",
+            user={
+                "id": user_data[0],
+                "username": user_data[1],
+                "email": user_data[2],
+                "full_name": user_data[4],
+                "role": user_data[5]
+            }
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка входа: {str(e)}")
+
+@app.get("/me", response_model=UserResponse)
+async def get_me(current_user: dict = Depends(get_current_user)):
+    """Получение информации о текущем пользователе"""
+    return UserResponse(
+        id=current_user["id"],
+        username=current_user["username"],
+        email=current_user["email"],
+        full_name=current_user["full_name"],
+        role=current_user["role"],
+        is_active=current_user["is_active"],
+        created_at=""
+    )
+
+@app.post("/logout")
+async def logout(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Выход из системы"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        token_hash = hashlib.sha256(credentials.credentials.encode()).hexdigest()
+        cursor.execute("DELETE FROM user_sessions WHERE token_hash = ?", (token_hash,))
+        
+        conn.commit()
+        conn.close()
+        
+        return {"message": "Успешный выход"}
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка выхода: {str(e)}")
+
+# ================================
+# ОСНОВНЫЕ API МАРШРУТЫ
+# ================================
     print("✅ Таблица исключений сотрудников инициализирована")
 
 @app.get("/employee-schedule")
-async def get_employee_schedule(date: Optional[str] = Query(None)):
+async def get_employee_schedule(date: Optional[str] = Query(None), current_user: dict = Depends(get_current_user)):
     """Расписание всех сотрудников за день с временем прихода/ухода"""
     try:
         if date is None:
@@ -258,7 +581,7 @@ async def get_employee_schedule(date: Optional[str] = Query(None)):
         raise HTTPException(status_code=500, detail=f"Ошибка получения расписания: {str(e)}")
 
 @app.get("/employee-schedule-range")
-async def get_employee_schedule_range(start_date: str = Query(...), end_date: str = Query(...)):
+async def get_employee_schedule_range(start_date: str = Query(...), end_date: str = Query(...), current_user: dict = Depends(get_current_user)):
     """Расписание всех сотрудников за диапазон дат с детализацией по дням"""
     try:
         from datetime import datetime, timedelta
@@ -983,7 +1306,7 @@ async def get_employee_exceptions(employee_id: Optional[int] = Query(None),
         raise HTTPException(status_code=500, detail=f"Ошибка при получении исключений: {str(e)}")
 
 @app.post("/employee-exceptions")
-async def create_employee_exception(exception: ExceptionCreate):
+async def create_employee_exception(exception: ExceptionCreate, current_user: dict = Depends(require_role(2))):
     """Создание нового исключения для сотрудника"""
     try:
         conn = get_db_connection()
@@ -1713,5 +2036,9 @@ async def upload_skud_file(file: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail=f"Ошибка загрузки файла: {str(e)}")
 
 if __name__ == "__main__":
+    # Создаем таблицы при запуске
+    create_employee_exceptions_table()
+    create_auth_tables()
+    
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8002, reload=True)
