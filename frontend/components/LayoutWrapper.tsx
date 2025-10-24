@@ -1,8 +1,10 @@
 ﻿'use client'
 
-import { usePathname } from 'next/navigation'
+import React, { useEffect } from 'react'
+import { usePathname, useRouter } from 'next/navigation'
 import { Sidebar } from '@/components/Sidebar'
 import { Header } from '@/components/Header'
+import { useAuth } from '@/components/AuthProvider'
 
 interface LayoutWrapperProps {
   children: React.ReactNode
@@ -10,6 +12,41 @@ interface LayoutWrapperProps {
 
 export function LayoutWrapper({ children }: LayoutWrapperProps) {
   const pathname = usePathname()
+  const router = useRouter()
+  const { isAuthenticated, loading } = useAuth()
+  
+  // Публичные страницы, которые не требуют авторизации
+  const publicPages = ['/login']
+  const isPublicPage = publicPages.includes(pathname)
+  
+  useEffect(() => {
+    if (!loading && !isAuthenticated && !isPublicPage) {
+      router.push('/login')
+    }
+  }, [isAuthenticated, loading, isPublicPage, router])
+  
+  // Показываем загрузку пока проверяем авторизацию
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-lg">Загрузка...</div>
+      </div>
+    )
+  }
+  
+  // Если это публичная страница, показываем без layout
+  if (isPublicPage) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        {children}
+      </div>
+    )
+  }
+  
+  // Если пользователь не авторизован, ничего не показываем (будет редирект)
+  if (!isAuthenticated) {
+    return null
+  }
   
  // Страницы, которые должны отображаться без Sidebar (только главная)
   const fullWidthPages = ['/']

@@ -9,7 +9,8 @@ import {
   Building2,
   Briefcase,
   Shield,
-  Upload
+  Upload,
+  LogIn
 } from 'lucide-react'
 
 const navigation = [
@@ -20,6 +21,7 @@ const navigation = [
   { name: 'Службы', href: '/departments', icon: Building2 },
   { name: 'Должности', href: '/positions', icon: Briefcase },
   { name: 'Исключения', href: '/exceptions', icon: Shield },
+  { name: 'Войти', href: '/login', icon: LogIn },
 ]
 
 export function Sidebar() {
