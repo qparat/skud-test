@@ -6,6 +6,14 @@ import { Calendar, Clock, MapPin, User, Download, ChevronUp, ChevronDown } from 
 import * as XLSX from 'xlsx'
 import { apiRequest } from '@/lib/api'
 
+// Функция для правильного получения даты в формате YYYY-MM-DD без проблем с временной зоной
+const formatDate = (date: Date) => {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 interface Employee {
   employee_id: number
   full_name: string
@@ -70,8 +78,8 @@ export function EmployeeSchedule() {
   const [showCalendar, setShowCalendar] = useState(false)
   const [currentMonth, setCurrentMonth] = useState(new Date())
   
-  // Получаем сегодняшнюю дату для ограничения выбора
-  const today = new Date().toISOString().split('T')[0]
+  // Получаем сегодняшнюю дату для ограничения выбора (без проблем с временной зоной)
+  const today = formatDate(new Date())
 
   const fetchSchedule = async (date?: string, start?: string, end?: string) => {
     setLoading(true)
@@ -480,7 +488,7 @@ export function EmployeeSchedule() {
                   {/* Дни */}
                   <div className="grid grid-cols-7 gap-1">
                     {generateCalendar().map((date, index) => {
-                      const dateStr = date.toISOString().split('T')[0]
+                      const dateStr = formatDate(date)
                       const isCurrentMonth = date.getMonth() === currentMonth.getMonth()
                       const isToday = dateStr === today
                       const isSelected = dateStr === selectedDate
