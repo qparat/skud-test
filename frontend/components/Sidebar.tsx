@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useAuth } from '@/components/AuthProvider'
 import {
   LayoutDashboard,
   Users,
@@ -10,7 +11,8 @@ import {
   Briefcase,
   Shield,
   Upload,
-  LogIn
+  LogIn,
+  UserCog
 } from 'lucide-react'
 
 const navigation = [
@@ -21,11 +23,21 @@ const navigation = [
   { name: 'Службы', href: '/departments', icon: Building2 },
   { name: 'Должности', href: '/positions', icon: Briefcase },
   { name: 'Исключения', href: '/exceptions', icon: Shield },
+  { name: 'Пользователи', href: '/users', icon: UserCog, requireRole: 2 },
   { name: 'Войти', href: '/login', icon: LogIn },
 ]
 
 export function Sidebar() {
   const pathname = usePathname()
+  const { hasRole } = useAuth()
+
+  // Фильтруем навигацию по ролям
+  const filteredNavigation = navigation.filter(item => {
+    if (item.requireRole) {
+      return hasRole(item.requireRole)
+    }
+    return true
+  })
 
   return (
     <div className="hidden md:flex md:w-64 md:flex-col">
@@ -35,7 +47,7 @@ export function Sidebar() {
         </div>
         <div className="mt-5 flex-grow flex flex-col">
           <nav className="flex-1 px-2 space-y-1">
-            {navigation.map((item) => {
+            {filteredNavigation.map((item) => {
               const isActive = pathname === item.href
               return (
                 <Link
