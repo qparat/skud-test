@@ -15,7 +15,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ru">
-      <body className="">
+      <body className="font-sans">
         <AuthProvider>
           <LayoutWrapper>
             {children}
