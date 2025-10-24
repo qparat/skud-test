@@ -278,52 +278,17 @@ export function EmployeeSchedule() {
       <div className="bg-white rounded-lg shadow overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-200">
           <div className="flex items-center justify-between">
-            
-            {/* Statistics */}
-            {scheduleData && (
-              <div className="flex items-center space-x-4">
-                <div className="">
-                  <div className="flex items-center">
-                    <User className="h-6 w-6 text-blue-600" />
-                    <div className="ml-2">
-                      <p className="text-xs font-medium text-blue-600">Всего сотрудников</p>
-                      <p className="text-lg font-bold text-blue-900">{scheduleData.total_count}</p>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="">
-                  <div className="flex items-center">
-                    <Clock className="h-6 w-6 text-red-600" />
-                    <div className="ml-2">
-                      <p className="text-xs font-medium text-red-600">
-                        Опозданий
-                        {sortBy === 'late-first' && ' (сверху)'}
-                        {sortBy === 'normal-first' && ' (снизу)'}
-                      </p>
-                      <p className="text-lg font-bold text-red-900">{scheduleData.late_count}</p>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="">
-                  <div className="flex items-center">
-                    <Calendar className="h-6 w-6 text-green-600" />
-                    <div className="ml-2">
-                      <p className="text-xs font-medium text-green-600">
-                        {isRangeMode ? 'Период' : 'Дата'}
-                      </p>
-                      <p className="text-lg font-bold text-green-900">
-                        {isRangeMode && scheduleData.start_date && scheduleData.end_date 
-                          ? `${scheduleData.start_date} - ${scheduleData.end_date}`
-                          : scheduleData.date
-                        }
-                      </p>
-                    </div>
-                  </div>
-                </div>
+            {/* Поиск по ФИО */}
+              <div className="ml-4">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Поиск по ФИО"
+                  className="w-64 border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
               </div>
-            )}
+            
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-2">
                 <label className="flex items-center">
@@ -372,18 +337,52 @@ export function EmployeeSchedule() {
                   />
                 </div>
               )}
-
-              {/* Поиск по ФИО */}
-              <div className="ml-4">
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Поиск по ФИО"
-                  className="w-64 border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
             </div>
+            {/* Statistics */}
+            {scheduleData && (
+              <div className="flex items-center space-x-4">
+                <div className="">
+                  <div className="flex items-center">
+                    <User className="h-6 w-6 text-blue-600" />
+                    <div className="ml-2">
+                      <p className="text-xs font-medium text-blue-600">Всего сотрудников</p>
+                      <p className="text-lg font-bold text-blue-900">{scheduleData.total_count}</p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="">
+                  <div className="flex items-center">
+                    <Clock className="h-6 w-6 text-red-600" />
+                    <div className="ml-2">
+                      <p className="text-xs font-medium text-red-600">
+                        Опозданий
+                        {sortBy === 'late-first' && ' (сверху)'}
+                        {sortBy === 'normal-first' && ' (снизу)'}
+                      </p>
+                      <p className="text-lg font-bold text-red-900">{scheduleData.late_count}</p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="">
+                  <div className="flex items-center">
+                    <Calendar className="h-6 w-6 text-green-600" />
+                    <div className="ml-2">
+                      <p className="text-xs font-medium text-green-600">
+                        {isRangeMode ? 'Период' : 'Дата'}
+                      </p>
+                      <p className="text-lg font-bold text-green-900">
+                        {isRangeMode && scheduleData.start_date && scheduleData.end_date 
+                          ? `${scheduleData.start_date} - ${scheduleData.end_date}`
+                          : scheduleData.date
+                        }
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
             {scheduleData && scheduleData.employees.length > 0 && (
               <button
                 onClick={exportToExcel}
