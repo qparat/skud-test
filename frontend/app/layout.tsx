@@ -3,8 +3,8 @@ import type { Metadata } from 'next'
 import { LayoutWrapper } from '@/components/LayoutWrapper'
 
 export const metadata: Metadata = {
-  title: 'РЎРЉРЈР" РЎРёСЃС‚РµРјР°',
-  description: 'РЎРёСЃС‚РµРјР° РєРѕРЅС‚СЂРѕР»СЏ Рё СѓРїСЂР°РІР»РµРЅРёСЏ РґРѕСЃС‚СѓРїРѕРј',
+  title: 'СКУД Система',
+  description: 'Система контроля и управления доступом',
 }
 
 export default function RootLayout({
