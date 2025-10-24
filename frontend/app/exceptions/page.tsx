@@ -42,19 +42,21 @@ export default function ExceptionsPage() {
 
   const fetchExceptions = async () => {
     try {
-      const data = await apiRequest('/exceptions')
-      setExceptions(data)
+      const data = await apiRequest('employee-exceptions')
+      setExceptions(Array.isArray(data) ? data : [])
     } catch (error) {
       console.error('Ошибка при загрузке исключений:', error)
+      setExceptions([]) // Устанавливаем пустой массив при ошибке
     }
   }
 
   const fetchEmployees = async () => {
     try {
-      const data = await apiRequest('/employees')
-      setEmployees(data.employees || data)
+      const data = await apiRequest('employees/simple')
+      setEmployees(Array.isArray(data) ? data : [])
     } catch (error) {
       console.error('Ошибка при загрузке сотрудников:', error)
+      setEmployees([]) // Устанавливаем пустой массив при ошибке
     } finally {
       setLoading(false)
     }
@@ -65,7 +67,7 @@ export default function ExceptionsPage() {
     
     try {
       if (editingException) {
-        await apiRequest(`/exceptions/${editingException.id}`, {
+        await apiRequest(`employee-exceptions/${editingException.id}`, {
           method: 'PUT',
           body: JSON.stringify({
             reason: formData.reason,
@@ -86,7 +88,8 @@ export default function ExceptionsPage() {
           exception_type: formData.exception_type
         }
 
-        await apiRequest('/exceptions', {
+        const endpoint = isDateRange ? 'employee-exceptions/range' : 'employee-exceptions'
+        await apiRequest(endpoint, {
           method: 'POST',
           body: JSON.stringify(payload)
         })
@@ -105,7 +108,7 @@ export default function ExceptionsPage() {
     if (!confirm('Вы уверены, что хотите удалить это исключение?')) return
 
     try {
-      await apiRequest(`/exceptions/${id}`, {
+      await apiRequest(`employee-exceptions/${id}`, {
         method: 'DELETE'
       })
       fetchExceptions()
@@ -177,7 +180,7 @@ export default function ExceptionsPage() {
                 required
               >
                 <option value="">Выберите сотрудника</option>
-                {employees.map(emp => (
+                {Array.isArray(employees) && employees.map(emp => (
                   <option key={emp.id} value={emp.id}>
                     {emp.full_name}
                   </option>
@@ -263,7 +266,7 @@ export default function ExceptionsPage() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {exceptions.map((exception) => (
+                {Array.isArray(exceptions) && exceptions.map((exception) => (
                   <tr key={exception.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
