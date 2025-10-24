@@ -67,6 +67,7 @@ export function EmployeeSchedule() {
   const [error, setError] = useState<string | null>(null)
   const [initialized, setInitialized] = useState(false)
   const [sortBy, setSortBy] = useState<'none' | 'late-first' | 'normal-first'>('none')
+  const [searchQuery, setSearchQuery] = useState('')
 
   const fetchSchedule = async (date?: string, start?: string, end?: string) => {
     setLoading(true)
@@ -134,33 +135,47 @@ export function EmployeeSchedule() {
 
   const getSortedEmployees = () => {
     if (!scheduleData?.employees) return []
-
     const employees = [...scheduleData.employees]
 
     // Проверяем, работаем ли мы с диапазоном дат (EmployeeWithDays) или одной датой (Employee)
     const isRangeData = employees.length > 0 && 'days' in employees[0]
 
+    // Фильтрация по ФИО (case-insensitive)
+    const search = searchQuery.trim().toLowerCase()
+    let filteredEmployees: (Employee | EmployeeWithDays)[] = employees
+    if (search) {
+      if (isRangeData) {
+        filteredEmployees = (employees as EmployeeWithDays[]).filter(e =>
+          e.full_name.toLowerCase().includes(search)
+        )
+      } else {
+        filteredEmployees = (employees as Employee[]).filter(e =>
+          e.full_name.toLowerCase().includes(search)
+        )
+      }
+    }
+
     if (!isRangeData) {
       // Логика для одной даты (как было раньше)
       switch (sortBy) {
         case 'late-first':
-          return (employees as Employee[]).sort((a, b) => {
+          return (filteredEmployees as Employee[]).sort((a, b) => {
             if (a.is_late && !b.is_late) return -1
             if (!a.is_late && b.is_late) return 1
             return a.full_name.localeCompare(b.full_name)
           })
         case 'normal-first':
-          return (employees as Employee[]).sort((a, b) => {
+          return (filteredEmployees as Employee[]).sort((a, b) => {
             if (!a.is_late && b.is_late) return -1
             if (a.is_late && !b.is_late) return 1
             return a.full_name.localeCompare(b.full_name)
           })
         default:
-          return employees as Employee[]
+          return filteredEmployees as Employee[]
       }
     } else {
       // Логика для диапазона дат - пока сортируем только по имени
-      return (employees as EmployeeWithDays[]).sort((a, b) => 
+      return (filteredEmployees as EmployeeWithDays[]).sort((a, b) => 
         a.full_name.localeCompare(b.full_name)
       )
     }
@@ -357,6 +372,17 @@ export function EmployeeSchedule() {
                   />
                 </div>
               )}
+
+              {/* Поиск по ФИО */}
+              <div className="ml-4">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Поиск по ФИО"
+                  className="w-64 border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
             </div>
             {scheduleData && scheduleData.employees.length > 0 && (
               <button
