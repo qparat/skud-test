@@ -183,16 +183,44 @@ export function EmployeeSchedule() {
       return
     }
 
-    // Подготавливаем данные для Excel
-    const excelData = scheduleData.employees.map((employee, index) => ({
-      '№': index + 1,
-      'ФИО': employee.full_name,
-      'Пришел': employee.first_entry || '-',
-      'Ушел': employee.last_exit || '-',
-      'Часы работы': employee.work_hours ? `${employee.work_hours.toFixed(1)} ч` : '-',
-      'Статус': employee.status || (employee.is_late ? 'Опоздал' : 'В норме'),
-      'Опоздание (мин)': employee.is_late ? employee.late_minutes : 0,
-    }))
+    // Проверяем, работаем ли с диапазоном дат или одной датой
+    const employees = scheduleData.employees
+    const isRangeData = employees.length > 0 && 'days' in employees[0]
+
+    let excelData: any[] = []
+
+    if (!isRangeData) {
+      // Экспорт для одной даты
+      excelData = (employees as Employee[]).map((employee, index) => ({
+        '№': index + 1,
+        'ФИО': employee.full_name,
+        'Пришел': employee.first_entry || '-',
+        'Ушел': employee.last_exit || '-',
+        'Часы работы': employee.work_hours ? `${employee.work_hours.toFixed(1)} ч` : '-',
+        'Статус': employee.status || (employee.is_late ? 'Опоздал' : 'В норме'),
+        'Опоздание (мин)': employee.is_late ? employee.late_minutes : 0,
+      }))
+    } else {
+      // Экспорт для диапазона дат
+      const empWithDays = employees as EmployeeWithDays[]
+      excelData = []
+      empWithDays.forEach((employee) => {
+        employee.days.forEach((day, dayIndex) => {
+          excelData.push({
+            '№': `${employee.employee_id}-${dayIndex + 1}`,
+            'ФИО': employee.full_name,
+            'Дата': day.date,
+            'День недели': new Date(day.date).toLocaleDateString('ru-RU', { weekday: 'long' }),
+            'Пришел': day.first_entry || '-',
+            'Ушел': day.last_exit || '-',
+            'Часы работы': day.work_hours ? `${day.work_hours.toFixed(1)} ч` : '-',
+            'Статус': day.status || (day.is_late ? 'Опоздал' : 'В норме'),
+            'Опоздание (мин)': day.is_late ? day.late_minutes : 0,
+            'Исключение': day.exception?.has_exception ? day.exception.reason : '-'
+          })
+        })
+      })
+    }
 
     // Создаем рабочую книгу
     const ws = XLSX.utils.json_to_sheet(excelData)
@@ -216,7 +244,14 @@ export function EmployeeSchedule() {
     XLSX.utils.book_append_sheet(wb, ws, 'Расписание')
     
     // Генерируем имя файла с датой
-    const fileName = `Расписание_сотрудников_${scheduleData.date}.xlsx`
+    let fileName: string
+    if (!isRangeData) {
+      fileName = `Расписание_сотрудников_${scheduleData.date}.xlsx`
+    } else {
+      const start = scheduleData.start_date || startDate
+      const end = scheduleData.end_date || endDate
+      fileName = `Расписание_сотрудников_${start}_${end}.xlsx`
+    }
     
     // Скачиваем файл
     XLSX.writeFile(wb, fileName)
