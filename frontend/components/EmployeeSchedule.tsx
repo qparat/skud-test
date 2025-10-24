@@ -92,10 +92,8 @@ export function EmployeeSchedule() {
       // Сбрасываем сортировку при загрузке новых данных
       setSortBy('none')
       
-      // Если дата не была установлена, устанавливаем дату из ответа API
-      if (!date && !start && data.date) {
-        setSelectedDate(data.date)
-      }
+      // При первоначальной загрузке НЕ устанавливаем дату автоматически
+      // Пользователь должен сам выбрать дату в календаре
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ошибка загрузки данных')
       console.error('Ошибка загрузки расписания:', err)
@@ -104,13 +102,12 @@ export function EmployeeSchedule() {
     }
   }
 
-  // Первоначальная загрузка без указания даты - API выберет последнюю доступную
+  // Первоначальная загрузка данных только после выбора даты
   useEffect(() => {
-    if (!initialized) {
-      fetchSchedule()
-      setInitialized(true)
-    }
-  }, [initialized])
+    // Не загружаем данные автоматически при инициализации
+    // Данные будут загружены только после выбора даты в календаре
+    setInitialized(true)
+  }, [])
 
   // Закрытие календаря при клике вне его
   useEffect(() => {
@@ -144,13 +141,17 @@ export function EmployeeSchedule() {
   const handleDateClick = (dateStr: string) => {
     if (dateStr > today) return // Нельзя выбирать будущие даты
     
-    if (!selectedDate && !startDate && !endDate) {
-      // Первый клик - выбираем одну дату
+    // Проверяем текущее состояние
+    const hasSelectedDate = selectedDate !== ''
+    const hasRange = startDate !== '' && endDate !== ''
+    
+    if (!hasSelectedDate && !hasRange) {
+      // Ничего не выбрано - выбираем одну дату
       setSelectedDate(dateStr)
       setStartDate('')
       setEndDate('')
-    } else if (selectedDate && !startDate && !endDate) {
-      // Второй клик - создаем диапазон
+    } else if (hasSelectedDate && !hasRange) {
+      // Уже выбрана одна дата - создаем диапазон
       if (dateStr === selectedDate) {
         // Клик по той же дате - остается одна дата
         return
@@ -163,7 +164,7 @@ export function EmployeeSchedule() {
       setEndDate(end)
       setSelectedDate('')
     } else {
-      // Сброс к одной дате
+      // Уже есть диапазон или что-то выбрано - сбрасываем и выбираем новую дату
       setSelectedDate(dateStr)
       setStartDate('')
       setEndDate('')
@@ -365,7 +366,7 @@ export function EmployeeSchedule() {
         <div className="px-6 py-4 border-b border-gray-200">
           <div className="flex items-center justify-between">
             {/* Statistics */}
-            {scheduleData && (
+            {scheduleData && scheduleData.employees.length > 0 && (
               <div className="flex items-center space-x-4">
                 <div className="">
                   <div className="flex items-center">
@@ -431,7 +432,7 @@ export function EmployeeSchedule() {
                   ? `${startDate} - ${endDate}`
                   : selectedDate 
                   ? selectedDate
-                  : 'Выбрать дату'
+                  : 'Выбрать дату 📅'
                 }
               </button>
               
@@ -552,6 +553,12 @@ export function EmployeeSchedule() {
               >
                 Повторить
               </button>
+            </div>
+          ) : !selectedDate && !startDate && !endDate ? (
+            <div className="p-6 text-center text-gray-600">
+              <Calendar className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Выберите дату</h3>
+              <p>Нажмите на кнопку "Выбрать дату" выше, чтобы просмотреть расписание сотрудников</p>
             </div>
           ) : scheduleData?.employees.length === 0 ? (
             <div className="p-6 text-center text-gray-600">
