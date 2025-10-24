@@ -465,13 +465,26 @@ async def get_users(current_user: dict = Depends(require_role(2))):
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        cursor.execute("""
-            SELECT u.id, u.username, u.email, u.full_name, u.role, u.is_active, 
-                   u.created_at, r.name as role_name
-            FROM users u
-            LEFT JOIN roles r ON u.role = r.id
-            ORDER BY u.created_at DESC
-        """)
+        # Root видит всех, superadmin - только не-root пользователей
+        if current_user["role"] == 0:
+            # Root видит всех
+            cursor.execute("""
+                SELECT u.id, u.username, u.email, u.full_name, u.role, u.is_active, 
+                       u.created_at, r.name as role_name
+                FROM users u
+                LEFT JOIN roles r ON u.role = r.id
+                ORDER BY u.created_at DESC
+            """)
+        else:
+            # Superadmin видит только пользователей с ролью >= 2 (не root)
+            cursor.execute("""
+                SELECT u.id, u.username, u.email, u.full_name, u.role, u.is_active, 
+                       u.created_at, r.name as role_name
+                FROM users u
+                LEFT JOIN roles r ON u.role = r.id
+                WHERE u.role >= 2
+                ORDER BY u.created_at DESC
+            """)
         
         users = []
         for row in cursor.fetchall():

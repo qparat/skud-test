@@ -53,9 +53,10 @@ export default function UsersPage() {
     )
   }
 
-  // Роли для выбора
+  // Роли для выбора - зависит от роли текущего пользователя
   const roleOptions = [
-    { value: 0, label: 'Root', description: 'Максимальные права' },
+    // Root видит все роли
+    ...(currentUser?.role === 0 ? [{ value: 0, label: 'Root', description: 'Максимальные права' }] : []),
     { value: 2, label: 'Супер-администратор', description: 'Управление системой' },
     { value: 3, label: 'Пользователь', description: 'Базовые права просмотра' }
   ]
