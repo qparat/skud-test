@@ -58,16 +58,20 @@ interface ScheduleData {
 
 export function EmployeeSchedule() {
   const router = useRouter()
-  const [currentDate, setCurrentDate] = useState('')
+  const [selectedDate, setSelectedDate] = useState('')
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
-  const [isRangeMode, setIsRangeMode] = useState(false)
   const [scheduleData, setScheduleData] = useState<ScheduleData | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [initialized, setInitialized] = useState(false)
   const [sortBy, setSortBy] = useState<'none' | 'late-first' | 'normal-first'>('none')
   const [searchQuery, setSearchQuery] = useState('')
+  const [showCalendar, setShowCalendar] = useState(false)
+  const [currentMonth, setCurrentMonth] = useState(new Date())
+  
+  // Получаем сегодняшнюю дату для ограничения выбора
+  const today = new Date().toISOString().split('T')[0]
 
   const fetchSchedule = async (date?: string, start?: string, end?: string) => {
     setLoading(true)
@@ -90,7 +94,7 @@ export function EmployeeSchedule() {
       
       // Если дата не была установлена, устанавливаем дату из ответа API
       if (!date && !start && data.date) {
-        setCurrentDate(data.date)
+        setSelectedDate(data.date)
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ошибка загрузки данных')
@@ -108,19 +112,101 @@ export function EmployeeSchedule() {
     }
   }, [initialized])
 
+  // Закрытие календаря при клике вне его
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element
+      if (showCalendar && !target.closest('.calendar-container')) {
+        setShowCalendar(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [showCalendar])
+
   // Загрузка при изменении даты пользователем
   useEffect(() => {
     if (initialized) {
-      if (isRangeMode && startDate && endDate) {
+      if (startDate && endDate) {
         fetchSchedule(undefined, startDate, endDate)
-      } else if (!isRangeMode && currentDate) {
-        fetchSchedule(currentDate)
+      } else if (selectedDate) {
+        fetchSchedule(selectedDate)
       }
     }
-  }, [currentDate, startDate, endDate, isRangeMode, initialized])
+  }, [selectedDate, startDate, endDate, initialized])
 
   const handleEmployeeClick = (employeeId: number) => {
     router.push(`/employees/${employeeId}`)
+  }
+
+  // Обработка клика по дате в календаре
+  const handleDateClick = (dateStr: string) => {
+    if (dateStr > today) return // Нельзя выбирать будущие даты
+    
+    if (!selectedDate && !startDate && !endDate) {
+      // Первый клик - выбираем одну дату
+      setSelectedDate(dateStr)
+      setStartDate('')
+      setEndDate('')
+    } else if (selectedDate && !startDate && !endDate) {
+      // Второй клик - создаем диапазон
+      if (dateStr === selectedDate) {
+        // Клик по той же дате - остается одна дата
+        return
+      }
+      
+      const start = dateStr < selectedDate ? dateStr : selectedDate
+      const end = dateStr < selectedDate ? selectedDate : dateStr
+      
+      setStartDate(start)
+      setEndDate(end)
+      setSelectedDate('')
+    } else {
+      // Сброс к одной дате
+      setSelectedDate(dateStr)
+      setStartDate('')
+      setEndDate('')
+    }
+    
+    setShowCalendar(false)
+  }
+
+  // Сброс выбора дат
+  const clearDates = () => {
+    setSelectedDate('')
+    setStartDate('')
+    setEndDate('')
+  }
+
+  // Генерация календаря
+  const generateCalendar = () => {
+    const year = currentMonth.getFullYear()
+    const month = currentMonth.getMonth()
+    
+    const firstDay = new Date(year, month, 1)
+    const lastDay = new Date(year, month + 1, 0)
+    const startDate = new Date(firstDay)
+    startDate.setDate(startDate.getDate() - firstDay.getDay()) // Начинаем с воскресенья
+    
+    const days = []
+    const currentDate = new Date(startDate)
+    
+    for (let i = 0; i < 42; i++) { // 6 недель по 7 дней
+      days.push(new Date(currentDate))
+      currentDate.setDate(currentDate.getDate() + 1)
+    }
+    
+    return days
+  }
+
+  // Навигация по месяцам
+  const goToPreviousMonth = () => {
+    setCurrentMonth(prev => new Date(prev.getFullYear(), prev.getMonth() - 1))
+  }
+
+  const goToNextMonth = () => {
+    setCurrentMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + 1))
   }
 
   const handleStatusSort = () => {
@@ -310,12 +396,12 @@ export function EmployeeSchedule() {
                     <Calendar className="h-6 w-6 text-green-600" />
                     <div className="ml-2">
                       <p className="text-xs font-medium text-green-600">
-                        {isRangeMode ? 'Период' : 'Дата'}
+                        {startDate && endDate ? 'Период' : 'Дата'}
                       </p>
                       <p className="text-lg font-bold text-green-900">
-                        {isRangeMode && scheduleData.start_date && scheduleData.end_date 
-                          ? `${scheduleData.start_date} - ${scheduleData.end_date}`
-                          : scheduleData.date
+                        {startDate && endDate 
+                          ? `${startDate} - ${endDate}`
+                          : selectedDate || scheduleData.date
                         }
                       </p>
                     </div>
@@ -334,52 +420,102 @@ export function EmployeeSchedule() {
                 />
               </div>
             
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2">
-                <label className="flex items-center">
-                  <input
-                    type="radio"
-                    checked={!isRangeMode}
-                    onChange={() => setIsRangeMode(false)}
-                    className="mr-1"
-                  />
-                  <span className="text-sm text-gray-700">Одна дата</span>
-                </label>
-                <label className="flex items-center">
-                  <input
-                    type="radio"
-                    checked={isRangeMode}
-                    onChange={() => setIsRangeMode(true)}
-                    className="mr-1"
-                  />
-                  <span className="text-sm text-gray-700">Диапазон</span>
-                </label>
-              </div>
+            <div className="flex items-center space-x-4 relative calendar-container">
+              {/* Кнопка для открытия календаря */}
+              <button
+                onClick={() => setShowCalendar(!showCalendar)}
+                className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                <Calendar className="h-4 w-4 mr-2" />
+                {startDate && endDate 
+                  ? `${startDate} - ${endDate}`
+                  : selectedDate 
+                  ? selectedDate
+                  : 'Выбрать дату'
+                }
+              </button>
               
-              {!isRangeMode ? (
-                <input
-                  type="date"
-                  value={currentDate}
-                  onChange={(e) => setCurrentDate(e.target.value)}
-                  className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              ) : (
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="date"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                    className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="От"
-                  />
-                  <span className="text-gray-500">до</span>
-                  <input
-                    type="date"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                    className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="До"
-                  />
+              {/* Кнопка сброса */}
+              {(selectedDate || (startDate && endDate)) && (
+                <button
+                  onClick={clearDates}
+                  className="text-sm text-red-600 hover:text-red-800"
+                >
+                  Сбросить
+                </button>
+              )}
+              
+              {/* Календарь */}
+              {showCalendar && (
+                <div className="absolute top-full mt-2 z-50 bg-white border border-gray-200 rounded-lg shadow-lg p-4" style={{minWidth: '280px'}}>
+                  {/* Заголовок календаря */}
+                  <div className="flex items-center justify-between mb-4">
+                    <button
+                      onClick={goToPreviousMonth}
+                      className="p-1 hover:bg-gray-100 rounded"
+                    >
+                      <ChevronUp className="h-4 w-4 rotate-270" />
+                    </button>
+                    <h3 className="text-sm font-medium">
+                      {currentMonth.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' })}
+                    </h3>
+                    <button
+                      onClick={goToNextMonth}
+                      className="p-1 hover:bg-gray-100 rounded"
+                    >
+                      <ChevronDown className="h-4 w-4 rotate-90" />
+                    </button>
+                  </div>
+                  
+                  {/* Дни недели */}
+                  <div className="grid grid-cols-7 gap-1 mb-2">
+                    {['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'].map(day => (
+                      <div key={day} className="text-xs text-center text-gray-500 font-medium py-1">
+                        {day}
+                      </div>
+                    ))}
+                  </div>
+                  
+                  {/* Дни */}
+                  <div className="grid grid-cols-7 gap-1">
+                    {generateCalendar().map((date, index) => {
+                      const dateStr = date.toISOString().split('T')[0]
+                      const isCurrentMonth = date.getMonth() === currentMonth.getMonth()
+                      const isToday = dateStr === today
+                      const isSelected = dateStr === selectedDate
+                      const isInRange = startDate && endDate && dateStr >= startDate && dateStr <= endDate
+                      const isStartDate = dateStr === startDate
+                      const isEndDate = dateStr === endDate
+                      const isFuture = dateStr > today
+                      const isDisabled = isFuture
+                      
+                      return (
+                        <button
+                          key={index}
+                          onClick={() => !isDisabled && handleDateClick(dateStr)}
+                          disabled={isDisabled}
+                          className={`
+                            w-8 h-8 text-xs rounded-full flex items-center justify-center
+                            ${!isCurrentMonth ? 'text-gray-300' : ''}
+                            ${isToday ? 'bg-blue-100 text-blue-600 font-bold' : ''}
+                            ${isSelected ? 'bg-blue-600 text-white' : ''}
+                            ${isStartDate || isEndDate ? 'bg-green-600 text-white' : ''}
+                            ${isInRange && !isStartDate && !isEndDate ? 'bg-green-100 text-green-800' : ''}
+                            ${isDisabled ? 'bg-gray-100 text-gray-300 cursor-not-allowed' : 'hover:bg-gray-100'}
+                            ${!isSelected && !isInRange && !isToday && !isDisabled && isCurrentMonth ? 'hover:bg-gray-100' : ''}
+                          `}
+                        >
+                          {date.getDate()}
+                        </button>
+                      )
+                    })}
+                  </div>
+                  
+                  <div className="mt-3 pt-3 border-t text-xs text-gray-500">
+                    <p>• Один клик = одна дата</p>
+                    <p>• Два клика = диапазон дат</p>
+                    <p>• Нельзя выбрать будущие даты</p>
+                  </div>
                 </div>
               )}
             </div>
@@ -405,7 +541,13 @@ export function EmployeeSchedule() {
             <div className="p-6 text-center text-red-600">
               <p>Ошибка: {error}</p>
               <button
-                onClick={() => fetchSchedule(currentDate)}
+                onClick={() => {
+                  if (startDate && endDate) {
+                    fetchSchedule(undefined, startDate, endDate)
+                  } else {
+                    fetchSchedule(selectedDate)
+                  }
+                }}
                 className="mt-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
               >
                 Повторить
@@ -422,7 +564,7 @@ export function EmployeeSchedule() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     ФИО
                   </th>
-                  {!isRangeMode ? (
+                  {!scheduleData?.employees.some(emp => 'days' in emp) ? (
                     <>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Пришел
