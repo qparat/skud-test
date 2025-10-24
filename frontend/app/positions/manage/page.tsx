@@ -49,8 +49,23 @@ export default function ManageEmployeePositionsPage() {
     try {
       setLoading(true);
 
-      const employeesData = await apiRequest('/employees/unassigned');
-      setEmployees(employeesData);
+      const employeesData = await apiRequest('/employees');
+      
+      // Если данные приходят в формате с departments, извлекаем всех сотрудников
+      let allEmployees: Employee[] = [];
+      if (employeesData.departments) {
+        // Обрабатываем формат {departments: {dept1: [employees], dept2: [employees]}}
+        Object.values(employeesData.departments).forEach((deptEmployees: any) => {
+          if (Array.isArray(deptEmployees)) {
+            allEmployees = allEmployees.concat(deptEmployees);
+          }
+        });
+      } else if (Array.isArray(employeesData)) {
+        // Обрабатываем простой массив сотрудников
+        allEmployees = employeesData;
+      }
+      
+      setEmployees(allEmployees);
 
       const positionsData = await apiRequest('/positions');
       setPositions(positionsData);
