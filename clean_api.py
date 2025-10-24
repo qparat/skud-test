@@ -240,6 +240,36 @@ def verify_token(token: str) -> Optional[dict]:
         print(f"Ошибка проверки токена: {e}")
         return None
 
+def create_initial_admin():
+    """Создает начального администратора, если пользователей нет"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Проверяем, есть ли уже пользователи
+        cursor.execute("SELECT COUNT(*) FROM users")
+        user_count = cursor.fetchone()[0]
+        
+        if user_count == 0:
+            # Создаем root пользователя
+            hashed_password = hash_password("admin123")
+            cursor.execute("""
+                INSERT INTO users (username, email, full_name, password_hash, role, is_active, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
+            """, ("admin", "admin@skud.local", "Администратор", hashed_password, 0, True))
+            
+            conn.commit()
+            print("Создан начальный администратор:")
+            print("Логин: admin")
+            print("Пароль: admin123")
+            print("Роль: 0 (root)")
+        
+        conn.close()
+        return True
+    except Exception as e:
+        print(f"Ошибка создания начального администратора: {e}")
+        return False
+
 def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
     """Получает текущего пользователя из токена"""
     user = verify_token(credentials.credentials)
@@ -298,6 +328,7 @@ async def startup_event():
     """Инициализация при запуске приложения"""
     create_employee_exceptions_table()
     create_auth_tables()
+    create_initial_admin()
 
 # ================================
 # АУТЕНТИФИКАЦИЯ И АВТОРИЗАЦИЯ
