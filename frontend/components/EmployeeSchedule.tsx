@@ -151,7 +151,7 @@ export function EmployeeSchedule() {
             {/* Statistics */}
             {scheduleData && (
               <div className="flex items-center space-x-4">
-                <div className="bg-blue-50 p-3 rounded-lg">
+                <div className="">
                   <div className="flex items-center">
                     <User className="h-6 w-6 text-blue-600" />
                     <div className="ml-2">
@@ -161,7 +161,7 @@ export function EmployeeSchedule() {
                   </div>
                 </div>
                 
-                <div className="bg-red-50 p-3 rounded-lg">
+                <div className="">
                   <div className="flex items-center">
                     <Clock className="h-6 w-6 text-red-600" />
                     <div className="ml-2">
@@ -171,7 +171,7 @@ export function EmployeeSchedule() {
                   </div>
                 </div>
                 
-                <div className="bg-green-50 p-3 rounded-lg">
+                <div className="">
                   <div className="flex items-center">
                     <Calendar className="h-6 w-6 text-green-600" />
                     <div className="ml-2">
