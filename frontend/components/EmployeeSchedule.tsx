@@ -460,7 +460,7 @@ export function EmployeeSchedule() {
                       onClick={goToPreviousMonth}
                       className="p-1 hover:bg-gray-100 rounded"
                     >
-                      <ChevronUp className="h-4 w-4 rotate-270" />
+                      <ChevronDown className="h-4 w-4 rotate-90" />
                     </button>
                     <h3 className="text-sm font-medium">
                       {currentMonth.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' })}
@@ -469,7 +469,7 @@ export function EmployeeSchedule() {
                       onClick={goToNextMonth}
                       className="p-1 hover:bg-gray-100 rounded"
                     >
-                      <ChevronDown className="h-4 w-4 rotate-90" />
+                      <ChevronUp className="h-4 w-4 rotate-90" />
                     </button>
                   </div>
                   
