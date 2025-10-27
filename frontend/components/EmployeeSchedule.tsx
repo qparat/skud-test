@@ -404,7 +404,7 @@ export function EmployeeSchedule() {
                       <p className="text-s font-medium text-gray-600">
                         {startDate && endDate ? 'Период' : 'Дата'}
                       </p>
-                      <p className="text-lg font-bold text-gray-900">
+                      <p className="text-s font-medium text-gray-900">
                         {startDate && endDate 
                           ? `${startDate} - ${endDate}`
                           : selectedDate || scheduleData.date

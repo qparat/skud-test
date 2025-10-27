@@ -46,6 +46,13 @@ export function Header() {
         </div>
         
         <div className="flex items-center space-x-4">
+          <button
+            onClick={handleRefresh}
+            className="p-2 text-gray-400 hover:text-gray-600 rounded-md hover:bg-gray-100"
+           title="Обновить данные"
+          >
+            <RefreshCw className="h-4 w-4" />
+          </button>
           <span className="text-sm text-gray-600">
             {isClient ? currentTime : '--:--:--'}
           </span>
@@ -84,14 +91,6 @@ export function Header() {
               </button>
             </div>
           )}
-          
-          <button
-            onClick={handleRefresh}
-            className="p-2 text-gray-400 hover:text-gray-600 rounded-md hover:bg-gray-100"
-           title="Обновить данные"
-          >
-            <RefreshCw className="h-4 w-4" />
-          </button>
         </div>
       </div>
     </header>
