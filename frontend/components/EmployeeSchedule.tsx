@@ -163,6 +163,49 @@ export function EmployeeSchedule() {
     })
   }
 
+  // Функции для быстрого выбора периодов
+  const selectWeekPeriod = () => {
+    const today = new Date()
+    const weekStart = new Date(today)
+    weekStart.setDate(today.getDate() - 7)
+    
+    const startStr = formatDate(weekStart)
+    const endStr = formatDate(today)
+    
+    setStartDate(startStr)
+    setEndDate(endStr)
+    setSelectedDate('')
+    setShowCalendar(false)
+  }
+
+  const selectMonthPeriod = () => {
+    const today = new Date()
+    const monthStart = new Date(today)
+    monthStart.setDate(today.getDate() - 30)
+    
+    const startStr = formatDate(monthStart)
+    const endStr = formatDate(today)
+    
+    setStartDate(startStr)
+    setEndDate(endStr)
+    setSelectedDate('')
+    setShowCalendar(false)
+  }
+
+  const selectQuarterPeriod = () => {
+    const today = new Date()
+    const quarterStart = new Date(today)
+    quarterStart.setDate(today.getDate() - 90)
+    
+    const startStr = formatDate(quarterStart)
+    const endStr = formatDate(today)
+    
+    setStartDate(startStr)
+    setEndDate(endStr)
+    setSelectedDate('')
+    setShowCalendar(false)
+  }
+
   // Обработка клика по дате в календаре
   const handleDateClick = (dateStr: string) => {
     if (dateStr > today) return // Нельзя выбирать будущие даты
@@ -627,11 +670,28 @@ export function EmployeeSchedule() {
                     })}
                   </div>
                   
-                  <div className="mt-3 pt-3 border-t text-xs text-gray-500">
-                    <p>• Один клик = выбор даты</p>
-                    <p>• Повторный клик = загрузка данных</p>
-                    <p>• Клик на другую дату = диапазон</p>
-                    <p>• Нельзя выбрать будущие даты</p>
+                  <div className="mt-3 pt-3 border-t">
+                    <p className="text-xs text-gray-600 mb-2">Быстрый выбор периода:</p>
+                    <div className="grid grid-cols-3 gap-2">
+                      <button
+                        onClick={selectWeekPeriod}
+                        className="px-3 py-2 text-xs bg-blue-50 text-blue-700 rounded hover:bg-blue-100 transition-colors"
+                      >
+                        За неделю
+                      </button>
+                      <button
+                        onClick={selectMonthPeriod}
+                        className="px-3 py-2 text-xs bg-green-50 text-green-700 rounded hover:bg-green-100 transition-colors"
+                      >
+                        За месяц
+                      </button>
+                      <button
+                        onClick={selectQuarterPeriod}
+                        className="px-3 py-2 text-xs bg-purple-50 text-purple-700 rounded hover:bg-purple-100 transition-colors"
+                      >
+                        За квартал
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}
