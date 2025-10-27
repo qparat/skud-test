@@ -160,11 +160,12 @@ export function EmployeeSchedule() {
       setStartDate('')
       setEndDate('')
       // НЕ ЗАГРУЖАЕМ данные, только выделяем дату
+      // НЕ закрываем календарь, чтобы пользователь мог кликнуть повторно
     } else if (hasSelectedDate && !hasRange) {
       if (dateStr === selectedDate) {
         // Клик по той же уже выбранной дате - загружаем данные для этой даты
         fetchSchedule(selectedDate)
-        setShowCalendar(false)
+        setShowCalendar(false) // Закрываем календарь после загрузки данных
         return
       } else {
         // Клик по другой дате - создаем диапазон и загружаем данные
@@ -174,6 +175,7 @@ export function EmployeeSchedule() {
         setStartDate(start)
         setEndDate(end)
         setSelectedDate('')
+        setShowCalendar(false) // Закрываем календарь после создания диапазона
         // Данные загрузятся автоматически через useEffect
       }
     } else {
@@ -182,9 +184,8 @@ export function EmployeeSchedule() {
       setStartDate('')
       setEndDate('')
       // НЕ ЗАГРУЖАЕМ данные, только выделяем дату
+      // НЕ закрываем календарь, чтобы пользователь мог кликнуть повторно
     }
-    
-    setShowCalendar(false)
   }
 
   // Сброс выбора дат
