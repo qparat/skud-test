@@ -77,6 +77,7 @@ export function EmployeeSchedule() {
   const [searchQuery, setSearchQuery] = useState('')
   const [showCalendar, setShowCalendar] = useState(false)
   const [currentMonth, setCurrentMonth] = useState(new Date())
+  const [expandedEmployees, setExpandedEmployees] = useState<Set<number>>(new Set())
   
   // Получаем сегодняшнюю дату для ограничения выбора (без проблем с временной зоной)
   const today = formatDate(new Date())
@@ -99,6 +100,9 @@ export function EmployeeSchedule() {
       
       // Сбрасываем сортировку при загрузке новых данных
       setSortBy('none')
+      
+      // Сбрасываем состояние развернутых сотрудников при загрузке новых данных
+      setExpandedEmployees(new Set())
       
       // При первоначальной загрузке НЕ устанавливаем дату автоматически
       // Пользователь должен сам выбрать дату в календаре
@@ -144,6 +148,19 @@ export function EmployeeSchedule() {
 
   const handleEmployeeClick = (employeeId: number) => {
     router.push(`/employees/${employeeId}`)
+  }
+
+  // Функция для переключения развернутого состояния сотрудника
+  const toggleEmployeeExpanded = (employeeId: number) => {
+    setExpandedEmployees(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(employeeId)) {
+        newSet.delete(employeeId)
+      } else {
+        newSet.add(employeeId)
+      }
+      return newSet
+    })
   }
 
   // Обработка клика по дате в календаре
@@ -329,6 +346,50 @@ export function EmployeeSchedule() {
     }
   }
 
+  // Функция для получения данных с группировкой для отображения
+  const getDisplayData = () => {
+    const sortedData = getSortedEmployees()
+    
+    // Для одной даты возвращаем как есть
+    const isRangeData = sortedData.length > 0 && 'date' in sortedData[0]
+    if (!isRangeData) {
+      return sortedData.map(emp => ({ ...emp, isFirstInGroup: true, totalInGroup: 1 }))
+    }
+
+    // Для диапазона дат группируем по employee_id
+    const grouped: Record<number, (Employee & { date: string })[]> = {}
+    const typedData = sortedData as (Employee & { date: string })[]
+    
+    typedData.forEach(emp => {
+      if (!grouped[emp.employee_id]) {
+        grouped[emp.employee_id] = []
+      }
+      grouped[emp.employee_id].push(emp)
+    })
+
+    // Создаем плоский список с метаданными для отображения
+    const displayData: Array<Employee & { date?: string; isFirstInGroup: boolean; totalInGroup: number; groupIndex: number }> = []
+    
+    Object.entries(grouped).forEach(([employeeId, employeeDays]) => {
+      const empId = parseInt(employeeId)
+      const isExpanded = expandedEmployees.has(empId)
+      
+      employeeDays.forEach((emp, index) => {
+        // Показываем первую строку всегда, остальные только если развернуто
+        if (index === 0 || isExpanded) {
+          displayData.push({
+            ...emp,
+            isFirstInGroup: index === 0,
+            totalInGroup: employeeDays.length,
+            groupIndex: index
+          })
+        }
+      })
+    })
+
+    return displayData
+  }
+
   const getSortIcon = () => {
     switch (sortBy) {
       case 'late-first':
@@ -347,7 +408,7 @@ export function EmployeeSchedule() {
     }
 
     // Получаем отсортированные данные из того же источника, что и таблица
-    const sortedData = getSortedEmployees()
+    const sortedData = getSortedEmployees() // Используем исходную функцию для экспорта всех данных
     
     let excelData: any[] = []
 
@@ -659,13 +720,15 @@ export function EmployeeSchedule() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {getSortedEmployees().map((employee, index) => {
+                {getDisplayData().map((employee, index) => {
                   // Проверяем, есть ли поле date (это означает, что это данные диапазона в плоском формате)
                   const isRangeData = 'date' in employee
+                  const hasExpandButton = isRangeData && employee.isFirstInGroup && employee.totalInGroup > 1
+                  const isExpanded = expandedEmployees.has(employee.employee_id)
                   
                   if (!isRangeData) {
                     // Отображение для одной даты
-                    const emp = employee as Employee
+                    const emp = employee as Employee & { isFirstInGroup: boolean; totalInGroup: number }
                     return (
                       <tr
                         key={emp.employee_id}
@@ -731,24 +794,47 @@ export function EmployeeSchedule() {
                       </tr>
                     )
                   } else {
-                    // Отображение для диапазона дат (плоский формат)
-                    const emp = employee as Employee & { date: string }
+                    // Отображение для диапазона дат (плоский формат с группировкой)
+                    const emp = employee as Employee & { date: string; isFirstInGroup: boolean; totalInGroup: number; groupIndex: number }
                     return (
                       <tr
                         key={`${emp.employee_id}-${emp.date}`}
                         className={`hover:bg-gray-50 ${emp.is_late ? 'bg-red-50' : ''}`}
                       >
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <button
-                            onClick={() => handleEmployeeClick(emp.employee_id)}
-                            className={`text-left font-medium ${
-                              emp.is_late 
-                                ? 'text-red-600 hover:text-red-800' 
-                                : 'text-blue-600 hover:text-blue-800'
-                            }`}
-                          >
-                            {emp.full_name}
-                          </button>
+                          <div className="flex items-center justify-between">
+                            {emp.isFirstInGroup ? (
+                              <button
+                                onClick={() => handleEmployeeClick(emp.employee_id)}
+                                className={`text-left font-medium ${
+                                  emp.is_late 
+                                    ? 'text-red-600 hover:text-red-800' 
+                                    : 'text-blue-600 hover:text-blue-800'
+                                }`}
+                              >
+                                {emp.full_name}
+                              </button>
+                            ) : (
+                              <span className="text-gray-400 text-sm">↳</span>
+                            )}
+                            
+                            {hasExpandButton && (
+                              <button
+                                onClick={() => toggleEmployeeExpanded(emp.employee_id)}
+                                className="ml-2 p-1 text-gray-400 hover:text-gray-600 focus:outline-none"
+                                title={isExpanded ? 'Свернуть' : `Показать еще ${emp.totalInGroup - 1} дней`}
+                              >
+                                {isExpanded ? (
+                                  <ChevronUp className="h-4 w-4" />
+                                ) : (
+                                  <div className="flex items-center space-x-1">
+                                    <ChevronDown className="h-4 w-4" />
+                                    <span className="text-xs">+{emp.totalInGroup - 1}</span>
+                                  </div>
+                                )}
+                              </button>
+                            )}
+                          </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           <div className="flex flex-col">
