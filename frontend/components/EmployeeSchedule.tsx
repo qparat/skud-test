@@ -378,36 +378,33 @@ export function EmployeeSchedule() {
               <div className="flex items-center space-x-4">
                 <div className="">
                   <div className="flex items-center">
-                    <User className="h-6 w-6 text-blue-600" />
-                    <div className="ml-2">
-                      <p className="text-xs font-medium text-blue-600">Всего сотрудников</p>
-                      <p className="text-lg font-bold text-blue-900">{scheduleData.total_count}</p>
+                    <div className="flex items-center space-x-4">
+                      <p className="text-s font-medium text-gray-600">Всего сотрудников</p>
+                      <p className="bg-blue-100 text-blue-800 text-sm font-medium px-2.5 py-0.5 rounded-full">{scheduleData.total_count}</p>
                     </div>
                   </div>
                 </div>
                 
                 <div className="">
                   <div className="flex items-center">
-                    <Clock className="h-6 w-6 text-red-600" />
-                    <div className="ml-2">
-                      <p className="text-xs font-medium text-red-600">
+                    <div className="flex items-center space-x-4">
+                      <p className="text-s font-medium text-gray-600">
                         Опозданий
                         {sortBy === 'late-first' && ' (сверху)'}
                         {sortBy === 'normal-first' && ' (снизу)'}
                       </p>
-                      <p className="text-lg font-bold text-red-900">{scheduleData.late_count}</p>
+                      <p className="bg-red-100 text-red-800 text-sm font-medium px-2.5 py-0.5 rounded-full">{scheduleData.late_count}</p>
                     </div>
                   </div>
                 </div>
                 
                 <div className="">
                   <div className="flex items-center">
-                    <Calendar className="h-6 w-6 text-green-600" />
-                    <div className="ml-2">
-                      <p className="text-xs font-medium text-green-600">
+                    <div className="flex items-center space-x-4">
+                      <p className="text-s font-medium text-gray-600">
                         {startDate && endDate ? 'Период' : 'Дата'}
                       </p>
-                      <p className="text-lg font-bold text-green-900">
+                      <p className="text-lg font-bold text-gray-900">
                         {startDate && endDate 
                           ? `${startDate} - ${endDate}`
                           : selectedDate || scheduleData.date
