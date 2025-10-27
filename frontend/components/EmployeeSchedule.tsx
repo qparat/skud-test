@@ -134,12 +134,13 @@ export function EmployeeSchedule() {
   useEffect(() => {
     if (initialized) {
       if (startDate && endDate) {
+        // Загружаем данные для диапазона дат
         fetchSchedule(undefined, startDate, endDate)
-      } else if (selectedDate) {
-        fetchSchedule(selectedDate)
       }
+      // НЕ загружаем данные автоматически при выборе одной даты
+      // Данные загрузятся только при повторном клике по той же дате
     }
-  }, [selectedDate, startDate, endDate, initialized])
+  }, [startDate, endDate, initialized]) // Убираем selectedDate из зависимостей
 
   const handleEmployeeClick = (employeeId: number) => {
     router.push(`/employees/${employeeId}`)
@@ -154,28 +155,33 @@ export function EmployeeSchedule() {
     const hasRange = startDate !== '' && endDate !== ''
     
     if (!hasSelectedDate && !hasRange) {
-      // Ничего не выбрано - выбираем одну дату
+      // Ничего не выбрано - только выбираем дату, не загружаем данные
       setSelectedDate(dateStr)
       setStartDate('')
       setEndDate('')
+      // НЕ ЗАГРУЖАЕМ данные, только выделяем дату
     } else if (hasSelectedDate && !hasRange) {
-      // Уже выбрана одна дата - создаем диапазон
       if (dateStr === selectedDate) {
-        // Клик по той же дате - остается одна дата
+        // Клик по той же уже выбранной дате - загружаем данные для этой даты
+        fetchSchedule(selectedDate)
+        setShowCalendar(false)
         return
+      } else {
+        // Клик по другой дате - создаем диапазон и загружаем данные
+        const start = dateStr < selectedDate ? dateStr : selectedDate
+        const end = dateStr < selectedDate ? selectedDate : dateStr
+        
+        setStartDate(start)
+        setEndDate(end)
+        setSelectedDate('')
+        // Данные загрузятся автоматически через useEffect
       }
-      
-      const start = dateStr < selectedDate ? dateStr : selectedDate
-      const end = dateStr < selectedDate ? selectedDate : dateStr
-      
-      setStartDate(start)
-      setEndDate(end)
-      setSelectedDate('')
     } else {
-      // Уже есть диапазон или что-то выбрано - сбрасываем и выбираем новую дату
+      // Уже есть диапазон - сбрасываем и выбираем новую дату (без загрузки)
       setSelectedDate(dateStr)
       setStartDate('')
       setEndDate('')
+      // НЕ ЗАГРУЖАЕМ данные, только выделяем дату
     }
     
     setShowCalendar(false)
@@ -518,8 +524,9 @@ export function EmployeeSchedule() {
                   </div>
                   
                   <div className="mt-3 pt-3 border-t text-xs text-gray-500">
-                    <p>• Один клик = одна дата</p>
-                    <p>• Два клика = диапазон дат</p>
+                    <p>• Один клик = выбор даты</p>
+                    <p>• Повторный клик = загрузка данных</p>
+                    <p>• Клик на другую дату = диапазон</p>
                     <p>• Нельзя выбрать будущие даты</p>
                   </div>
                 </div>
@@ -550,7 +557,7 @@ export function EmployeeSchedule() {
                 onClick={() => {
                   if (startDate && endDate) {
                     fetchSchedule(undefined, startDate, endDate)
-                  } else {
+                  } else if (selectedDate) {
                     fetchSchedule(selectedDate)
                   }
                 }}
