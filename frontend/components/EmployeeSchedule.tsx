@@ -437,7 +437,7 @@ export function EmployeeSchedule() {
                   ? `${startDate} - ${endDate}`
                   : selectedDate 
                   ? selectedDate
-                  : 'Выбрать дату 📅'
+                  : 'Выбрать дату'
                 }
               </button>
               
@@ -460,6 +460,7 @@ export function EmployeeSchedule() {
                       onClick={goToPreviousMonth}
                       className="p-1 hover:bg-gray-100 rounded"
                     >
+                      <ChevronUp className="h-4 w-4 rotate-270" />
                     </button>
                     <h3 className="text-sm font-medium">
                       {currentMonth.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' })}
