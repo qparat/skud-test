@@ -384,7 +384,7 @@ export function EmployeeSchedule() {
               <div className="flex items-center space-x-4">
                 <div className="">
                   <div className="flex items-center">
-                    <div className="flex items-center space-x-4">
+                    <div className="flex items-center space-x-2">
                       <p className="text-s font-medium text-gray-600">Всего сотрудников</p>
                       <p className="bg-blue-100 text-blue-800 text-sm font-medium px-2.5 py-0.5 rounded-full">{scheduleData.total_count}</p>
                     </div>
@@ -393,7 +393,7 @@ export function EmployeeSchedule() {
                 
                 <div className="">
                   <div className="flex items-center">
-                    <div className="flex items-center space-x-4">
+                    <div className="flex items-center space-x-2">
                       <p className="text-s font-medium text-gray-600">
                         Опозданий
                         {sortBy === 'late-first' && ' (сверху)'}
@@ -406,7 +406,7 @@ export function EmployeeSchedule() {
                 
                 <div className="">
                   <div className="flex items-center">
-                    <div className="flex items-center space-x-4">
+                    <div className="flex items-center space-x-2">
                       <p className="text-s font-medium text-gray-600">
                         {startDate && endDate ? 'Период' : 'Дата'}
                       </p>
