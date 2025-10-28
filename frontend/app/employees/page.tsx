@@ -106,10 +106,10 @@ export default function EmployeesPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900 flex items-center gap-2">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
               Список сотрудников
           </h1>
-          <p className="mt-1 text-sm text-gray-600">
+          <p className="text-gray-600">
             Всего сотрудников: {departmentsData?.total_employees || 0}
             {searchTerm && totalFiltered !== departmentsData?.total_employees && 
               ` (найдено: ${totalFiltered})`
