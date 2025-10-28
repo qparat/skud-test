@@ -98,8 +98,8 @@ export function EmployeeSchedule() {
       const data = await apiRequest(endpoint)
       setScheduleData(data)
       
-      // Сбрасываем сортировку при загрузке новых данных
-      setSortBy('none')
+      // НЕ сбрасываем сортировку при загрузке новых данных - пользователь должен сохранить свой выбор
+      // setSortBy('none')
       
       // Сбрасываем состояние развернутых сотрудников при загрузке новых данных
       setExpandedEmployees(new Set())
@@ -335,7 +335,9 @@ export function EmployeeSchedule() {
             return a.full_name.localeCompare(b.full_name)
           })
         default:
-          return filteredEmployees as Employee[]
+          return (filteredEmployees as Employee[]).sort((a, b) => 
+            a.full_name.localeCompare(b.full_name)
+          )
       }
     } else {
       // Логика для диапазона дат - преобразуем в плоский список
