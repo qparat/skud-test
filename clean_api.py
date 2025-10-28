@@ -1253,6 +1253,38 @@ async def update_employee(employee_id: int, updates: dict, current_user: dict = 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка обновления сотрудника: {str(e)}")
 
+@app.get("/employees/unassigned")
+async def get_unassigned_employees():
+    """Получить сотрудников без службы или с неактивным статусом"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT e.id, e.full_name, p.name as position_name, d.name as department_name, e.position_id
+            FROM employees e
+            LEFT JOIN positions p ON e.position_id = p.id
+            LEFT JOIN departments d ON e.department_id = d.id
+            WHERE e.is_active = 1
+            ORDER BY e.full_name
+        """)
+        
+        employees = []
+        for emp_id, name, position, department, position_id in cursor.fetchall():
+            employees.append({
+                'employee_id': emp_id,
+                'full_name': name,
+                'position': position or 'Не указана',
+                'department': department or 'Не назначена',
+                'position_id': position_id
+            })
+        
+        conn.close()
+        return employees
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка получения списка сотрудников: {str(e)}")
+
 @app.get("/employees/{employee_id}")
 async def get_employee_details(employee_id: int):
     """Получить подробную информацию о сотруднике"""
@@ -1515,38 +1547,6 @@ async def update_employee_department(employee_id: int, request_data: dict):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка при переводе сотрудника: {str(e)}")
-
-@app.get("/employees/unassigned")
-async def get_unassigned_employees():
-    """Получить сотрудников без службы или с неактивным статусом"""
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        cursor.execute("""
-            SELECT e.id, e.full_name, p.name as position_name, d.name as department_name, e.position_id
-            FROM employees e
-            LEFT JOIN positions p ON e.position_id = p.id
-            LEFT JOIN departments d ON e.department_id = d.id
-            WHERE e.is_active = 1
-            ORDER BY e.full_name
-        """)
-        
-        employees = []
-        for emp_id, name, position, department, position_id in cursor.fetchall():
-            employees.append({
-                'employee_id': emp_id,
-                'full_name': name,
-                'position': position or 'Не указана',
-                'department': department or 'Не назначена',
-                'position_id': position_id
-            })
-        
-        conn.close()
-        return employees
-        
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Ошибка получения списка сотрудников: {str(e)}")
 
 @app.put("/employees/{employee_id}/position")
 async def update_employee_position(employee_id: int, request_data: dict):
