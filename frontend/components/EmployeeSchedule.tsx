@@ -558,20 +558,20 @@ export function EmployeeSchedule() {
           <div className="flex items-center justify-between">
             {/* Statistics */}
             {scheduleData && scheduleData.employees.length > 0 && (
-              <div className="flex items-center space-x-4 flex-1 min-w-0">
-                <div className="flex-shrink-0">
+              <div className="flex items-center space-x-4">
+                <div className="">
                   <div className="flex items-center">
                     <div className="flex items-center space-x-2">
-                      <p className="text-s font-medium text-gray-600 whitespace-nowrap">Всего сотрудников</p>
+                      <p className="text-s font-medium text-gray-600">Всего сотрудников</p>
                       <p className="bg-blue-100 text-blue-800 text-sm font-medium px-2.5 py-0.5 rounded-full">{scheduleData.total_count}</p>
                     </div>
                   </div>
                 </div>
                 
-                <div className="flex-shrink-0">
+                <div className="">
                   <div className="flex items-center">
                     <div className="flex items-center space-x-2">
-                      <p className="text-s font-medium text-gray-600 whitespace-nowrap">
+                      <p className="text-s font-medium text-gray-600">
                         Опозданий
                         {sortBy === 'late-first' && ' (сверху)'}
                         {sortBy === 'normal-first' && ' (снизу)'}
@@ -581,17 +581,13 @@ export function EmployeeSchedule() {
                   </div>
                 </div>
                 
-                <div className="flex-shrink-0 max-w-xs">
+                <div className="">
                   <div className="flex items-center">
                     <div className="flex items-center space-x-2">
-                      <p className="text-s font-medium text-gray-600 whitespace-nowrap">
+                      <p className="text-s font-medium text-gray-600">
                         {startDate && endDate ? 'Период' : 'Дата'}
                       </p>
-                      <p className="text-s font-medium text-gray-900 truncate" title={
-                        startDate && endDate 
-                          ? `${startDate} - ${endDate}`
-                          : selectedDate || scheduleData.date
-                      }>
+                      <p className="text-s font-medium text-gray-900">
                         {startDate && endDate 
                           ? `${startDate} - ${endDate}`
                           : selectedDate || scheduleData.date
@@ -605,9 +601,9 @@ export function EmployeeSchedule() {
             {/* Поиск по ФИО */}
               
             
-            <div className="flex items-center space-x-4 relative calendar-container flex-shrink-0">
-              {/* Поиск по ФИО */}
-              <div className="w-48">
+            <div className="flex items-center space-x-4 relative calendar-container">
+              {/* Кнопка для открытия календаря */}
+              <div className="w-84">
                 <input
                   type="text"
                   value={searchQuery}
@@ -616,24 +612,20 @@ export function EmployeeSchedule() {
                   className="w-full inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                 />
               </div>
-              <div className="w-56">
-                <button
-                  onClick={() => setShowCalendar(!showCalendar)}
-                  className="w-full inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                >
-                  <Calendar className="h-4 w-4 mr-2 flex-shrink-0" />
-                  <span className="truncate">
-                    {startDate && endDate 
-                      ? `${startDate} - ${endDate}`
-                      : selectedDate 
-                      ? selectedDate
-                      : scheduleData?.date
-                      ? `Сегодня (${scheduleData.date})`
-                      : 'Выбрать дату'
-                    }
-                  </span>
-                </button>
-              </div>
+              <button
+                onClick={() => setShowCalendar(!showCalendar)}
+                className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                <Calendar className="h-4 w-4 mr-2" />
+                {startDate && endDate 
+                  ? `${startDate} - ${endDate}`
+                  : selectedDate 
+                  ? selectedDate
+                  : scheduleData?.date
+                  ? `Сегодня (${scheduleData.date})`
+                  : 'Выбрать дату'
+                }
+              </button>
               
               {/* Кнопка сброса */}
               {(selectedDate || (startDate && endDate)) && (
@@ -739,15 +731,13 @@ export function EmployeeSchedule() {
               )}
             </div>
             {scheduleData && scheduleData.employees.length > 0 && (
-              <div className="flex-shrink-0">
-                <button
-                  onClick={exportToExcel}
-                  className="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-                >
-                  <Download className="h-4 w-4 mr-2" />
-                  Выгрузить отчет
-                </button>
-              </div>
+              <button
+                onClick={exportToExcel}
+                className="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Выгрузить отчет
+              </button>
             )}
           </div>
         </div>
