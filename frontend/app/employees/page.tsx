@@ -156,7 +156,6 @@ export default function EmployeesPage() {
             <div key={departmentName} className="bg-white rounded-lg shadow-sm border">
               <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
                 <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                  <Building2 className="h-5 w-5 text-blue-600" />
                   {departmentName}
                   <span className="bg-blue-100 text-blue-800 text-sm font-medium px-2.5 py-0.5 rounded-full">
                     {employees.length}

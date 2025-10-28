@@ -324,12 +324,12 @@ export default function EmployeePage({ params }: EmployeePageProps) {
                   </div>
                 )}
                 
-                {employeeDetails.position && (
-                  <div className="bg-purple-50 rounded-lg p-4">
-                    <p className="text-sm text-gray-600 mb-1">Должность</p>
-                    <p className="text-lg font-medium text-purple-900">{employeeDetails.position.name}</p>
-                  </div>
-                )}
+                <div className="bg-purple-50 rounded-lg p-4">
+                  <p className="text-sm text-gray-600 mb-1">Должность</p>
+                  <p className="text-lg font-medium text-purple-900">
+                    {employeeDetails.position?.name || 'Не указана'}
+                  </p>
+                </div>
                 
                 {employeeDetails.card_number && (
                   <div className="bg-orange-50 rounded-lg p-4">
