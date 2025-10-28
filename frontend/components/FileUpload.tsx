@@ -53,7 +53,7 @@ export function FileUpload() {
         const textResponse = await response.text()
         data = {
           detail: response.status === 413 
-            ? 'Файл слишком большой. Максимальный размер: 50MB' 
+            ? 'Файл слишком большой. Максимальный размер: 100MB' 
             : `Ошибка сервера (${response.status}): ${textResponse.substring(0, 100)}...`
         }
       }

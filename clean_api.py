@@ -20,12 +20,12 @@ app = FastAPI(title="СКУД API", description="API для системы ко�
 # Добавляем middleware для ограничения размера загружаемого файла
 @app.middleware("http")
 async def limit_upload_size(request: Request, call_next):
-    # Ограничиваем размер до 50MB (50 * 1024 * 1024 = 52428800 байт)
-    max_size = 52428800
+    # Ограничиваем размер до 100MB (100 * 1024 * 1024 = 104857600 байт)
+    max_size = 104857600
     if request.method == "POST" and "/upload-skud-file" in str(request.url):
         content_length = request.headers.get('content-length')
         if content_length and int(content_length) > max_size:
-            return HTTPException(status_code=413, detail="Файл слишком большой. Максимальный размер: 50MB")
+            return HTTPException(status_code=413, detail="Файл слишком большой. Максимальный размер: 100MB")
     
     response = await call_next(request)
     return response
@@ -2326,18 +2326,18 @@ async def health_check():
         raise HTTPException(status_code=503, detail=f"Проблемы с системой: {str(e)}")
 
 @app.post("/upload-skud-file")
-async def upload_skud_file(file: UploadFile = File(..., description="СКУД файл (максимальный размер: 50MB)")):
+async def upload_skud_file(file: UploadFile = File(..., description="СКУД файл (максимальный размер: 100MB)")):
     """Загрузка и обработка СКУД файла через веб-интерфейс"""
     try:
         # Проверяем размер файла
         content = await file.read()
         file_size = len(content)
-        max_size = 52428800  # 50MB
+        max_size = 104857600  # 100MB
         
         if file_size > max_size:
             raise HTTPException(
                 status_code=413, 
-                detail=f"Файл слишком большой ({file_size / 1024 / 1024:.1f}MB). Максимальный размер: 50MB"
+                detail=f"Файл слишком большой ({file_size / 1024 / 1024:.1f}MB). Максимальный размер: 100MB"
             )
         
         # Проверяем, что это текстовый файл
