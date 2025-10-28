@@ -860,14 +860,16 @@ async def get_employee_schedule_range(start_date: str = Query(...), end_date: st
         conn = sqlite3.connect("real_skud_data.db")
         cursor = conn.cursor()
         
-        # Получаем всех активных сотрудников
+        # Получаем только сотрудников, у которых есть записи доступа в указанном диапазоне дат
         cursor.execute("""
-            SELECT id, full_name 
-            FROM employees 
-            WHERE is_active = 1
-            AND full_name NOT IN ('Охрана М.', '1 пост о.', '2 пост о.', 'Крыша К.', 'Водитель 1 В.', 'Водитель 2 В.', 'Дежурный в.', 'Дежурный В.')
-            ORDER BY full_name
-        """)
+            SELECT DISTINCT e.id, e.full_name 
+            FROM employees e
+            INNER JOIN access_logs al ON e.id = al.employee_id
+            WHERE e.is_active = 1
+            AND e.full_name NOT IN ('Охрана М.', '1 пост о.', '2 пост о.', 'Крыша К.', 'Водитель 1 В.', 'Водитель 2 В.', 'Дежурный в.', 'Дежурный В.')
+            AND DATE(al.access_datetime) BETWEEN ? AND ?
+            ORDER BY e.full_name
+        """, (start_date, end_date))
         employees = cursor.fetchall()
         
         employees_with_days = []
@@ -965,29 +967,19 @@ async def get_employee_schedule_range(start_date: str = Query(...), end_date: st
                         'status': status,
                         'exception': exception_info
                     }
-                else:
-                    # Нет записей за день
-                    day_data = {
-                        'date': date_str,
-                        'first_entry': None,
-                        'last_exit': None,
-                        'first_entry_door': None,
-                        'last_exit_door': None,
-                        'is_late': False,
-                        'late_minutes': 0,
-                        'work_hours': None,
-                        'status': 'Отсутствовал',
-                        'exception': None
-                    }
+                    employee_days.append(day_data)
+                # Если нет записей за день, то НЕ добавляем этот день в результат
+                # Показываем только дни с фактическими записями доступа
                 
-                employee_days.append(day_data)
                 current_date += timedelta(days=1)
             
-            employees_with_days.append({
-                'employee_id': emp_id,
-                'full_name': emp_name,
-                'days': employee_days
-            })
+            # Добавляем сотрудника только если у него есть хотя бы один день с записями
+            if employee_days:
+                employees_with_days.append({
+                    'employee_id': emp_id,
+                    'full_name': emp_name,
+                    'days': employee_days
+                })
         
         conn.close()
         
@@ -1047,6 +1039,21 @@ async def get_employee_history(
             else:
                 daily_data[access_date]['entries'].append((access_time, door_location))
         
+        # Получаем исключения для сотрудника за период
+        cursor.execute("""
+            SELECT exception_date, reason, exception_type
+            FROM employee_exceptions 
+            WHERE employee_id = ? 
+            AND exception_date BETWEEN ? AND ?
+        """, (employee_id, start_date.strftime('%Y-%m-%d'), end_date.strftime('%Y-%m-%d')))
+        
+        exceptions_data = {}
+        for exc_date, reason, exc_type in cursor.fetchall():
+            exceptions_data[exc_date] = {
+                'reason': reason,
+                'exception_type': exc_type
+            }
+        
         # Формируем ответ
         daily_records = []
         total_late_days = 0
@@ -1061,9 +1068,13 @@ async def get_employee_history(
             first_entry = min(day_data['entries'])[0] if day_data['entries'] else None
             last_exit = max(day_data['exits'])[0] if day_data['exits'] else None
             
-            # Проверка опоздания
+            # Проверка исключения для этого дня
+            has_exception = date_str in exceptions_data
+            exception_info = exceptions_data.get(date_str, None)
+            
+            # Проверка опоздания (не считается опозданием, если есть исключение)
             is_late = False
-            if first_entry:
+            if first_entry and not has_exception:
                 try:
                     entry_time = datetime.strptime(first_entry, '%H:%M:%S').time()
                     if entry_time > work_start_time:
@@ -1091,7 +1102,9 @@ async def get_employee_history(
                 'first_entry': first_entry,
                 'last_exit': last_exit,
                 'work_hours': work_hours,
-                'is_late': is_late
+                'is_late': is_late,
+                'has_exception': has_exception,
+                'exception_info': exception_info
             })
         
         # Статистика

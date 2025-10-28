@@ -11,6 +11,11 @@ interface DailyRecord {
   last_exit: string | null
   work_hours: number | null
   is_late: boolean
+  has_exception?: boolean
+  exception_info?: {
+    reason: string
+    exception_type: string
+  } | null
 }
 
 interface EmployeeHistory {
@@ -409,7 +414,12 @@ export default function EmployeePage({ params }: EmployeePageProps) {
                   employeeData.daily_records.map((record, index) => (
                     <tr
                       key={`${record.date}-${index}`}
-                      className={record.is_late ? 'bg-red-50' : 'hover:bg-gray-50'}
+                      className={record.has_exception 
+                        ? 'bg-blue-50' 
+                        : record.is_late 
+                          ? 'bg-red-50' 
+                          : 'hover:bg-gray-50'
+                      }
                     >
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                         {record.date}
@@ -424,15 +434,31 @@ export default function EmployeePage({ params }: EmployeePageProps) {
                         {record.work_hours ? `${record.work_hours.toFixed(1)} ч` : '-'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            record.is_late
-                              ? 'bg-red-100 text-red-800'
-                              : 'bg-green-100 text-green-800'
-                          }`}
-                        >
-                          {record.is_late ? 'Опоздал' : 'В норме'}
-                        </span>
+                        {record.has_exception ? (
+                          <div className="space-y-1">
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                              Исключение
+                            </span>
+                            {record.exception_info && (
+                              <div className="text-xs text-gray-600" title={record.exception_info.reason}>
+                                {record.exception_info.reason.length > 20 
+                                  ? `${record.exception_info.reason.substring(0, 20)}...`
+                                  : record.exception_info.reason
+                                }
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <span
+                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                              record.is_late
+                                ? 'bg-red-100 text-red-800'
+                                : 'bg-green-100 text-green-800'
+                            }`}
+                          >
+                            {record.is_late ? 'Опоздал' : 'В норме'}
+                          </span>
+                        )}
                       </td>
                     </tr>
                   ))
