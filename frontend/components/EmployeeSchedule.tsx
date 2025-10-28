@@ -216,11 +216,11 @@ export function EmployeeSchedule() {
     const hasRange = startDate !== '' && endDate !== ''
     
     if (!hasSelectedDate && !hasRange) {
-      // Ничего не выбрано - только выбираем дату, не загружаем данные
+      // Ничего не выбрано - выбираем дату и сразу выделяем визуально
       setSelectedDate(dateStr)
       setStartDate('')
       setEndDate('')
-      setLastLoadedDate('') // Очищаем предыдущее выделение
+      setLastLoadedDate(dateStr) // Сразу выделяем дату визуально
       // НЕ ЗАГРУЖАЕМ данные, только выделяем дату
       // НЕ закрываем календарь, чтобы пользователь мог кликнуть повторно
     } else if (hasSelectedDate && !hasRange) {
@@ -239,16 +239,16 @@ export function EmployeeSchedule() {
         setStartDate(start)
         setEndDate(end)
         setSelectedDate('')
-        setLastLoadedDate('') // Очищаем предыдущее выделение при создании диапазона
+        setLastLoadedDate(dateStr) // Выделяем последнюю выбранную дату
         setShowCalendar(false) // Закрываем календарь после создания диапазона
         // Данные загрузятся автоматически через useEffect
       }
     } else {
-      // Уже есть диапазон - сбрасываем и выбираем новую дату (без загрузки)
+      // Уже есть диапазон - сбрасываем и выбираем новую дату с визуальным выделением
       setSelectedDate(dateStr)
       setStartDate('')
       setEndDate('')
-      setLastLoadedDate('') // Очищаем предыдущее выделение
+      setLastLoadedDate(dateStr) // Сразу выделяем новую дату визуально
       // НЕ ЗАГРУЖАЕМ данные, только выделяем дату
       // НЕ закрываем календарь, чтобы пользователь мог кликнуть повторно
     }
