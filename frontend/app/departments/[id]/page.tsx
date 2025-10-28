@@ -57,6 +57,8 @@ export default function DepartmentDetailPage() {
   const [showAddEmployee, setShowAddEmployee] = useState(false);
   const [allEmployees, setAllEmployees] = useState<Employee[]>([]);
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<number | null>(null);
+  const [showEmployeeDropdown, setShowEmployeeDropdown] = useState(false);
+  const [employeeDropdownSearch, setEmployeeDropdownSearch] = useState('');
 
   useEffect(() => {
     if (departmentId) {
@@ -85,6 +87,9 @@ export default function DepartmentDetailPage() {
       const target = event.target as HTMLElement;
       if (!target.closest('.position-search-container')) {
         setShowPositionDropdown(false);
+      }
+      if (!target.closest('.employee-search-container')) {
+        setShowEmployeeDropdown(false);
       }
     };
 
@@ -257,6 +262,24 @@ export default function DepartmentDetailPage() {
     setSelectedPositionId(position.id);
     setPositionSearch(position.name);
     setShowPositionDropdown(false);
+  };
+
+  const getFilteredEmployees = () => {
+    if (!employeeDropdownSearch.trim()) {
+      return availableEmployees;
+    }
+    return availableEmployees.filter((employee: Employee) =>
+      employee.full_name.toLowerCase().includes(employeeDropdownSearch.toLowerCase()) ||
+      employee.position.toLowerCase().includes(employeeDropdownSearch.toLowerCase()) ||
+      (employee.department && employee.department.toLowerCase().includes(employeeDropdownSearch.toLowerCase()))
+    );
+  };
+
+  const handleEmployeeSelect = (employee: Employee) => {
+    const empId = employee.id || employee.employee_id;
+    setSelectedEmployeeId(empId);
+    setEmployeeDropdownSearch(employee.full_name);
+    setShowEmployeeDropdown(false);
   };
 
   const availableEmployees = allEmployees.filter(
@@ -435,22 +458,43 @@ export default function DepartmentDetailPage() {
             <div className="bg-gray-50 border rounded-lg p-4 mb-4">
               <h3 className="text-lg font-medium mb-3">Добавить сотрудника</h3>
               <div className="flex gap-2 items-end">
-                <div className="flex-1">
-                  <select
-                    value={selectedEmployeeId || ''}
-                    onChange={(e) => setSelectedEmployeeId(e.target.value ? parseInt(e.target.value) : null)}
+                <div className="flex-1 employee-search-container relative">
+                  <input
+                    type="text"
+                    placeholder="Поиск сотрудника..."
+                    value={employeeDropdownSearch}
+                    onChange={(e) => {
+                      setEmployeeDropdownSearch(e.target.value);
+                      setShowEmployeeDropdown(true);
+                    }}
+                    onFocus={() => setShowEmployeeDropdown(true)}
                     className="w-full border border-gray-300 rounded-md px-3 py-2"
-                  >
-                    <option value="">Выберите сотрудника</option>
-                    {availableEmployees.map((employee) => {
-                      const empId = employee.id || employee.employee_id;
-                      return (
-                        <option key={empId} value={empId}>
-                          {employee.full_name} - {employee.position} {employee.department && `(${employee.department})`}
-                        </option>
-                      );
-                    })}
-                  </select>
+                  />
+                  {showEmployeeDropdown && (
+                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                      {getFilteredEmployees().length > 0 ? (
+                        getFilteredEmployees().map((employee) => {
+                          const empId = employee.id || employee.employee_id;
+                          return (
+                            <div
+                              key={empId}
+                              onClick={() => handleEmployeeSelect(employee)}
+                              className="px-3 py-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0"
+                            >
+                              <div className="font-medium">{employee.full_name}</div>
+                              <div className="text-sm text-gray-600">
+                                {employee.position} {employee.department && `• ${employee.department}`}
+                              </div>
+                            </div>
+                          );
+                        })
+                      ) : (
+                        <div className="px-3 py-2 text-gray-500 text-center">
+                          Сотрудники не найдены
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <button
                   onClick={addEmployeeToDepartment}
@@ -463,6 +507,8 @@ export default function DepartmentDetailPage() {
                   onClick={() => {
                     setShowAddEmployee(false);
                     setSelectedEmployeeId(null);
+                    setEmployeeDropdownSearch('');
+                    setShowEmployeeDropdown(false);
                   }}
                   className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-md"
                 >
