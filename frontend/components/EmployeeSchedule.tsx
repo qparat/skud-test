@@ -116,8 +116,7 @@ export function EmployeeSchedule() {
 
   // Первоначальная загрузка данных за сегодняшний день
   useEffect(() => {
-    // Устанавливаем сегодняшнюю дату и загружаем данные
-    setSelectedDate(today)
+    // Загружаем данные за сегодняшний день, но НЕ устанавливаем выбранную дату в календаре
     fetchSchedule(today)
     setInitialized(true)
   }, [])
@@ -249,11 +248,13 @@ export function EmployeeSchedule() {
     }
   }
 
-  // Сброс выбора дат
+  // Сброс выбора дат и возврат к сегодняшнему дню
   const clearDates = () => {
     setSelectedDate('')
     setStartDate('')
     setEndDate('')
+    // Возвращаемся к сегодняшнему дню
+    fetchSchedule(today)
   }
 
   // Генерация календаря
@@ -592,6 +593,8 @@ export function EmployeeSchedule() {
                   ? `${startDate} - ${endDate}`
                   : selectedDate 
                   ? selectedDate
+                  : scheduleData?.date
+                  ? `Сегодня (${scheduleData.date})`
                   : 'Выбрать дату'
                 }
               </button>
