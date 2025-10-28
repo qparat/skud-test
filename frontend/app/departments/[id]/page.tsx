@@ -25,6 +25,7 @@ interface DepartmentPosition {
 
 interface Employee {
   employee_id: number;
+  id?: number; // Добавляем поле id для совместимости с разными эндпоинтами
   full_name: string;
   position: string;
   department?: string;
@@ -259,7 +260,10 @@ export default function DepartmentDetailPage() {
   };
 
   const availableEmployees = allEmployees.filter(
-    (emp: Employee) => !employees.some((e: Employee) => e.employee_id === emp.employee_id)
+    (emp: Employee) => {
+      const empId = emp.id || emp.employee_id;
+      return !employees.some((e: Employee) => e.employee_id === empId);
+    }
   );
 
   if (loading) {
@@ -438,11 +442,14 @@ export default function DepartmentDetailPage() {
                     className="w-full border border-gray-300 rounded-md px-3 py-2"
                   >
                     <option value="">Выберите сотрудника</option>
-                    {availableEmployees.map((employee) => (
-                      <option key={employee.employee_id} value={employee.employee_id}>
-                        {employee.full_name} - {employee.position} {employee.department && `(${employee.department})`}
-                      </option>
-                    ))}
+                    {availableEmployees.map((employee) => {
+                      const empId = employee.id || employee.employee_id;
+                      return (
+                        <option key={empId} value={empId}>
+                          {employee.full_name} - {employee.position} {employee.department && `(${employee.department})`}
+                        </option>
+                      );
+                    })}
                   </select>
                 </div>
                 <button
