@@ -570,18 +570,19 @@ export function EmployeeSchedule() {
               </div>
             )}
             {/* Поиск по ФИО */}
+              
+            
+            <div className="flex items-center space-x-4 relative calendar-container">
+              {/* Кнопка для открытия календаря */}
               <div className="ml-4">
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Поиск по ФИО"
-                  className="w-64 border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-64 inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                 />
               </div>
-            
-            <div className="flex items-center space-x-4 relative calendar-container">
-              {/* Кнопка для открытия календаря */}
               <button
                 onClick={() => setShowCalendar(!showCalendar)}
                 className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
