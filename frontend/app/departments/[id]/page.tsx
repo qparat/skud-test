@@ -51,6 +51,8 @@ export default function DepartmentDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [showAddPosition, setShowAddPosition] = useState(false);
   const [selectedPositionId, setSelectedPositionId] = useState<number | null>(null);
+  const [positionSearch, setPositionSearch] = useState('');
+  const [showPositionDropdown, setShowPositionDropdown] = useState(false);
   const [showAddEmployee, setShowAddEmployee] = useState(false);
   const [allEmployees, setAllEmployees] = useState<Employee[]>([]);
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<number | null>(null);
@@ -66,7 +68,7 @@ export default function DepartmentDetailPage() {
   useEffect(() => {
     // Фильтруем сотрудников по поисковому запросу
     if (employeeSearch.trim()) {
-      const filtered = employees.filter(employee =>
+      const filtered = employees.filter((employee: Employee) =>
         employee.full_name.toLowerCase().includes(employeeSearch.toLowerCase()) ||
         employee.position.toLowerCase().includes(employeeSearch.toLowerCase())
       );
@@ -75,6 +77,21 @@ export default function DepartmentDetailPage() {
       setFilteredEmployees(employees);
     }
   }, [employees, employeeSearch]);
+
+  useEffect(() => {
+    // Закрытие выпадающего списка при клике вне компонента
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest('.position-search-container')) {
+        setShowPositionDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   const fetchDepartmentDetails = async () => {
     try {
@@ -140,6 +157,8 @@ export default function DepartmentDetailPage() {
 
       setShowAddPosition(false);
       setSelectedPositionId(null);
+      setPositionSearch('');
+      setShowPositionDropdown(false);
       await fetchDepartmentDetails();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ошибка при добавлении должности');
@@ -221,11 +240,26 @@ export default function DepartmentDetailPage() {
   };
 
   const availablePositions = allPositions.filter(
-    pos => !positions.some(p => p.id === pos.id)
+    (pos: Position) => !positions.some((p: Position) => p.id === pos.id)
   );
 
+  const getFilteredPositions = () => {
+    if (!positionSearch.trim()) {
+      return availablePositions;
+    }
+    return availablePositions.filter((position: Position) =>
+      position.name.toLowerCase().includes(positionSearch.toLowerCase())
+    );
+  };
+
+  const handlePositionSelect = (position: Position) => {
+    setSelectedPositionId(position.id);
+    setPositionSearch(position.name);
+    setShowPositionDropdown(false);
+  };
+
   const availableEmployees = allEmployees.filter(
-    emp => !employees.some(e => e.employee_id === emp.employee_id)
+    (emp: Employee) => !employees.some((e: Employee) => e.employee_id === emp.employee_id)
   );
 
   if (loading) {
@@ -294,19 +328,32 @@ export default function DepartmentDetailPage() {
             <div className="bg-gray-50 border rounded-lg p-4 mb-4">
               <h3 className="text-lg font-medium mb-3">Добавить должность</h3>
               <div className="flex gap-2 items-end">
-                <div className="flex-1">
-                  <select
-                    value={selectedPositionId || ''}
-                    onChange={(e) => setSelectedPositionId(e.target.value ? parseInt(e.target.value) : null)}
+                <div className="flex-1 relative position-search-container">
+                  <input
+                    type="text"
+                    value={positionSearch}
+                    onChange={(e) => {
+                      setPositionSearch(e.target.value);
+                      setShowPositionDropdown(true);
+                      setSelectedPositionId(null);
+                    }}
+                    onFocus={() => setShowPositionDropdown(true)}
+                    placeholder="Поиск должности..."
                     className="w-full border border-gray-300 rounded-md px-3 py-2"
-                  >
-                    <option value="">Выберите должность</option>
-                    {availablePositions.map((position) => (
-                      <option key={position.id} value={position.id}>
-                        {position.name}
-                      </option>
-                    ))}
-                  </select>
+                  />
+                  {showPositionDropdown && getFilteredPositions().length > 0 && (
+                    <div className="absolute z-10 w-full bg-white border border-gray-300 rounded-md mt-1 max-h-48 overflow-y-auto shadow-lg">
+                      {getFilteredPositions().map((position) => (
+                        <div
+                          key={position.id}
+                          onClick={() => handlePositionSelect(position)}
+                          className="px-3 py-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0"
+                        >
+                          {position.name}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <button
                   onClick={addPositionToDepartment}
@@ -319,6 +366,8 @@ export default function DepartmentDetailPage() {
                   onClick={() => {
                     setShowAddPosition(false);
                     setSelectedPositionId(null);
+                    setPositionSearch('');
+                    setShowPositionDropdown(false);
                   }}
                   className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-md"
                 >
