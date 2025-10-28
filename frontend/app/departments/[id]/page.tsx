@@ -525,7 +525,7 @@ export default function DepartmentDetailPage() {
                 placeholder="Поиск по имени или должности..."
                 value={employeeSearch}
                 onChange={(e) => setEmployeeSearch(e.target.value)}
-                className="search-clamp border border-gray-300 rounded-md px-3 py-2 text-sm"
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
               />
             </div>
           )}
