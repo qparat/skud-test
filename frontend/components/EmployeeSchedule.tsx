@@ -417,7 +417,26 @@ export function EmployeeSchedule() {
     // Создаем плоский список с метаданными для отображения
     const displayData: Array<Employee & { date?: string; isFirstInGroup: boolean; totalInGroup: number; groupIndex: number }> = []
     
-    Object.entries(grouped).forEach(([employeeId, employeeDays]) => {
+    // Сортируем группы по ФИО первого элемента для корректного порядка отображения
+    // Учитываем текущую сортировку
+    const sortedGroupEntries = Object.entries(grouped).sort(([, aDays], [, bDays]) => {
+      const aFirst = aDays[0]
+      const bFirst = bDays[0]
+      
+      // Если есть сортировка по статусу, применяем её
+      if (sortBy === 'late-first') {
+        if (aFirst.is_late && !bFirst.is_late) return -1
+        if (!aFirst.is_late && bFirst.is_late) return 1
+      } else if (sortBy === 'normal-first') {
+        if (!aFirst.is_late && bFirst.is_late) return -1
+        if (aFirst.is_late && !bFirst.is_late) return 1
+      }
+      
+      // В любом случае вторичная сортировка по ФИО
+      return aFirst.full_name.localeCompare(bFirst.full_name)
+    })
+    
+    sortedGroupEntries.forEach(([employeeId, employeeDays]) => {
       const empId = parseInt(employeeId)
       const isExpanded = expandedEmployees.has(empId)
       
