@@ -225,6 +225,7 @@ export function EmployeeSchedule() {
       if (dateStr === selectedDate) {
         // Клик по той же уже выбранной дате - загружаем данные для этой даты
         fetchSchedule(selectedDate)
+        setSelectedDate('') // Очищаем выбранную дату после загрузки
         setShowCalendar(false) // Закрываем календарь после загрузки данных
         return
       } else {
