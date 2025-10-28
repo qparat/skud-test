@@ -18,7 +18,8 @@
 
 body {
 }
-w-84 {
+
+.w-84 {
   width: 20rem;
 }
 @layer utilities {

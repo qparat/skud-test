@@ -681,14 +681,14 @@ export function EmployeeSchedule() {
                           onClick={() => !isDisabled && handleDateClick(dateStr)}
                           disabled={isDisabled}
                           className={`
-                            w-8 h-8 text-xs rounded-full flex items-center justify-center
+                            w-8 h-8 text-xs rounded-full flex items-center justify-center transition-colors
                             ${!isCurrentMonth ? 'text-gray-300' : ''}
-                            ${isToday ? 'bg-blue-100 text-blue-600 font-bold' : ''}
-                            ${isSelected ? 'bg-blue-600 text-white' : ''}
-                            ${isStartDate || isEndDate ? 'bg-green-600 text-white' : ''}
+                            ${isDisabled ? 'bg-gray-100 text-gray-300 cursor-not-allowed' : ''}
+                            ${isStartDate || isEndDate ? 'bg-green-600 text-white font-bold' : ''}
                             ${isInRange && !isStartDate && !isEndDate ? 'bg-green-100 text-green-800' : ''}
-                            ${isDisabled ? 'bg-gray-100 text-gray-300 cursor-not-allowed' : 'hover:bg-gray-100'}
-                            ${!isSelected && !isInRange && !isToday && !isDisabled && isCurrentMonth ? 'hover:bg-gray-100' : ''}
+                            ${isSelected && !isStartDate && !isEndDate ? 'bg-blue-600 text-white font-bold' : ''}
+                            ${isToday && !isSelected && !isStartDate && !isEndDate && !isInRange ? 'bg-blue-100 text-blue-600 font-bold' : ''}
+                            ${!isSelected && !isInRange && !isToday && !isDisabled && isCurrentMonth && !isStartDate && !isEndDate ? 'hover:bg-gray-100' : ''}
                           `}
                         >
                           {date.getDate()}
