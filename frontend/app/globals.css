@@ -18,7 +18,9 @@
 
 body {
 }
-
+w-84 {
+  width: 20rem;
+}
 @layer utilities {
   .text-balance {
     text-wrap: balance;
