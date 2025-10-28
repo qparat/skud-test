@@ -228,7 +228,7 @@ export function EmployeeSchedule() {
         setShowCalendar(false) // Закрываем календарь после загрузки данных
         return
       } else {
-        // Клик по другой дате - создаем диапазон и загружаем данные
+        // Второй клик по другой дате - создаем диапазон
         const start = dateStr < selectedDate ? dateStr : selectedDate
         const end = dateStr < selectedDate ? selectedDate : dateStr
         
@@ -697,6 +697,12 @@ export function EmployeeSchedule() {
                   </div>
                   
                   <div className="mt-3 pt-3 border-t">
+                    <p className="text-xs text-gray-600 mb-2">💡 Как выбирать даты:</p>
+                    <div className="text-xs text-gray-500 mb-3 space-y-1">
+                      <div>• Один клик = выбрать дату</div>
+                      <div>• Два клика по одной дате = загрузить данные</div>
+                      <div>• Второй клик по другой дате = диапазон</div>
+                    </div>
                     <p className="text-xs text-gray-600 mb-2">Быстрый выбор периода:</p>
                     <div className="grid grid-cols-3 gap-2">
                       <button
