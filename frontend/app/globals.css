@@ -19,6 +19,11 @@
 body {
 }
 
+/* Адаптивная ширина для поля поиска */
+input.search-clamp {
+  width: clamp(10rem, 30vw, 22rem);
+}
+
 @layer utilities {
   .text-balance {
     text-wrap: balance;
