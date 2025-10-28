@@ -1,5 +1,5 @@
 import sqlite3
-from fastapi import FastAPI, HTTPException, Query, UploadFile, File, Depends, status
+from fastapi import FastAPI, HTTPException, Query, UploadFile, File, Depends, status, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
@@ -16,6 +16,19 @@ from functools import wraps
 sys.path.append(os.path.join(os.path.dirname(__file__)))
 
 app = FastAPI(title="СКУД API", description="API для системы контроля и управления доступом")
+
+# Добавляем middleware для ограничения размера загружаемого файла
+@app.middleware("http")
+async def limit_upload_size(request: Request, call_next):
+    # Ограничиваем размер до 50MB (50 * 1024 * 1024 = 52428800 байт)
+    max_size = 52428800
+    if request.method == "POST" and "/upload-skud-file" in str(request.url):
+        content_length = request.headers.get('content-length')
+        if content_length and int(content_length) > max_size:
+            return HTTPException(status_code=413, detail="Файл слишком большой. Максимальный размер: 50MB")
+    
+    response = await call_next(request)
+    return response
 
 # Конфигурация для JWT
 SECRET_KEY = "your-secret-key-change-in-production"  # В продакшене использовать переменную окружения
@@ -2313,15 +2326,23 @@ async def health_check():
         raise HTTPException(status_code=503, detail=f"Проблемы с системой: {str(e)}")
 
 @app.post("/upload-skud-file")
-async def upload_skud_file(file: UploadFile = File(...)):
+async def upload_skud_file(file: UploadFile = File(..., description="СКУД файл (максимальный размер: 50MB)")):
     """Загрузка и обработка СКУД файла через веб-интерфейс"""
     try:
+        # Проверяем размер файла
+        content = await file.read()
+        file_size = len(content)
+        max_size = 52428800  # 50MB
+        
+        if file_size > max_size:
+            raise HTTPException(
+                status_code=413, 
+                detail=f"Файл слишком большой ({file_size / 1024 / 1024:.1f}MB). Максимальный размер: 50MB"
+            )
+        
         # Проверяем, что это текстовый файл
         if not file.filename.endswith('.txt'):
             raise HTTPException(status_code=400, detail="Поддерживаются только .txt файлы")
-        
-        # Читаем содержимое файла
-        content = await file.read()
         
         # Пробуем разные кодировки
         content_str = None

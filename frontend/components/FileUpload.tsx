@@ -42,14 +42,28 @@ export function FileUpload() {
         body: formData
       })
 
-      const data = await response.json()
+      // Проверяем, что ответ - это JSON
+      const contentType = response.headers.get('content-type')
+      let data
+
+      if (contentType && contentType.includes('application/json')) {
+        data = await response.json()
+      } else {
+        // Если ответ не JSON (например, HTML-страница ошибки)
+        const textResponse = await response.text()
+        data = {
+          detail: response.status === 413 
+            ? 'Файл слишком большой. Максимальный размер: 50MB' 
+            : `Ошибка сервера (${response.status}): ${textResponse.substring(0, 100)}...`
+        }
+      }
 
       if (response.ok) {
         setResult(data)
       } else {
         setResult({
           success: false,
-          message: data.detail || 'Ошибка загрузки файла'
+          message: data.detail || `Ошибка загрузки (${response.status})`
         })
       }
     } catch (error) {
