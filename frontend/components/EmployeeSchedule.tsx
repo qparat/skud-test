@@ -114,10 +114,11 @@ export function EmployeeSchedule() {
     }
   }
 
-  // Первоначальная загрузка данных только после выбора даты
+  // Первоначальная загрузка данных за сегодняшний день
   useEffect(() => {
-    // Не загружаем данные автоматически при инициализации
-    // Данные будут загружены только после выбора даты в календаре
+    // Устанавливаем сегодняшнюю дату и загружаем данные
+    setSelectedDate(today)
+    fetchSchedule(today)
     setInitialized(true)
   }, [])
 
@@ -730,11 +731,11 @@ export function EmployeeSchedule() {
                 Повторить
               </button>
             </div>
-          ) : !selectedDate && !startDate && !endDate ? (
+          ) : !scheduleData ? (
             <div className="p-6 text-center text-gray-600">
               <Calendar className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Выберите дату</h3>
-              <p>Нажмите на кнопку "Выбрать дату" выше, чтобы просмотреть расписание сотрудников</p>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Загрузка данных...</h3>
+              <p>Пожалуйста, подождите</p>
             </div>
           ) : scheduleData?.employees.length === 0 ? (
             <div className="p-6 text-center text-gray-600">
@@ -889,7 +890,7 @@ export function EmployeeSchedule() {
                                 ) : (
                                   <div className="flex items-center space-x-1">
                                     <ChevronDown className="h-4 w-4" />
-                                    <span className="text-xs">+{emp.totalInGroup - 1}</span>
+                                    <span className="bg-green-100 text-green-800 text-xs font-medium px-2 py-0.5 rounded-full">+{emp.totalInGroup - 1}</span>
                                   </div>
                                 )}
                               </button>
