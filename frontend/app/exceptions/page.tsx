@@ -365,7 +365,7 @@ export default function ExceptionsPage() {
                     ? `${startDate} - ${endDate} (диапазон)`
                     : selectedDate 
                     ? selectedDate
-                    : 'Выбрать дату 📅'
+                    : 'Выбрать дату'
                   }
                 </div>
               </button>
