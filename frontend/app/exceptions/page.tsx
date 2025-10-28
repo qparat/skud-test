@@ -35,6 +35,11 @@ export default function ExceptionsPage() {
   const [editingException, setEditingException] = useState<Exception | null>(null)
   const [isDateRange, setIsDateRange] = useState(false)
   
+  // Состояния для поиска сотрудника
+  const [employeeSearch, setEmployeeSearch] = useState('')
+  const [showEmployeeDropdown, setShowEmployeeDropdown] = useState(false)
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<number | null>(null)
+  
   // Состояния для календаря
   const [showCalendar, setShowCalendar] = useState(false)
   const [currentMonth, setCurrentMonth] = useState(new Date())
@@ -59,18 +64,38 @@ export default function ExceptionsPage() {
     fetchEmployees()
   }, [])
 
-  // Закрытие календаря при клике вне его
+  // Закрытие календаря и выпадающего списка сотрудников при клике вне их
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Element
       if (showCalendar && !target.closest('.calendar-container')) {
         setShowCalendar(false)
       }
+      if (showEmployeeDropdown && !target.closest('.employee-search-container')) {
+        setShowEmployeeDropdown(false)
+      }
     }
 
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [showCalendar])
+  }, [showCalendar, showEmployeeDropdown])
+
+  // Функции для поиска сотрудника
+  const getFilteredEmployees = () => {
+    if (!employeeSearch.trim()) {
+      return employees
+    }
+    return employees.filter((employee: Employee) =>
+      employee.full_name.toLowerCase().includes(employeeSearch.toLowerCase())
+    )
+  }
+
+  const handleEmployeeSelect = (employee: Employee) => {
+    setSelectedEmployeeId(employee.id)
+    setEmployeeSearch(employee.full_name)
+    setShowEmployeeDropdown(false)
+    setFormData(prev => ({ ...prev, employee_id: employee.id.toString() }))
+  }
 
   // Обработка клика по дате в календаре
   const handleDateClick = (dateStr: string) => {
@@ -242,6 +267,11 @@ export default function ExceptionsPage() {
     setIsDateRange(false)
     setShowAddForm(false)
     
+    // Сбрасываем состояния поиска сотрудника
+    setEmployeeSearch('')
+    setShowEmployeeDropdown(false)
+    setSelectedEmployeeId(null)
+    
     // Сбрасываем состояния календаря
     setSelectedDate('')
     setStartDate('')
@@ -285,23 +315,37 @@ export default function ExceptionsPage() {
           </h2>
 
           <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
+            <div className="employee-search-container relative">
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Сотрудник
               </label>
-              <select
-                value={formData.employee_id}
-                onChange={(e) => setFormData({...formData, employee_id: e.target.value})}
+              <input
+                type="text"
+                value={employeeSearch}
+                onChange={(e) => {
+                  setEmployeeSearch(e.target.value)
+                  setShowEmployeeDropdown(true)
+                  setSelectedEmployeeId(null)
+                  setFormData({...formData, employee_id: ''})
+                }}
+                onFocus={() => setShowEmployeeDropdown(true)}
+                placeholder="Поиск сотрудника..."
                 className="w-full p-2 border border-gray-300 rounded-lg"
                 required
-              >
-                <option value="">Выберите сотрудника</option>
-                {Array.isArray(employees) && employees.map(emp => (
-                  <option key={emp.id} value={emp.id}>
-                    {emp.full_name}
-                  </option>
-                ))}
-              </select>
+              />
+              {showEmployeeDropdown && getFilteredEmployees().length > 0 && (
+                <div className="absolute z-10 w-full bg-white border border-gray-300 rounded-md mt-1 max-h-48 overflow-y-auto shadow-lg">
+                  {getFilteredEmployees().map((employee) => (
+                    <div
+                      key={employee.id}
+                      onClick={() => handleEmployeeSelect(employee)}
+                      className="px-3 py-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0"
+                    >
+                      {employee.full_name}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="calendar-container relative">
