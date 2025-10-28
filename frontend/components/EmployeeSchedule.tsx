@@ -67,6 +67,7 @@ interface ScheduleData {
 export function EmployeeSchedule() {
   const router = useRouter()
   const [selectedDate, setSelectedDate] = useState('')
+  const [lastLoadedDate, setLastLoadedDate] = useState('') // Для визуального выделения
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
   const [scheduleData, setScheduleData] = useState<ScheduleData | null>(null)
@@ -219,12 +220,14 @@ export function EmployeeSchedule() {
       setSelectedDate(dateStr)
       setStartDate('')
       setEndDate('')
+      setLastLoadedDate('') // Очищаем предыдущее выделение
       // НЕ ЗАГРУЖАЕМ данные, только выделяем дату
       // НЕ закрываем календарь, чтобы пользователь мог кликнуть повторно
     } else if (hasSelectedDate && !hasRange) {
       if (dateStr === selectedDate) {
         // Клик по той же уже выбранной дате - загружаем данные для этой даты
         fetchSchedule(selectedDate)
+        setLastLoadedDate(selectedDate) // Сохраняем для визуального выделения
         setSelectedDate('') // Очищаем выбранную дату после загрузки
         setShowCalendar(false) // Закрываем календарь после загрузки данных
         return
@@ -236,6 +239,7 @@ export function EmployeeSchedule() {
         setStartDate(start)
         setEndDate(end)
         setSelectedDate('')
+        setLastLoadedDate('') // Очищаем предыдущее выделение при создании диапазона
         setShowCalendar(false) // Закрываем календарь после создания диапазона
         // Данные загрузятся автоматически через useEffect
       }
@@ -244,6 +248,7 @@ export function EmployeeSchedule() {
       setSelectedDate(dateStr)
       setStartDate('')
       setEndDate('')
+      setLastLoadedDate('') // Очищаем предыдущее выделение
       // НЕ ЗАГРУЖАЕМ данные, только выделяем дату
       // НЕ закрываем календарь, чтобы пользователь мог кликнуть повторно
     }
@@ -254,6 +259,7 @@ export function EmployeeSchedule() {
     setSelectedDate('')
     setStartDate('')
     setEndDate('')
+    setLastLoadedDate('') // Очищаем визуальное выделение
     // Возвращаемся к сегодняшнему дню
     fetchSchedule(today)
   }
@@ -669,6 +675,7 @@ export function EmployeeSchedule() {
                       const isCurrentMonth = date.getMonth() === currentMonth.getMonth()
                       const isToday = dateStr === today
                       const isSelected = dateStr === selectedDate
+                      const isLoadedDate = dateStr === lastLoadedDate // Новая переменная для визуального выделения
                       const isInRange = startDate && endDate && dateStr >= startDate && dateStr <= endDate
                       const isStartDate = dateStr === startDate
                       const isEndDate = dateStr === endDate
@@ -686,9 +693,9 @@ export function EmployeeSchedule() {
                             ${isDisabled ? 'bg-gray-100 text-gray-300 cursor-not-allowed' : ''}
                             ${isStartDate || isEndDate ? 'bg-green-600 text-white font-bold' : ''}
                             ${isInRange && !isStartDate && !isEndDate ? 'bg-green-100 text-green-800' : ''}
-                            ${isSelected && !isStartDate && !isEndDate ? 'bg-blue-600 text-white font-bold' : ''}
-                            ${isToday && !isSelected && !isStartDate && !isEndDate && !isInRange ? 'bg-blue-100 text-blue-600 font-bold' : ''}
-                            ${!isSelected && !isInRange && !isToday && !isDisabled && isCurrentMonth && !isStartDate && !isEndDate ? 'hover:bg-gray-100' : ''}
+                            ${isLoadedDate && !isStartDate && !isEndDate ? 'bg-blue-600 text-white font-bold' : ''}
+                            ${isToday && !isLoadedDate && !isStartDate && !isEndDate && !isInRange ? 'bg-blue-100 text-blue-600 font-bold' : ''}
+                            ${!isLoadedDate && !isInRange && !isToday && !isDisabled && isCurrentMonth && !isStartDate && !isEndDate ? 'hover:bg-gray-100' : ''}
                           `}
                         >
                           {date.getDate()}
