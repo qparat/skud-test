@@ -438,7 +438,7 @@ async def startup_event():
 # ================================
 
 @app.post("/register", response_model=UserResponse)
-async def register(user: UserCreate, current_user: dict = Depends(require_role)):
+async def register(user: UserCreate, current_user: dict = Depends(require_role())):
     """Регистрация нового пользователя (только для root)"""
     try:
         conn = get_db_connection()
@@ -550,7 +550,7 @@ async def get_me(current_user: dict = Depends(get_current_user)):
     )
 
 @app.get("/users")
-async def get_users(current_user: dict = Depends(require_role)):
+async def get_users(current_user: dict = Depends(require_role())):
     """Получение списка всех пользователей (для superadmin и выше)"""
     try:
         conn = get_db_connection()
@@ -597,7 +597,7 @@ async def get_users(current_user: dict = Depends(require_role)):
         raise HTTPException(status_code=500, detail=f"Ошибка получения пользователей: {str(e)}")
 
 @app.put("/users/{user_id}")
-async def update_user(user_id: int, updates: dict, current_user: dict = Depends(require_role)):
+async def update_user(user_id: int, updates: dict, current_user: dict = Depends(require_role())):
     """Обновление пользователя (для superadmin и выше)"""
     try:
         conn = get_db_connection()
@@ -649,7 +649,7 @@ async def update_user(user_id: int, updates: dict, current_user: dict = Depends(
         raise HTTPException(status_code=500, detail=f"Ошибка обновления пользователя: {str(e)}")
 
 @app.delete("/users/{user_id}")
-async def delete_user(user_id: int, current_user: dict = Depends(require_role)):
+async def delete_user(user_id: int, current_user: dict = Depends(require_role())):
     """Удаление пользователя (только для root)"""
     try:
         if user_id == current_user["id"]:
@@ -678,7 +678,7 @@ async def delete_user(user_id: int, current_user: dict = Depends(require_role)):
 @app.post("/users/create")
 async def create_user_simple(
     user_data: UserCreate,
-    current_user: dict = Depends(require_role)
+    current_user: dict = Depends(require_role())
 ):
     try:
         conn = get_db_connection()
