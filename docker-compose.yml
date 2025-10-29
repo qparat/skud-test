@@ -1,4 +1,16 @@
 services:
+  postgres:
+    image: postgres:15
+    container_name: skud-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: skud_db
+      POSTGRES_USER: skud_user
+      POSTGRES_PASSWORD: your_strong_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - skud-network
   # Backend API сервис
   backend:
     build:
@@ -37,6 +49,7 @@ services:
       - NEXT_PUBLIC_API_URL=/api
     depends_on:
       - backend
+      - postgres
     networks:
       - skud-network
 
@@ -53,6 +66,7 @@ services:
     depends_on:
       - backend
       - frontend
+      - postgres
     networks:
       - skud-network
     healthcheck:
@@ -64,3 +78,5 @@ services:
 networks:
   skud-network:
     driver: bridge
+volumes:
+  postgres_data:
