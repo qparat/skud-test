@@ -166,62 +166,108 @@ def create_auth_tables():
     """Создает таблицы для системы авторизации"""
     try:
         conn = get_db_connection()
-        cursor = conn.cursor()
         
-        # Создаем таблицу пользователей
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS users (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                username TEXT UNIQUE NOT NULL,
-                email TEXT UNIQUE NOT NULL,
-                password_hash TEXT NOT NULL,
-                full_name TEXT,
-                role INTEGER DEFAULT 3,
-                is_active BOOLEAN DEFAULT 1,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                last_login TIMESTAMP,
-                created_by INTEGER,
-                FOREIGN KEY (created_by) REFERENCES users (id)
-            )
-        """)
+        if hasattr(conn, 'db_type') and conn.db_type == "postgresql":
+            # PostgreSQL синтаксис
+            execute_query(conn, """
+                CREATE TABLE IF NOT EXISTS users (
+                    id SERIAL PRIMARY KEY,
+                    username VARCHAR(50) UNIQUE NOT NULL,
+                    email VARCHAR(100) UNIQUE NOT NULL,
+                    password_hash VARCHAR(255) NOT NULL,
+                    full_name VARCHAR(100),
+                    role INTEGER DEFAULT 3,
+                    is_active BOOLEAN DEFAULT TRUE,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    last_login TIMESTAMP,
+                    created_by INTEGER,
+                    FOREIGN KEY (created_by) REFERENCES users (id)
+                )
+            """)
+            
+            execute_query(conn, """
+                CREATE TABLE IF NOT EXISTS roles (
+                    id INTEGER PRIMARY KEY,
+                    name VARCHAR(50) UNIQUE NOT NULL,
+                    description TEXT,
+                    permissions TEXT
+                )
+            """)
+            
+            execute_query(conn, """
+                CREATE TABLE IF NOT EXISTS user_sessions (
+                    id SERIAL PRIMARY KEY,
+                    user_id INTEGER NOT NULL,
+                    token_hash VARCHAR(255) NOT NULL,
+                    expires_at TIMESTAMP NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (user_id) REFERENCES users (id)
+                )
+            """)
+        else:
+            # SQLite синтаксис
+            cursor = conn.cursor()
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS users (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    username TEXT UNIQUE NOT NULL,
+                    email TEXT UNIQUE NOT NULL,
+                    password_hash TEXT NOT NULL,
+                    full_name TEXT,
+                    role INTEGER DEFAULT 3,
+                    is_active BOOLEAN DEFAULT 1,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    last_login TIMESTAMP,
+                    created_by INTEGER,
+                    FOREIGN KEY (created_by) REFERENCES users (id)
+                )
+            """)
+            
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS roles (
+                    id INTEGER PRIMARY KEY,
+                    name TEXT UNIQUE NOT NULL,
+                    description TEXT,
+                    permissions TEXT
+                )
+            """)
+            
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS user_sessions (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id INTEGER NOT NULL,
+                    token_hash TEXT NOT NULL,
+                    expires_at TIMESTAMP NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (user_id) REFERENCES users (id)
+                )
+            """)
+            conn.commit()
         
-        # Создаем таблицу ролей
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS roles (
-                id INTEGER PRIMARY KEY,
-                name TEXT UNIQUE NOT NULL,
-                description TEXT,
-                permissions TEXT
-            )
-        """)
-        
-        # Создаем таблицу сессий
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS user_sessions (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL,
-                token_hash TEXT NOT NULL,
-                expires_at TIMESTAMP NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (user_id) REFERENCES users (id)
-            )
-        """)
-        
-        # Вставляем базовые роли
-        cursor.execute("""
-            INSERT OR IGNORE INTO roles (id, name, description, permissions) VALUES
-            (0, 'root', 'Суперпользователь с полными правами', 'all'),
-            (2, 'superadmin', 'Администратор с расширенными правами', 'read,write,delete,manage_users'),
-            (3, 'user', 'Обычный пользователь с ограниченными правами', 'read')
-        """)
+        # Вставляем базовые роли (универсально)
+        try:
+            execute_query(conn, """
+                INSERT INTO roles (id, name, description, permissions) VALUES
+                (0, 'root', 'Суперпользователь с полными правами', 'all')
+                ON CONFLICT (id) DO NOTHING
+            """)
+        except:
+            # Fallback для SQLite
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT OR IGNORE INTO roles (id, name, description, permissions) VALUES
+                (0, 'root', 'Суперпользователь с полными правами', 'all'),
+                (2, 'superadmin', 'Администратор с расширенными правами', 'read,write,delete,manage_users'),
+                (3, 'user', 'Обычный пользователь с ограниченными правами', 'read')
+            """)
+            conn.commit()
         
         # Создаем индексы
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_users_username ON users (username)")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_users_email ON users (email)")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_sessions_token ON user_sessions (token_hash)")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_sessions_expires ON user_sessions (expires_at)")
+        execute_query(conn, "CREATE INDEX IF NOT EXISTS idx_users_username ON users (username)")
+        execute_query(conn, "CREATE INDEX IF NOT EXISTS idx_users_email ON users (email)")
+        execute_query(conn, "CREATE INDEX IF NOT EXISTS idx_sessions_token ON user_sessions (token_hash)")
+        execute_query(conn, "CREATE INDEX IF NOT EXISTS idx_sessions_expires ON user_sessions (expires_at)")
         
-        conn.commit()
         conn.close()
         return True
     except Exception as e:
@@ -336,21 +382,26 @@ def create_initial_admin():
     """Создает начального администратора, если пользователей нет"""
     try:
         conn = get_db_connection()
-        cursor = conn.cursor()
         
         # Проверяем, есть ли уже пользователи
-        cursor.execute("SELECT COUNT(*) FROM users")
-        user_count = cursor.fetchone()[0]
+        count_result = execute_query(conn, "SELECT COUNT(*) as count FROM users", fetch_one=True)
+        user_count = count_result['count'] if count_result else 0
         
         if user_count == 0:
             # Создаем root пользователя
             hashed_password = hash_password("admin123")
-            cursor.execute("""
-                INSERT INTO users (username, email, full_name, password_hash, role, is_active, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
-            """, ("admin", "admin@skud.local", "Администратор", hashed_password, 0, True))
             
-            conn.commit()
+            if hasattr(conn, 'db_type') and conn.db_type == "postgresql":
+                execute_query(conn, """
+                    INSERT INTO users (username, email, full_name, password_hash, role, is_active, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                """, ("admin", "admin@skud.local", "Администратор", hashed_password, 0, True))
+            else:
+                execute_query(conn, """
+                    INSERT INTO users (username, email, full_name, password_hash, role, is_active, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
+                """, ("admin", "admin@skud.local", "Администратор", hashed_password, 0, True))
+            
             print("Создан начальный администратор:")
             print("Логин: admin")
             print("Пароль: admin123")
