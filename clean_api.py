@@ -490,16 +490,18 @@ def get_db_connection():
             return None
 
 def execute_query(conn, query, params=None, fetch_one=False, fetch_all=False):
+
+def execute_query(conn, query, params=None, fetch_one=False, fetch_all=False):
     """Универсальная функция для выполнения запросов с поддержкой разных БД"""
     # Убеждаемся, что у соединения есть db_type
     # conn = ensure_db_type(conn)  # Удалено, теперь db_type устанавливается сразу
-    
+
     if hasattr(conn, 'db_type') and conn.db_type == "postgresql":
         # PostgreSQL - используем %s плейсхолдеры
         query_pg = query.replace('?', '%s')
         cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
         cursor.execute(query_pg, params or ())
-        
+
         if fetch_one:
             result = cursor.fetchone()
             return dict(result) if result else None
@@ -512,7 +514,7 @@ def execute_query(conn, query, params=None, fetch_one=False, fetch_all=False):
         # SQLite
         cursor = conn.cursor()
         cursor.execute(query, params or ())
-        
+
         if fetch_one:
             result = cursor.fetchone()
             if result:
