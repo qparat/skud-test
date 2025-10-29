@@ -1997,17 +1997,17 @@ async def update_department(department_id: int, department: DepartmentUpdate):
         cursor = conn.cursor()
         
         # Проверяем, что отдел существует
-        cursor.execute("SELECT id FROM departments WHERE id = ?", (department_id,))
+        cursor.execute("SELECT id FROM departments WHERE id = %s", (department_id,))
         if not cursor.fetchone():
             raise HTTPException(status_code=404, detail="Отдел не найден")
-        
+
         # Проверяем уникальность нового имени
-        cursor.execute("SELECT id FROM departments WHERE name = ? AND id != ?", (department.name, department_id))
+        cursor.execute("SELECT id FROM departments WHERE name = %s AND id != %s", (department.name, department_id))
         if cursor.fetchone():
             raise HTTPException(status_code=400, detail="Отдел с таким названием уже существует")
-        
+
         # Обновляем отдел
-        cursor.execute("UPDATE departments SET name = ? WHERE id = ?", (department.name, department_id))
+        cursor.execute("UPDATE departments SET name = %s WHERE id = %s", (department.name, department_id))
         
         conn.commit()
         conn.close()
