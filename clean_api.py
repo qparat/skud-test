@@ -404,7 +404,7 @@ async def startup_event():
 # ================================
 
 @app.post("/register", response_model=UserResponse)
-async def register(user: UserCreate, current_user: dict = Depends(require_role(0))):
+async def register(user: UserCreate, current_user: dict = Depends(require_role)):
     """Регистрация нового пользователя (только для root)"""
     try:
         conn = get_db_connection()
