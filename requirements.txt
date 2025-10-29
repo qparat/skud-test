@@ -6,3 +6,6 @@ psycopg2-binary>=2.9.11
 watchdog>=6.0.0
 configparser>=5.3.0
 PyJWT>=2.8.0
+httpx>=0.24.0
+pytest>=7.0.0
+gunicorn>=21.0.0

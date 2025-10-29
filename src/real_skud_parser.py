@@ -136,6 +136,19 @@ def create_real_skud_config(config_file_path: str = None) -> Dict[str, Any]:
                     config['date_format'] = file_config.get('SETTINGS', 'date_format')
         except Exception as e:
             print(f"⚠️ Ошибка загрузки конфигурации: {e}")
+            # Если ошибка загрузки PostgreSQL конфигурации, попробуем старую
+            try:
+                fallback_config = load_config("real_skud_config.ini")
+                if fallback_config.has_section('FILTERING'):
+                    if fallback_config.has_option('FILTERING', 'exclude_employees'):
+                        config['exclude_employees'] = [name.strip() for name in 
+                                                      fallback_config.get('FILTERING', 'exclude_employees').split(',')]
+                    if fallback_config.has_option('FILTERING', 'exclude_doors'):
+                        config['exclude_doors'] = [door.strip() for door in 
+                                                  fallback_config.get('FILTERING', 'exclude_doors').split(',')]
+                print("✅ Использована резервная конфигурация из real_skud_config.ini")
+            except:
+                print("⚠️ Не удалось загрузить резервную конфигурацию")
     
     return config
 

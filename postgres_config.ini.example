@@ -1,0 +1,41 @@
+# Пример конфигурации PostgreSQL для SKUD системы
+# Скопируйте этот файл в postgres_config.ini и отредактируйте параметры
+
+[DATABASE]
+# Хост PostgreSQL сервера
+host = localhost
+
+# Порт PostgreSQL (обычно 5432)
+port = 5432
+
+# Имя базы данных
+database = skud_db
+
+# Пользователь PostgreSQL
+user = skud_user
+
+# Пароль пользователя PostgreSQL
+password = your_strong_password_here
+
+[FILTERING]
+# Список исключаемых сотрудников (через запятую)
+exclude_employees = Охрана М.,1 пост о.,2 пост о.,Крыша К.,Водитель 1 В.,Водитель 2 В.,Дежурный в.,Дежурный В.,Водитель 3 В.
+
+# Список исключаемых дверей (через запятую)
+exclude_doors = 
+
+# Список исключаемых отделов (через запятую)  
+exclude_departments = 
+
+# Список исключаемых должностей (через запятую)
+exclude_positions = 
+
+[PARSER]
+# Интервал парсинга в секундах
+parse_interval = 30
+
+# Максимальное количество записей за один раз
+batch_size = 1000
+
+# Логирование отладочной информации
+debug = false

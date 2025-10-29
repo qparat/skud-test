@@ -8,6 +8,8 @@
 import sys
 import os
 import sqlite3
+import psycopg2
+import psycopg2.extras
 from datetime import datetime
 sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
 
@@ -16,16 +18,38 @@ from real_skud_parser import parse_real_skud_line, create_real_skud_config
 class SkudDatabaseIntegrator:
     """Класс для интеграции парсера с существующей базой данных"""
     
-    def __init__(self, db_path="real_skud_data.db"):
-        self.db_path = db_path
+    def __init__(self, db_type="postgresql", **db_config):
+        self.db_type = db_type
+        self.db_config = db_config
         self.connection = None
+        
+        # Настройки по умолчанию для PostgreSQL
+        if db_type == "postgresql":
+            default_config = {
+                'host': 'localhost',
+                'port': 5432,
+                'database': 'skud_db',
+                'user': 'postgres',
+                'password': 'password'
+            }
+            default_config.update(db_config)
+            self.db_config = default_config
+        else:
+            # SQLite (для обратной совместимости)
+            self.db_path = db_config.get('db_path', "real_skud_data.db")
     
     def connect(self):
         """Подключение к базе данных"""
         try:
-            self.connection = sqlite3.connect(self.db_path)
-            self.connection.row_factory = sqlite3.Row
-            return True
+            if self.db_type == "postgresql":
+                self.connection = psycopg2.connect(**self.db_config)
+                self.connection.autocommit = False
+                return True
+            else:
+                # SQLite
+                self.connection = sqlite3.connect(self.db_path)
+                self.connection.row_factory = sqlite3.Row
+                return True
         except Exception as e:
             print(f"❌ Ошибка подключения к БД: {e}")
             return False
@@ -37,43 +61,98 @@ class SkudDatabaseIntegrator:
             
         cursor = self.connection.cursor()
         
-        # Создаем минимальные таблицы для тестирования
-        cursor.executescript('''
-            CREATE TABLE IF NOT EXISTS departments (
-                id INTEGER PRIMARY KEY,
-                name TEXT NOT NULL UNIQUE
-            );
+        if self.db_type == "postgresql":
+            # PostgreSQL синтаксис
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS departments (
+                    id SERIAL PRIMARY KEY,
+                    name VARCHAR(255) NOT NULL UNIQUE
+                );
+            ''')
             
-            CREATE TABLE IF NOT EXISTS positions (
-                id INTEGER PRIMARY KEY,
-                name TEXT NOT NULL UNIQUE
-            );
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS positions (
+                    id SERIAL PRIMARY KEY,
+                    name VARCHAR(255) NOT NULL UNIQUE
+                );
+            ''')
             
-            CREATE TABLE IF NOT EXISTS employees (
-                id INTEGER PRIMARY KEY,
-                full_name TEXT NOT NULL UNIQUE,
-                department_id INTEGER,
-                position_id INTEGER,
-                card_number TEXT,
-                is_active INTEGER DEFAULT 1,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (department_id) REFERENCES departments(id),
-                FOREIGN KEY (position_id) REFERENCES positions(id)
-            );
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS employees (
+                    id SERIAL PRIMARY KEY,
+                    full_name VARCHAR(255) NOT NULL UNIQUE,
+                    birth_date DATE,
+                    department_id INTEGER REFERENCES departments(id),
+                    position_id INTEGER REFERENCES positions(id),
+                    card_number VARCHAR(50),
+                    is_active BOOLEAN DEFAULT TRUE,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+            ''')
             
-            CREATE TABLE IF NOT EXISTS access_logs (
-                id INTEGER PRIMARY KEY,
-                employee_id INTEGER NOT NULL,
-                access_datetime TEXT NOT NULL,
-                access_type TEXT NOT NULL CHECK (access_type IN ('ВХОД', 'ВЫХОД', 'IN', 'OUT')),
-                door_location TEXT,
-                card_number TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (employee_id) REFERENCES employees(id),
-                UNIQUE(employee_id, access_datetime, door_location)
-            );
-        ''')
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS access_logs (
+                    id SERIAL PRIMARY KEY,
+                    employee_id INTEGER NOT NULL REFERENCES employees(id),
+                    access_datetime TIMESTAMP NOT NULL,
+                    access_type VARCHAR(10) NOT NULL CHECK (access_type IN ('ВХОД', 'ВЫХОД', 'IN', 'OUT')),
+                    door_location TEXT,
+                    card_number VARCHAR(50),
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(employee_id, access_datetime, door_location)
+                );
+            ''')
+            
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS employee_exceptions (
+                    id SERIAL PRIMARY KEY,
+                    employee_id INTEGER NOT NULL REFERENCES employees(id),
+                    exception_date DATE NOT NULL,
+                    reason TEXT NOT NULL,
+                    exception_type VARCHAR(50) DEFAULT 'no_lateness_check',
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(employee_id, exception_date)
+                );
+            ''')
+        else:
+            # SQLite синтаксис (для обратной совместимости)
+            cursor.executescript('''
+                CREATE TABLE IF NOT EXISTS departments (
+                    id INTEGER PRIMARY KEY,
+                    name TEXT NOT NULL UNIQUE
+                );
+                
+                CREATE TABLE IF NOT EXISTS positions (
+                    id INTEGER PRIMARY KEY,
+                    name TEXT NOT NULL UNIQUE
+                );
+                
+                CREATE TABLE IF NOT EXISTS employees (
+                    id INTEGER PRIMARY KEY,
+                    full_name TEXT NOT NULL UNIQUE,
+                    department_id INTEGER,
+                    position_id INTEGER,
+                    card_number TEXT,
+                    is_active INTEGER DEFAULT 1,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (department_id) REFERENCES departments(id),
+                    FOREIGN KEY (position_id) REFERENCES positions(id)
+                );
+                
+                CREATE TABLE IF NOT EXISTS access_logs (
+                    id INTEGER PRIMARY KEY,
+                    employee_id INTEGER NOT NULL,
+                    access_datetime TEXT NOT NULL,
+                    access_type TEXT NOT NULL CHECK (access_type IN ('ВХОД', 'ВЫХОД', 'IN', 'OUT')),
+                    door_location TEXT,
+                    card_number TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (employee_id) REFERENCES employees(id),
+                    UNIQUE(employee_id, access_datetime, door_location)
+                );
+            ''')
         
         self.connection.commit()
         return True
@@ -82,18 +161,51 @@ class SkudDatabaseIntegrator:
         """Создает или находит ID для неопределенной службы и должности"""
         cursor = self.connection.cursor()
         
-        # Ищем или создаем службу "Неопределено"
-        cursor.execute("SELECT id FROM departments WHERE name = ?", ("Неопределено",))
-        dept = cursor.fetchone()
-        if not dept:
-            cursor.execute("INSERT INTO departments (name) VALUES (?)", ("Неопределено",))
-            dept_id = cursor.lastrowid
-            print("➕ Создана служба 'Неопределено'")
+        if self.db_type == "postgresql":
+            # PostgreSQL синтаксис
+            # Ищем или создаем службу "Неопределено"
+            cursor.execute("SELECT id FROM departments WHERE name = %s", ("Неопределено",))
+            dept = cursor.fetchone()
+            if not dept:
+                cursor.execute("INSERT INTO departments (name) VALUES (%s) RETURNING id", ("Неопределено",))
+                dept_id = cursor.fetchone()[0]
+                print("➕ Создана служба 'Неопределено'")
+            else:
+                dept_id = dept[0]
+            
+            # Ищем или создаем должность "Неопределено"
+            cursor.execute("SELECT id FROM positions WHERE name = %s", ("Неопределено",))
+            pos = cursor.fetchone()
+            if not pos:
+                cursor.execute("INSERT INTO positions (name) VALUES (%s) RETURNING id", ("Неопределено",))
+                pos_id = cursor.fetchone()[0]
+                print("➕ Создана должность 'Неопределено'")
+            else:
+                pos_id = pos[0]
         else:
-            dept_id = dept[0]
+            # SQLite синтаксис
+            # Ищем или создаем службу "Неопределено"
+            cursor.execute("SELECT id FROM departments WHERE name = ?", ("Неопределено",))
+            dept = cursor.fetchone()
+            if not dept:
+                cursor.execute("INSERT INTO departments (name) VALUES (?)", ("Неопределено",))
+                dept_id = cursor.lastrowid
+                print("➕ Создана служба 'Неопределено'")
+            else:
+                dept_id = dept[0]
+            
+            # Ищем или создаем должность "Неопределено"
+            cursor.execute("SELECT id FROM positions WHERE name = ?", ("Неопределено",))
+            pos = cursor.fetchone()
+            if not pos:
+                cursor.execute("INSERT INTO positions (name) VALUES (?)", ("Неопределено",))
+                pos_id = cursor.lastrowid
+                print("➕ Создана должность 'Неопределено'")
+            else:
+                pos_id = pos[0]
         
-        # Ищем или создаем должность "Неопределено"
-        cursor.execute("SELECT id FROM positions WHERE name = ?", ("Неопределено",))
+        self.connection.commit()
+        return dept_id, pos_id
         pos = cursor.fetchone()
         if not pos:
             cursor.execute("INSERT INTO positions (name) VALUES (?)", ("Неопределено",))
@@ -109,49 +221,94 @@ class SkudDatabaseIntegrator:
         """Находит существующего сотрудника или создает нового"""
         cursor = self.connection.cursor()
         
-        # Ищем существующего сотрудника
-        cursor.execute("SELECT id FROM employees WHERE full_name = ?", (full_name,))
-        employee = cursor.fetchone()
-        
-        if employee:
-            employee_id = employee[0]
+        if self.db_type == "postgresql":
+            # PostgreSQL синтаксис
+            # Ищем существующего сотрудника
+            cursor.execute("SELECT id FROM employees WHERE full_name = %s", (full_name,))
+            employee = cursor.fetchone()
             
-            # Обновляем номер карты, если он не задан
-            if card_number and card_number.strip():
-                cursor.execute(
-                    "UPDATE employees SET card_number = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND (card_number IS NULL OR card_number = '')",
-                    (card_number, employee_id)
-                )
+            if employee:
+                employee_id = employee[0]
+                
+                # Обновляем номер карты, если он не задан
+                if card_number and card_number.strip():
+                    cursor.execute(
+                        "UPDATE employees SET card_number = %s, updated_at = CURRENT_TIMESTAMP WHERE id = %s AND (card_number IS NULL OR card_number = '')",
+                        (card_number, employee_id)
+                    )
+                    self.connection.commit()
+                
+                return employee_id
+            else:
+                # Получаем ID для неопределенной службы и должности
+                dept_id, pos_id = self.get_or_create_unknown_ids()
+                
+                # Создаем нового сотрудника с неопределенной службой и должностью
+                cursor.execute("""
+                    INSERT INTO employees (full_name, department_id, position_id, card_number, is_active)
+                    VALUES (%s, %s, %s, %s, TRUE) RETURNING id
+                """, (full_name, dept_id, pos_id, card_number or ''))
+                
+                employee_id = cursor.fetchone()[0]
                 self.connection.commit()
-            
-            return employee_id
+                
+                print(f"➕ Создан новый сотрудник: {full_name} (ID: {employee_id}) со службой/должностью 'Неопределено'")
+                return employee_id
         else:
-            # Получаем ID для неопределенной службы и должности
-            dept_id, pos_id = self.get_or_create_unknown_ids()
+            # SQLite синтаксис
+            # Ищем существующего сотрудника
+            cursor.execute("SELECT id FROM employees WHERE full_name = ?", (full_name,))
+            employee = cursor.fetchone()
             
-            # Создаем нового сотрудника с неопределенной службой и должностью
-            cursor.execute("""
-                INSERT INTO employees (full_name, department_id, position_id, card_number, is_active)
-                VALUES (?, ?, ?, ?, 1)
-            """, (full_name, dept_id, pos_id, card_number or ''))
-            
-            employee_id = cursor.lastrowid
-            self.connection.commit()
-            
-            print(f"➕ Создан новый сотрудник: {full_name} (ID: {employee_id}) со службой/должностью 'Неопределено'")
+            if employee:
+                employee_id = employee[0]
+                
+                # Обновляем номер карты, если он не задан
+                if card_number and card_number.strip():
+                    cursor.execute(
+                        "UPDATE employees SET card_number = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND (card_number IS NULL OR card_number = '')",
+                        (card_number, employee_id)
+                    )
+                    self.connection.commit()
+                
+                return employee_id
+            else:
+                # Получаем ID для неопределенной службы и должности
+                dept_id, pos_id = self.get_or_create_unknown_ids()
+                
+                # Создаем нового сотрудника с неопределенной службой и должностью
+                cursor.execute("""
+                    INSERT INTO employees (full_name, department_id, position_id, card_number, is_active)
+                    VALUES (?, ?, ?, ?, 1)
+                """, (full_name, dept_id, pos_id, card_number or ''))
+                
+                employee_id = cursor.lastrowid
+                self.connection.commit()
+                
+                print(f"➕ Создан новый сотрудник: {full_name} (ID: {employee_id}) со службой/должностью 'Неопределено'")
+                return employee_id
             return employee_id
     
     def is_duplicate_access_log(self, employee_id, access_datetime, door_location):
         """Проверяет, существует ли уже такая запись доступа"""
         cursor = self.connection.cursor()
         
-        # Проверяем запись с точностью до секунды
-        cursor.execute("""
-            SELECT id FROM access_logs 
-            WHERE employee_id = ? 
-            AND access_datetime = ? 
-            AND door_location = ?
-        """, (employee_id, access_datetime.strftime('%Y-%m-%d %H:%M:%S'), door_location))
+        if self.db_type == "postgresql":
+            # PostgreSQL синтаксис
+            cursor.execute("""
+                SELECT id FROM access_logs 
+                WHERE employee_id = %s 
+                AND access_datetime = %s 
+                AND door_location = %s
+            """, (employee_id, access_datetime, door_location))
+        else:
+            # SQLite синтаксис
+            cursor.execute("""
+                SELECT id FROM access_logs 
+                WHERE employee_id = ? 
+                AND access_datetime = ? 
+                AND door_location = ?
+            """, (employee_id, access_datetime.strftime('%Y-%m-%d %H:%M:%S'), door_location))
         
         return cursor.fetchone() is not None
     
@@ -183,21 +340,38 @@ class SkudDatabaseIntegrator:
                 access_type = "ВХОД"  # По умолчанию
             
             # Вставляем запись доступа
-            cursor.execute("""
-                INSERT INTO access_logs (
-                    employee_id, 
-                    access_datetime, 
-                    access_type, 
-                    door_location, 
-                    card_number
-                ) VALUES (?, ?, ?, ?, ?)
-            """, (
-                employee_id,
-                skud_record.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
-                access_type,
-                skud_record.door_location,
-                skud_record.card_number or ''
-            ))
+            if self.db_type == "postgresql":
+                cursor.execute("""
+                    INSERT INTO access_logs (
+                        employee_id, 
+                        access_datetime, 
+                        access_type, 
+                        door_location, 
+                        card_number
+                    ) VALUES (%s, %s, %s, %s, %s)
+                """, (
+                    employee_id,
+                    skud_record.timestamp,  # PostgreSQL принимает datetime объекты
+                    access_type,
+                    skud_record.door_location,
+                    skud_record.card_number or ''
+                ))
+            else:
+                cursor.execute("""
+                    INSERT INTO access_logs (
+                        employee_id, 
+                        access_datetime, 
+                        access_type, 
+                        door_location, 
+                        card_number
+                    ) VALUES (?, ?, ?, ?, ?)
+                """, (
+                    employee_id,
+                    skud_record.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
+                    access_type,
+                    skud_record.door_location,
+                    skud_record.card_number or ''
+                ))
             
             self.connection.commit()
             return True
@@ -251,7 +425,10 @@ class SkudDatabaseIntegrator:
                     if skud_record:
                         # Проверяем, новый ли это сотрудник
                         cursor = self.connection.cursor()
-                        cursor.execute("SELECT id FROM employees WHERE full_name = ?", (skud_record.full_name,))
+                        if self.db_type == "postgresql":
+                            cursor.execute("SELECT id FROM employees WHERE full_name = %s", (skud_record.full_name,))
+                        else:
+                            cursor.execute("SELECT id FROM employees WHERE full_name = ?", (skud_record.full_name,))
                         existing_employee = cursor.fetchone()
                         
                         # Добавляем запись
@@ -341,7 +518,7 @@ class SkudDatabaseIntegrator:
         print(f"📂 Обработка файла: {file_path}")
         
         # Загружаем конфигурацию
-        config_path = "real_skud_config.ini"
+        config_path = "postgres_config.ini"  # Используем PostgreSQL конфигурацию
         config = create_real_skud_config(config_path)
         
         total_lines = 0

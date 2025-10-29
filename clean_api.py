@@ -13,6 +13,9 @@ import hashlib
 import secrets
 import jwt
 from functools import wraps
+import psycopg2
+import psycopg2.extras
+import configparser
 sys.path.append(os.path.join(os.path.dirname(__file__)))
 
 app = FastAPI(title="СКУД API", description="API для системы контроля и управления доступом")
@@ -113,30 +116,46 @@ def create_employee_exceptions_table():
     """Создает таблицу исключений для сотрудников, если её нет"""
     try:
         conn = get_db_connection()
-        cursor = conn.cursor()
         
-        # Создаем таблицу исключений
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS employee_exceptions (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                employee_id INTEGER NOT NULL,
-                exception_date DATE NOT NULL,
-                reason TEXT NOT NULL,
-                exception_type TEXT DEFAULT 'no_lateness_check',
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                created_by TEXT DEFAULT 'system',
-                FOREIGN KEY (employee_id) REFERENCES employees (id),
-                UNIQUE(employee_id, exception_date)
-            )
-        """)
+        if hasattr(conn, 'db_type') and conn.db_type == "postgresql":
+            # PostgreSQL синтаксис
+            execute_query(conn, """
+                CREATE TABLE IF NOT EXISTS employee_exceptions (
+                    id SERIAL PRIMARY KEY,
+                    employee_id INTEGER NOT NULL,
+                    exception_date DATE NOT NULL,
+                    reason TEXT NOT NULL,
+                    exception_type TEXT DEFAULT 'no_lateness_check',
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    created_by TEXT DEFAULT 'system',
+                    FOREIGN KEY (employee_id) REFERENCES employees (id),
+                    UNIQUE(employee_id, exception_date)
+                )
+            """)
+        else:
+            # SQLite синтаксис
+            cursor = conn.cursor()
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS employee_exceptions (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    employee_id INTEGER NOT NULL,
+                    exception_date DATE NOT NULL,
+                    reason TEXT NOT NULL,
+                    exception_type TEXT DEFAULT 'no_lateness_check',
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    created_by TEXT DEFAULT 'system',
+                    FOREIGN KEY (employee_id) REFERENCES employees (id),
+                    UNIQUE(employee_id, exception_date)
+                )
+            """)
+            conn.commit()
         
         # Создаем индекс для быстрого поиска
-        cursor.execute("""
+        execute_query(conn, """
             CREATE INDEX IF NOT EXISTS idx_employee_exceptions_date 
             ON employee_exceptions (employee_id, exception_date)
         """)
         
-        conn.commit()
         conn.close()
         return True
     except Exception as e:
@@ -213,17 +232,36 @@ def update_employees_table():
     """Добавляет колонку birth_date в таблицу employees, если её нет"""
     try:
         conn = get_db_connection()
-        cursor = conn.cursor()
         
         # Проверяем, есть ли уже колонка birth_date
-        cursor.execute("PRAGMA table_info(employees)")
-        columns = [column[1] for column in cursor.fetchall()]
-        
-        if 'birth_date' not in columns:
-            # Добавляем колонку birth_date
-            cursor.execute("ALTER TABLE employees ADD COLUMN birth_date DATE")
-            conn.commit()
-            print("✅ Добавлена колонка birth_date в таблицу employees")
+        if hasattr(conn, 'db_type') and conn.db_type == "postgresql":
+            # PostgreSQL - проверяем через information_schema
+            check_column = execute_query(
+                conn,
+                """
+                SELECT column_name 
+                FROM information_schema.columns 
+                WHERE table_name = ? AND column_name = ?
+                """,
+                ('employees', 'birth_date'),
+                fetch_one=True
+            )
+            
+            if not check_column:
+                # Добавляем колонку birth_date в PostgreSQL
+                execute_query(conn, "ALTER TABLE employees ADD COLUMN birth_date DATE")
+                print("✅ Добавлена колонка birth_date в таблицу employees (PostgreSQL)")
+        else:
+            # SQLite - используем PRAGMA
+            cursor = conn.cursor()
+            cursor.execute("PRAGMA table_info(employees)")
+            columns = [column[1] for column in cursor.fetchall()]
+            
+            if 'birth_date' not in columns:
+                # Добавляем колонку birth_date
+                cursor.execute("ALTER TABLE employees ADD COLUMN birth_date DATE")
+                conn.commit()
+                print("✅ Добавлена колонка birth_date в таблицу employees (SQLite)")
         
         conn.close()
         return True
@@ -257,29 +295,37 @@ def verify_token(token: str) -> Optional[dict]:
     """Проверяет токен и возвращает данные пользователя"""
     try:
         conn = get_db_connection()
-        cursor = conn.cursor()
         
         # Хешируем токен для поиска в БД
         token_hash = hashlib.sha256(token.encode()).hexdigest()
         
-        cursor.execute("""
-            SELECT u.id, u.username, u.email, u.full_name, u.role, u.is_active
-            FROM users u
-            JOIN user_sessions s ON u.id = s.user_id
-            WHERE s.token_hash = ? AND s.expires_at > datetime('now')
-        """, (token_hash,))
+        # Строим запрос с учетом типа базы данных
+        if hasattr(conn, 'db_type') and conn.db_type == "postgresql":
+            query = """
+                SELECT u.id, u.username, u.email, u.full_name, u.role, u.is_active
+                FROM users u
+                JOIN user_sessions s ON u.id = s.user_id
+                WHERE s.token_hash = ? AND s.expires_at > NOW()
+            """
+        else:
+            query = """
+                SELECT u.id, u.username, u.email, u.full_name, u.role, u.is_active
+                FROM users u
+                JOIN user_sessions s ON u.id = s.user_id
+                WHERE s.token_hash = ? AND s.expires_at > datetime('now')
+            """
         
-        user_data = cursor.fetchone()
+        user_data = execute_query(conn, query, (token_hash,), fetch_one=True)
         conn.close()
         
         if user_data:
             return {
-                "id": user_data[0],
-                "username": user_data[1],
-                "email": user_data[2],
-                "full_name": user_data[3],
-                "role": user_data[4],
-                "is_active": user_data[5]
+                "id": user_data["id"],
+                "username": user_data["username"],
+                "email": user_data["email"],
+                "full_name": user_data["full_name"],
+                "role": user_data["role"],
+                "is_active": user_data["is_active"]
             }
         return None
     except Exception as e:
@@ -354,10 +400,66 @@ def get_employee_status(is_late, first_entry, exception_info):
             return "Отсутствовал"
 
 def get_db_connection():
-    """Создает подключение к базе данных с поддержкой UTF-8"""
+    """Создает подключение к базе данных (PostgreSQL или SQLite в качестве fallback)"""
+    try:
+        # Пробуем подключиться к PostgreSQL
+        config = configparser.ConfigParser()
+        config.read('postgres_config.ini', encoding='utf-8')
+        
+        if config.has_section('DATABASE'):
+            pg_config = {
+                'host': config.get('DATABASE', 'host', fallback='localhost'),
+                'port': config.getint('DATABASE', 'port', fallback=5432),
+                'database': config.get('DATABASE', 'database', fallback='skud_db'),
+                'user': config.get('DATABASE', 'user', fallback='postgres'),
+                'password': config.get('DATABASE', 'password', fallback='password')
+            }
+            
+            conn = psycopg2.connect(**pg_config)
+            conn.autocommit = True  # Для совместимости с SQLite
+            # Добавляем атрибут для определения типа БД
+            conn.db_type = "postgresql"
+            return conn
+    except Exception as e:
+        print(f"⚠️ PostgreSQL недоступен, используем SQLite: {e}")
+    
+    # Fallback на SQLite
     conn = sqlite3.connect("real_skud_data.db")
     conn.execute("PRAGMA encoding = 'UTF-8'")
+    conn.db_type = "sqlite"
     return conn
+
+def execute_query(conn, query, params=None, fetch_one=False, fetch_all=False):
+    """Универсальная функция для выполнения запросов с поддержкой разных БД"""
+    if hasattr(conn, 'db_type') and conn.db_type == "postgresql":
+        # PostgreSQL - используем %s плейсхолдеры
+        query_pg = query.replace('?', '%s')
+        cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cursor.execute(query_pg, params or ())
+        
+        if fetch_one:
+            result = cursor.fetchone()
+            return dict(result) if result else None
+        elif fetch_all:
+            results = cursor.fetchall()
+            return [dict(row) for row in results]
+        else:
+            return cursor
+    else:
+        # SQLite
+        cursor = conn.cursor()
+        cursor.execute(query, params or ())
+        
+        if fetch_one:
+            result = cursor.fetchone()
+            return dict(result) if result else None
+        elif fetch_all:
+            results = cursor.fetchall()
+            # Преобразуем в словари для совместимости
+            columns = [desc[0] for desc in cursor.description] if cursor.description else []
+            return [dict(zip(columns, row)) for row in results]
+        else:
+            return cursor
 
 # CORS middleware
 app.add_middleware(
@@ -702,31 +804,41 @@ async def get_employee_schedule(date: Optional[str] = Query(None), current_user:
     """Расписание всех сотрудников за день с временем прихода/ухода"""
     try:
         if date is None:
-            conn = sqlite3.connect("real_skud_data.db")
-            cursor = conn.cursor()
-            cursor.execute("SELECT DISTINCT DATE(access_datetime) as access_date FROM access_logs ORDER BY access_date DESC LIMIT 1")
-            result = cursor.fetchone()
-            date = result[0] if result else datetime.today().strftime('%Y-%m-%d')
+            conn = get_db_connection()
+            
+            latest_date = execute_query(
+                conn,
+                "SELECT DISTINCT DATE(access_datetime) as access_date FROM access_logs ORDER BY access_date DESC LIMIT 1",
+                fetch_one=True
+            )
+            date = latest_date['access_date'] if latest_date else datetime.today().strftime('%Y-%m-%d')
             conn.close()
         
-        conn = sqlite3.connect("real_skud_data.db")
-        cursor = conn.cursor()
+        conn = get_db_connection()
         
         # Быстрый запрос - получаем все записи за день одним запросом с JOIN к таблице employees
-        cursor.execute("""
+        all_logs = execute_query(
+            conn,
+            """
             SELECT al.employee_id, e.full_name, TIME(al.access_datetime) as access_time, al.door_location
             FROM access_logs al
             JOIN employees e ON al.employee_id = e.id
             WHERE DATE(al.access_datetime) = ?
             AND e.full_name NOT IN ('Охрана М.', '1 пост о.', '2 пост о.', 'Крыша К.', 'Водитель 1 В.', 'Водитель 2 В.', 'Дежурный в.', 'Дежурный В.')
             ORDER BY al.employee_id, al.access_datetime
-        """, (date,))
-        
-        all_logs = cursor.fetchall()
+            """,
+            (date,),
+            fetch_all=True
+        )
         
         # Группируем по сотрудникам
         employees_dict = {}
-        for employee_id, full_name, access_time, door_location in all_logs:
+        for log in all_logs:
+            employee_id = log['employee_id']
+            full_name = log['full_name']
+            access_time = log['access_time']
+            door_location = log['door_location']
+            
             if employee_id not in employees_dict:
                 employees_dict[employee_id] = {
                     'id': employee_id,
@@ -744,12 +856,17 @@ async def get_employee_schedule(date: Optional[str] = Query(None), current_user:
         work_start_time = datetime.strptime('09:00:00', '%H:%M:%S').time()
         
         # Получаем все исключения для этой даты
-        cursor.execute("""
+        exceptions_data = execute_query(
+            conn,
+            """
             SELECT employee_id, exception_type, reason
             FROM employee_exceptions 
             WHERE exception_date = ?
-        """, (date,))
-        exceptions_for_date = {row[0]: {'type': row[1], 'reason': row[2]} for row in cursor.fetchall()}
+            """,
+            (date,),
+            fetch_all=True
+        )
+        exceptions_for_date = {row['employee_id']: {'type': row['exception_type'], 'reason': row['reason']} for row in exceptions_data}
         
         for emp_data in employees_dict.values():
             # Первый вход
@@ -1157,10 +1274,11 @@ async def get_all_employees():
     """Получить список всех сотрудников, сгруппированных по отделам"""
     try:
         conn = get_db_connection()
-        cursor = conn.cursor()
         
         # Получаем всех активных сотрудников с их отделами и должностями через JOIN
-        cursor.execute("""
+        results = execute_query(
+            conn,
+            """
             SELECT e.id, e.full_name, 
                    p.name as position_name, 
                    d.name as department_name,
@@ -1168,28 +1286,28 @@ async def get_all_employees():
             FROM employees e
             LEFT JOIN departments d ON e.department_id = d.id
             LEFT JOIN positions p ON e.position_id = p.id
-            WHERE e.is_active = 1
+            WHERE e.is_active = ?
             AND e.full_name NOT IN ('Охрана М.', '1 пост о.', '2 пост о.', 'Крыша К.', 'Водитель 1 В.', 'Водитель 2 В.', 'Дежурный в.', 'Дежурный В.')
             ORDER BY d.name, e.full_name
-        """)
-        
-        employees_data = cursor.fetchall()
+            """,
+            (True,),
+            fetch_all=True
+        )
         
         # Группируем сотрудников по отделам
         departments = {}
         
-        for employee_id, full_name, position, department, birth_date in employees_data:
-            if not department:
-                department = 'Не указан отдел'
+        for row in results:
+            department = row.get('department_name') or 'Не указан отдел'
             
             if department not in departments:
                 departments[department] = []
             
             departments[department].append({
-                'employee_id': employee_id,
-                'full_name': full_name,
-                'position': position or 'Не указана должность',
-                'birth_date': birth_date
+                'employee_id': row['id'],
+                'full_name': row['full_name'],
+                'position': row.get('position_name') or 'Не указана должность',
+                'birth_date': row.get('birth_date')
             })
         
         # Сортируем сотрудников в каждом отделе
@@ -1211,25 +1329,28 @@ async def get_employees_simple():
     """Получить простой список всех сотрудников для форм"""
     try:
         conn = get_db_connection()
-        cursor = conn.cursor()
         
-        cursor.execute("""
+        results = execute_query(
+            conn,
+            """
             SELECT id, full_name
             FROM employees
-            WHERE is_active = 1
+            WHERE is_active = ?
             AND full_name NOT IN ('Охрана М.', '1 пост о.', '2 пост о.', 'Крыша К.', 'Водитель 1 В.', 'Водитель 2 В.', 'Дежурный в.', 'Дежурный В.')
             ORDER BY full_name
-        """)
+            """,
+            (True,),
+            fetch_all=True
+        )
         
-        employees = cursor.fetchall()
         conn.close()
         
         return [
             {
-                'id': emp[0],
-                'full_name': emp[1]
+                'id': row['id'],
+                'full_name': row['full_name']
             }
-            for emp in employees
+            for row in results
         ]
         
     except Exception as e:
@@ -1363,22 +1484,26 @@ async def get_all_departments():
     """Получить список всех отделов"""
     try:
         conn = get_db_connection()
-        cursor = conn.cursor()
         
-        cursor.execute("""
+        results = execute_query(
+            conn,
+            """
             SELECT d.id, d.name, COUNT(e.id) as employee_count
             FROM departments d
-            LEFT JOIN employees e ON d.id = e.department_id AND e.is_active = 1
+            LEFT JOIN employees e ON d.id = e.department_id AND e.is_active = ?
             GROUP BY d.id, d.name
             ORDER BY d.name
-        """)
+            """,
+            (True,),
+            fetch_all=True
+        )
         
         departments = []
-        for dept_id, name, count in cursor.fetchall():
+        for row in results:
             departments.append({
-                'id': dept_id,
-                'name': name,
-                'employee_count': count
+                'id': row['id'],
+                'name': row['name'],
+                'employee_count': row['employee_count']
             })
         
         conn.close()
@@ -2377,10 +2502,24 @@ async def upload_skud_file(file: UploadFile = File(..., description="СКУД ф
         try:
             # Импортируем и используем наш парсер
             from database_integrator import SkudDatabaseIntegrator
+            import configparser
             
-            integrator = SkudDatabaseIntegrator()
+            # Загружаем конфигурацию PostgreSQL
+            config = configparser.ConfigParser()
+            config.read('postgres_config.ini', encoding='utf-8')
+            
+            # Настройки подключения к PostgreSQL
+            pg_config = {
+                'host': config.get('DATABASE', 'host', fallback='localhost'),
+                'port': config.getint('DATABASE', 'port', fallback=5432),
+                'database': config.get('DATABASE', 'database', fallback='skud_db'),
+                'user': config.get('DATABASE', 'user', fallback='postgres'),
+                'password': config.get('DATABASE', 'password', fallback='password')
+            }
+            
+            integrator = SkudDatabaseIntegrator(db_type="postgresql", **pg_config)
             if not integrator.connect():
-                raise HTTPException(status_code=500, detail="Ошибка подключения к базе данных")
+                raise HTTPException(status_code=500, detail="Ошибка подключения к PostgreSQL базе данных")
             
             # Обрабатываем файл
             result = integrator.process_skud_file(temp_file_path)
