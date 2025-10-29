@@ -61,6 +61,35 @@ sys.path.append(os.path.join(os.path.dirname(__file__)))
 
 app = FastAPI(title="СКУД API", description="API для системы контроля и управления доступом")
 
+from fastapi.responses import JSONResponse
+
+@app.get("/employee-exceptions")
+async def get_employee_exceptions():
+    """Получить все исключения сотрудников"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT ee.id, ee.employee_id, e.full_name, ee.exception_date, ee.reason, ee.exception_type
+            FROM employee_exceptions ee
+            LEFT JOIN employees e ON ee.employee_id = e.id
+            ORDER BY ee.exception_date DESC, e.full_name
+        """)
+        exceptions = []
+        for row in cursor.fetchall():
+            exceptions.append({
+                "id": row[0],
+                "employee_id": row[1],
+                "full_name": row[2],
+                "exception_date": row[3].strftime('%Y-%m-%d') if row[3] else None,
+                "reason": row[4],
+                "exception_type": row[5]
+            })
+        conn.close()
+        return JSONResponse(content={"exceptions": exceptions})
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка получения исключений: {str(e)}")
+
 # Добавляем middleware для ограничения размера загружаемого файла
 @app.middleware("http")
 async def limit_upload_size(request: Request, call_next):
