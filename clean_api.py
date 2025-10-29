@@ -489,7 +489,7 @@ def get_db_connection():
             print(f"❌ Критическая ошибка SQLite: {e}")
             return None
 def execute_query(conn, query, params=None, fetch_one=False, fetch_all=False):
-    """Универсальная функция для выполнения запросов с поддержкой разных БД"""
+    """Универсальная функция для выполнения запросов с поддержкой разных БД2"""
     # Убеждаемся, что у соединения есть db_type
     # conn = ensure_db_type(conn)  # Удалено, теперь db_type устанавливается сразу
 
