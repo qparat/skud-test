@@ -2093,17 +2093,17 @@ async def update_position(position_id: int, position: PositionUpdate):
         cursor = conn.cursor()
         
         # Проверяем, что должность существует
-        cursor.execute("SELECT id FROM positions WHERE id = ?", (position_id,))
+        cursor.execute("SELECT id FROM positions WHERE id = %s", (position_id,))
         if not cursor.fetchone():
             raise HTTPException(status_code=404, detail="Должность не найдена")
-        
+
         # Проверяем уникальность нового имени
-        cursor.execute("SELECT id FROM positions WHERE name = ? AND id != ?", (position.name, position_id))
+        cursor.execute("SELECT id FROM positions WHERE name = %s AND id != %s", (position.name, position_id))
         if cursor.fetchone():
             raise HTTPException(status_code=400, detail="Должность с таким названием уже существует")
-        
+
         # Обновляем должность
-        cursor.execute("UPDATE positions SET name = ? WHERE id = ?", (position.name, position_id))
+        cursor.execute("UPDATE positions SET name = %s WHERE id = %s", (position.name, position_id))
         
         conn.commit()
         conn.close()
