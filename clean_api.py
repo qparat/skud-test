@@ -37,7 +37,6 @@ import tempfile
 import sys
 import hashlib
 import secrets
-import jwt
 from functools import wraps
 import psycopg2
 import psycopg2.extras
@@ -2081,6 +2080,7 @@ async def get_department_positions(department_id: int):
 # CRUD операции для отделов/служб
 @app.post("/departments")
 async def create_department(department: DepartmentCreate):
+   
     """Создать новый отдел/службу"""
     try:
         conn = get_db_connection()
@@ -2454,21 +2454,16 @@ async def upload_skud_file(file: UploadFile = File(..., description="СКУД ф
                 return {
                     "success": True,
                     "message": f"Файл '{file.filename}' успешно обработан",
-                    try:
-                        conn = get_db_connection()
-                        # PostgreSQL: проверяем столбцы через information_schema
-                        check_column = execute_query(
-                            conn,
-                            """
-                            SELECT column_name FROM information_schema.columns
-                            WHERE table_name='employees' AND column_name='birth_date'
-                            """,
-                            fetch_one=True
-                        )
-                        if not check_column:
-                            execute_query(conn, "ALTER TABLE employees ADD COLUMN birth_date DATE")
-                        conn.close()
-                        return True
-                    except Exception as e:
-                        print(f"Ошибка обновления таблицы employees: {e}")
-                        return False
+                    "details": result.get('details')
+                }
+            else:
+                raise HTTPException(status_code=500, detail=result.get('error', 'Неизвестная ошибка'))
+        
+        finally:
+            # Удаляем временный файл
+            os.remove(temp_file_path)
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка загрузки файла: {str(e)}")
