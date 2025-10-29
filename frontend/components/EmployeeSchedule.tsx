@@ -475,21 +475,17 @@ export function EmployeeSchedule() {
   }
 
   const exportToExcel = () => {
+
     if (!scheduleData || !scheduleData.employees.length) {
       alert('Нет данных для экспорта')
       return
     }
 
-    // Получаем отсортированные данные из того же источника, что и таблица
-    const sortedData = getSortedEmployees() // Используем исходную функцию для экспорта всех данных
-    
+    const sortedData = getSortedEmployees()
     let excelData: any[] = []
-
-    // Проверяем, есть ли поле date (это означает, что это данные диапазона в плоском формате)
     const isRangeData = sortedData.length > 0 && 'date' in sortedData[0]
 
     if (!isRangeData) {
-      // Экспорт для одной даты
       excelData = (sortedData as Employee[]).map((employee, index) => ({
         '№': index + 1,
         'ФИО': employee.full_name,
@@ -500,19 +496,52 @@ export function EmployeeSchedule() {
         'Опоздание (мин)': employee.is_late ? employee.late_minutes : 0,
       }))
     } else {
-      // Экспорт для диапазона дат (плоский формат)
-      excelData = (sortedData as (Employee & { date: string })[]).map((employee, index) => ({
-        '№': index + 1,
-        'ФИО': employee.full_name,
-        'Дата': employee.date,
-        'День недели': new Date(employee.date).toLocaleDateString('ru-RU', { weekday: 'long' }),
-        'Пришел': employee.first_entry || '-',
-        'Ушел': employee.last_exit || '-',
-        'Часы работы': employee.work_hours ? `${employee.work_hours.toFixed(1)} ч` : '-',
-        'Статус': employee.status || (employee.is_late ? 'Опоздал' : 'В норме'),
-        'Опоздание (мин)': employee.is_late ? employee.late_minutes : 0,
-        'Исключение': employee.exception?.has_exception ? employee.exception.reason : '-'
-      }))
+      // Группируем по дате
+      const grouped: Record<string, (Employee & { date: string })[]> = {}
+      (sortedData as (Employee & { date: string })[]).forEach(emp => {
+        if (!grouped[emp.date]) grouped[emp.date] = []
+        grouped[emp.date].push(emp)
+      })
+      // Сортируем даты по возрастанию
+      const sortedDates = Object.keys(grouped).sort()
+      let rowIndex = 1
+      sortedDates.forEach(date => {
+        // Первая строка — дата
+        excelData.push({
+          '№': '',
+          'ФИО': `Дата: ${date} (${new Date(date).toLocaleDateString('ru-RU', { weekday: 'long' })})`,
+          'Пришел': '',
+          'Ушел': '',
+          'Часы работы': '',
+          'Статус': '',
+          'Опоздание (мин)': '',
+          'Исключение': ''
+        })
+        // Данные сотрудников за эту дату
+        grouped[date].forEach(emp => {
+          excelData.push({
+            '№': rowIndex++,
+            'ФИО': emp.full_name,
+            'Пришел': emp.first_entry || '-',
+            'Ушел': emp.last_exit || '-',
+            'Часы работы': emp.work_hours ? `${emp.work_hours.toFixed(1)} ч` : '-',
+            'Статус': emp.status || (emp.is_late ? 'Опоздал' : 'В норме'),
+            'Опоздание (мин)': emp.is_late ? emp.late_minutes : 0,
+            'Исключение': emp.exception?.has_exception ? emp.exception.reason : '-'
+          })
+        })
+        // Пустая строка после данных за дату
+        excelData.push({
+          '№': '',
+          'ФИО': '',
+          'Пришел': '',
+          'Ушел': '',
+          'Часы работы': '',
+          'Статус': '',
+          'Опоздание (мин)': '',
+          'Исключение': ''
+        })
+      })
     }
 
     // Создаем рабочую книгу
