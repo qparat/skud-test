@@ -1,5 +1,3 @@
-sqlite_db_path = "real_skud_data.db"  # Путь к файлу SQLite
-import sqlite3
 from fastapi import FastAPI, HTTPException, Query, UploadFile, File, Depends, status, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -116,10 +114,11 @@ class ExceptionRangeCreate(BaseModel):
 def create_employee_exceptions_table():
     """Создает таблицу исключений для сотрудников, если её нет"""
     try:
-        conn = get_db_connection()
-        
-        if hasattr(conn, 'db_type') and conn.db_type == "postgresql":
-            # PostgreSQL синтаксис
+        conn, db_type = get_db_connection()
+        if not conn:
+            print("Ошибка: не удалось получить соединение с БД")
+            return False
+        if db_type == "postgresql":
             execute_query(conn, """
                 CREATE TABLE IF NOT EXISTS employee_exceptions (
                     id SERIAL PRIMARY KEY,
@@ -132,9 +131,8 @@ def create_employee_exceptions_table():
                     FOREIGN KEY (employee_id) REFERENCES employees (id),
                     UNIQUE(employee_id, exception_date)
                 )
-            """)
-        else:
-            # SQLite синтаксис
+            """, db_type=db_type)
+        elif db_type == "sqlite":
             cursor = conn.cursor()
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS employee_exceptions (
@@ -150,13 +148,11 @@ def create_employee_exceptions_table():
                 )
             """)
             conn.commit()
-        
         # Создаем индекс для быстрого поиска
         execute_query(conn, """
             CREATE INDEX IF NOT EXISTS idx_employee_exceptions_date 
             ON employee_exceptions (employee_id, exception_date)
-        """)
-        
+        """, db_type=db_type)
         conn.close()
         return True
     except Exception as e:
@@ -452,12 +448,10 @@ def get_employee_status(is_late, first_entry, exception_info):
             return "Отсутствовал"
 
 def get_db_connection():
-    """Создает подключение к базе данных (PostgreSQL или SQLite в качестве fallback)"""
+    """Создает подключение только к базе данных PostgreSQL"""
     try:
-        # Пробуем подключиться к PostgreSQL
         config = configparser.ConfigParser()
         config.read('postgres_config.ini', encoding='utf-8')
-        
         if config.has_section('DATABASE'):
             pg_config = {
                 'host': config.get('DATABASE', 'host', fallback='localhost'),
@@ -466,69 +460,38 @@ def get_db_connection():
                 'user': config.get('DATABASE', 'user', fallback='postgres'),
                 'password': config.get('DATABASE', 'password', fallback='password')
             }
-            try:
-                import psycopg2
-                conn = psycopg2.connect(
-                    dbname=pg_config["database"],
-                    user=pg_config["user"],
-                    password=pg_config["password"],
-                    host=pg_config["host"],
-                    port=pg_config["port"]
-                )
-                conn.autocommit = True
-                conn.db_type = "postgresql"
-                return conn
-            except Exception as e:
-                print(f"⚠️ PostgreSQL недоступен, используем SQLite: {e}")
-        try:
-            import sqlite3
-            conn = sqlite3.connect(sqlite_db_path)
-            conn.db_type = "sqlite"
+            import psycopg2
+            conn = psycopg2.connect(
+                dbname=pg_config["database"],
+                user=pg_config["user"],
+                password=pg_config["password"],
+                host=pg_config["host"],
+                port=pg_config["port"]
+            )
+            conn.autocommit = True
             return conn
-        except Exception as e:
-            print(f"❌ Критическая ошибка SQLite: {e}")
+        else:
+            print("❌ Не найдена секция DATABASE в postgres_config.ini")
             return None
     except Exception as e:
-        print(f"❌ Ошибка при попытке подключения к базе данных: {e}")
+        print(f"❌ Ошибка при попытке подключения к базе данных PostgreSQL: {e}")
         return None
 
     # (Удалено ошибочное вложенное объявление execute_query)
 
 def execute_query(conn, query, params=None, fetch_one=False, fetch_all=False):
-    """Универсальная функция для выполнения запросов с поддержкой разных БД"""
-    # Теперь db_type передается отдельно
-    def _execute(conn, query, params, fetch_one, fetch_all, db_type):
-        if db_type == "postgresql":
-            query_pg = query.replace('?', '%s')
-            cursor = conn.cursor()
-            cursor.execute(query_pg, params or ())
-            if fetch_one:
-                result = cursor.fetchone()
-                return dict(result) if result else None
-            elif fetch_all:
-                results = cursor.fetchall()
-                return [dict(row) for row in results]
-            else:
-                return cursor
-        elif db_type == "sqlite":
-            cursor = conn.cursor()
-            cursor.execute(query, params or ())
-            if fetch_one:
-                result = cursor.fetchone()
-                if result:
-                    columns = [desc[0] for desc in cursor.description]
-                    return dict(zip(columns, result))
-                return None
-            elif fetch_all:
-                results = cursor.fetchall()
-                columns = [desc[0] for desc in cursor.description] if cursor.description else []
-                return [dict(zip(columns, row)) for row in results]
-            else:
-                return cursor
-        else:
-            return None
-    # Вызов внутренней функции
-    return _execute(conn, query, params, fetch_one, fetch_all, getattr(conn, 'db_type', None))
+    """Выполняет запросы только для PostgreSQL"""
+    query_pg = query.replace('?', '%s')
+    cursor = conn.cursor()
+    cursor.execute(query_pg, params or ())
+    if fetch_one:
+        result = cursor.fetchone()
+        return dict(result) if result else None
+    elif fetch_all:
+        results = cursor.fetchall()
+        return [dict(row) for row in results]
+    else:
+        return cursor
 
 # CORS middleware
 app.add_middleware(
