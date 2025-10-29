@@ -2,45 +2,10 @@
 # ...existing code...
 
 # Добавляю GET-эндпоинт /employee-exceptions после создания app
-@app.get("/employee-exceptions")
-async def get_employee_exceptions(employee_id: int = None, exception_date: str = None):
-    """Получить список исключений сотрудников (фильтрация по сотруднику и дате)"""
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        query = """
-            SELECT ee.id, ee.employee_id, e.full_name, ee.exception_date, ee.reason, ee.exception_type, ee.created_at
-            FROM employee_exceptions ee
-            JOIN employees e ON ee.employee_id = e.id
-        """
-        params = []
-        if employee_id:
-            query += " WHERE ee.employee_id = %s"
-            params.append(employee_id)
-        if exception_date:
-            if not params:
-                query += " WHERE ee.exception_date = %s"
-            else:
-                query += " AND ee.exception_date = %s"
-            params.append(exception_date)
-        query += " ORDER BY ee.exception_date DESC, e.full_name"
-        cursor.execute(query, params)
-        exceptions = cursor.fetchall()
-        conn.close()
-        return [
-            {
-                "id": exc[0],
-                "employee_id": exc[1],
-                "employee_name": exc[2],
-                "exception_date": exc[3],
-                "reason": exc[4],
-                "exception_type": exc[5],
-                "created_at": exc[6]
-            }
-            for exc in exceptions
-        ]
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Ошибка при получении исключений: {str(e)}")
+
+# ...existing code...
+
+# Добавляю GET-эндпоинт /employee-exceptions после создания app
 def get_db_connection():
     """Создает соединение с PostgreSQL"""
     import psycopg2
