@@ -20,11 +20,11 @@ interface Employee {
 interface Exception {
   id: number
   employee_id: number
-  employee_name: string
+  full_name: string // добавлено для совместимости с backend
   exception_date: string
   reason: string
   exception_type: string
-  created_at: string
+  created_at?: string
 }
 
 export default function ExceptionsPage() {
