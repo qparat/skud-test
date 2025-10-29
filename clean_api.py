@@ -646,7 +646,7 @@ async def delete_user(user_id: int, current_user: dict = Depends(require_role)):
 @app.post("/users/create")
 async def create_user_simple(
     user_data: UserCreate,
-    current_user: dict = Depends(require_role(2))
+    current_user: dict = Depends(require_role)
 ):
     try:
         conn = get_db_connection()
