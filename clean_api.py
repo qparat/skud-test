@@ -1,3 +1,4 @@
+sqlite_db_path = "real_skud_data.db"  # Путь к файлу SQLite
 import sqlite3
 from fastapi import FastAPI, HTTPException, Query, UploadFile, File, Depends, status, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -116,7 +117,6 @@ def create_employee_exceptions_table():
     """Создает таблицу исключений для сотрудников, если её нет"""
     try:
         conn = get_db_connection()
-        conn = ensure_db_type(conn)
         
         if hasattr(conn, 'db_type') and conn.db_type == "postgresql":
             # PostgreSQL синтаксис
@@ -167,7 +167,6 @@ def create_auth_tables():
     """Создает таблицы для системы авторизации"""
     try:
         conn = get_db_connection()
-        conn = ensure_db_type(conn)
         
         if hasattr(conn, 'db_type') and conn.db_type == "postgresql":
             # PostgreSQL синтаксис
@@ -280,7 +279,6 @@ def update_employees_table():
     """Добавляет колонку birth_date в таблицу employees, если её нет"""
     try:
         conn = get_db_connection()
-        conn = ensure_db_type(conn)
         
         # Проверяем, есть ли уже колонка birth_date
         if hasattr(conn, 'db_type') and conn.db_type == "postgresql":
@@ -385,7 +383,6 @@ def create_initial_admin():
     """Создает начального администратора, если пользователей нет"""
     try:
         conn = get_db_connection()
-        conn = ensure_db_type(conn)
         
         # Проверяем, есть ли уже пользователи
         count_result = execute_query(conn, "SELECT COUNT(*) as count FROM users", fetch_one=True)
@@ -474,28 +471,30 @@ def get_db_connection():
             conn = psycopg2.connect(**pg_config)
             conn.autocommit = True  # Для совместимости с SQLite
             # Добавляем атрибут для определения типа БД
-            conn.db_type = "postgresql"
-            # Принудительно вызываем ensure_db_type для гарантии
-            conn = ensure_db_type(conn)
-            print("✅ PostgreSQL подключение успешно")
-            return conn
-    except Exception as e:
-        print(f"⚠️ PostgreSQL недоступен, используем SQLite: {e}")
-    
-    # Fallback на SQLite
-    try:
-        conn = sqlite3.connect("real_skud_data.db")
-        conn.execute("PRAGMA encoding = 'UTF-8'")
-        conn.db_type = "sqlite"
-        # Принудительно вызываем ensure_db_type для гарантии
-        conn = ensure_db_type(conn)
-        print("✅ SQLite подключение успешно")
-        return conn
-    except Exception as e:
-        print(f"❌ Критическая ошибка SQLite: {e}")
-        raise
-
-def ensure_db_type(conn):
+            if db_type == "postgresql":
+                try:
+                    import psycopg2
+                    conn = psycopg2.connect(
+                        dbname=pg_config["dbname"],
+                        user=pg_config["user"],
+                        password=pg_config["password"],
+                        host=pg_config["host"],
+                        port=pg_config["port"]
+                    )
+                    conn.db_type = "postgresql"  # Явно добавляем атрибут
+                    return conn
+                except Exception as e:
+                    print(f"⚠️ PostgreSQL недоступен, используем SQLite: {e}")
+                    db_type = "sqlite"
+            if db_type == "sqlite":
+                try:
+                    import sqlite3
+                    conn = sqlite3.connect(sqlite_db_path)
+                    conn.db_type = "sqlite"  # Явно добавляем атрибут
+                    return conn
+                except Exception as e:
+                    print(f"❌ Критическая ошибка SQLite: {e}")
+                    return None
     """Убеждается, что у соединения есть атрибут db_type"""
     if not hasattr(conn, 'db_type'):
         # Определяем тип по модулю соединения
@@ -514,7 +513,7 @@ def ensure_db_type(conn):
 def execute_query(conn, query, params=None, fetch_one=False, fetch_all=False):
     """Универсальная функция для выполнения запросов с поддержкой разных БД"""
     # Убеждаемся, что у соединения есть db_type
-    conn = ensure_db_type(conn)
+    # conn = ensure_db_type(conn)  # Удалено, теперь db_type устанавливается сразу
     
     if hasattr(conn, 'db_type') and conn.db_type == "postgresql":
         # PostgreSQL - используем %s плейсхолдеры
