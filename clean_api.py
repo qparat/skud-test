@@ -616,7 +616,7 @@ async def update_user(user_id: int, updates: dict, current_user: dict = Depends(
         raise HTTPException(status_code=500, detail=f"Ошибка обновления пользователя: {str(e)}")
 
 @app.delete("/users/{user_id}")
-async def delete_user(user_id: int, current_user: dict = Depends(require_role(0))):
+async def delete_user(user_id: int, current_user: dict = Depends(require_role)):
     """Удаление пользователя (только для root)"""
     try:
         if user_id == current_user["id"]:
