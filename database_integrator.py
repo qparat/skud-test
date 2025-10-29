@@ -514,9 +514,12 @@ class SkudDatabaseIntegrator:
                 'success': False,
                 'error': 'Ошибка подключения к базе данных'
             }
-        
+
+        # Создаем таблицы, если их нет
+        self.create_test_tables()
+
         print(f"📂 Обработка файла: {file_path}")
-        
+
         # Загружаем конфигурацию
         config_path = "postgres_config.ini"  # Используем PostgreSQL конфигурацию
         config = create_real_skud_config(config_path)
