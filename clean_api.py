@@ -1717,10 +1717,10 @@ async def delete_employee_exception(exception_id: int):
         
         # Удаляем исключение
         cursor.execute("DELETE FROM employee_exceptions WHERE id = %s", (exception_id,))
-        
+
         conn.commit()
         conn.close()
-        
+
         return {
             "message": f"Исключение для {existing[1]} на {existing[2]} удалено",
             "exception_id": exception_id
