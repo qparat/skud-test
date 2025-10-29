@@ -104,7 +104,7 @@ def require_role(role: str = "admin"):
     return role_checker
 
 # --- ENDPOINTS ---
-@app.post("/api/register", response_model=UserResponse)
+@app.post("/register", response_model=UserResponse)
 def register(user: UserCreate):
     conn = get_db()
     try:
@@ -118,7 +118,7 @@ def register(user: UserCreate):
     finally:
         conn.close()
 
-@app.post("/api/login", response_model=Token)
+@app.post("/login", response_model=Token)
 def login(user: UserLogin):
     conn = get_db()
     db_user = conn.execute("SELECT * FROM users WHERE username = ? AND password = ?", (user.username, user.password)).fetchone()
@@ -128,18 +128,18 @@ def login(user: UserLogin):
     access_token = create_access_token(data={"sub": user.username})
     return {"access_token": access_token, "token_type": "bearer"}
 
-@app.get("/api/me", response_model=UserResponse)
+@app.get("/me", response_model=UserResponse)
 def get_me(user: dict = Depends(get_current_user)):
     return user
 
-@app.get("/api/users", response_model=List[UserResponse])
+@app.get("/users", response_model=List[UserResponse])
 def get_users(user: dict = Depends(require_role("admin"))):
     conn = get_db()
     users = conn.execute("SELECT * FROM users").fetchall()
     conn.close()
     return [dict(u) for u in users]
 
-@app.post("/api/users/create", response_model=UserResponse)
+@app.post("/users/create", response_model=UserResponse)
 def create_user(new_user: UserCreate, user: dict = Depends(require_role("admin"))):
     conn = get_db()
     try:
@@ -153,7 +153,7 @@ def create_user(new_user: UserCreate, user: dict = Depends(require_role("admin")
     finally:
         conn.close()
 
-@app.delete("/api/users/{user_id}")
+@app.delete("/users/{user_id}")
 def delete_user(user_id: int, user: dict = Depends(require_role("admin"))):
     conn = get_db()
     conn.execute("DELETE FROM users WHERE id = ?", (user_id,))
