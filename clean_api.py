@@ -1,3 +1,4 @@
+# Получить все исключения сотрудников
 
 # ...existing code...
 
@@ -1646,9 +1647,15 @@ async def create_employee_exception(exception: ExceptionCreate, current_user: di
     except HTTPException:
         raise
     except Exception as e:
-        if "UNIQUE constraint failed" in str(e):
+        # Обработка ошибки уникальности для SQLite и PostgreSQL
+        error_text = str(e)
+        if (
+            "UNIQUE constraint failed" in error_text or
+            "duplicate key value violates unique constraint" in error_text or
+            "employee_exceptions_employee_id_exception_date_key" in error_text
+        ):
             raise HTTPException(status_code=400, detail="Исключение для этого сотрудника на эту дату уже существует")
-        raise HTTPException(status_code=500, detail=f"Ошибка при создании исключения: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Ошибка при создании исключения: {error_text}")
 
 @app.put("/employee-exceptions/{exception_id}")
 async def update_employee_exception(exception_id: int, exception: ExceptionUpdate):
