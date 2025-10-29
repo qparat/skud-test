@@ -2549,6 +2549,8 @@ if __name__ == "__main__":
     # Создаем таблицы при запуске
     create_employee_exceptions_table()
     create_auth_tables()
+    update_employees_table()
+    create_initial_admin()
     
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8002, reload=True)
+    uvicorn.run(app, host="0.0.0.0", port=8003, reload=True)

@@ -1,29 +1,4 @@
-version: '3.8'
-
 services:
-  # PostgreSQL база данных
-  postgres:
-    image: postgres:15-alpine
-    container_name: skud-postgres
-    restart: unless-stopped
-    environment:
-      POSTGRES_DB: skud_db
-      POSTGRES_USER: skud_user
-      POSTGRES_PASSWORD: skud_password_2024
-      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./postgresql_init.sql:/docker-entrypoint-initdb.d/init.sql:ro
-    ports:
-      - "5432:5432"
-    networks:
-      - skud-network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U skud_user -d skud_db"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
   # Backend API сервис
   backend:
     build:
@@ -44,10 +19,6 @@ services:
       - ./uploads:/app/uploads
     environment:
       - PYTHONUNBUFFERED=1
-      - DATABASE_URL=postgresql://skud_user:skud_password_2024@postgres:5432/skud_db
-    depends_on:
-      postgres:
-        condition: service_healthy
     networks:
       - skud-network
 
@@ -93,8 +64,3 @@ services:
 networks:
   skud-network:
     driver: bridge
-
-# Постоянные тома для данных
-volumes:
-  postgres_data:
-    driver: local
