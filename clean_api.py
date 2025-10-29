@@ -365,10 +365,15 @@ def execute_query(conn, query, params=None, fetch_one=False, fetch_all=False):
     cursor.execute(query_pg, params or ())
     if fetch_one:
         result = cursor.fetchone()
-        return dict(result) if result else None
+        if result:
+            columns = [desc[0] for desc in cursor.description]
+            return dict(zip(columns, result))
+        else:
+            return None
     elif fetch_all:
         results = cursor.fetchall()
-        return [dict(row) for row in results]
+        columns = [desc[0] for desc in cursor.description]
+        return [dict(zip(columns, row)) for row in results]
     else:
         return cursor
 
