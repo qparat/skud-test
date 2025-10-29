@@ -118,41 +118,23 @@ def create_employee_exceptions_table():
         if not conn:
             print("Ошибка: не удалось получить соединение с БД")
             return False
-        if db_type == "postgresql":
-            execute_query(conn, """
-                CREATE TABLE IF NOT EXISTS employee_exceptions (
-                    id SERIAL PRIMARY KEY,
-                    employee_id INTEGER NOT NULL,
-                    exception_date DATE NOT NULL,
-                    reason TEXT NOT NULL,
-                    exception_type TEXT DEFAULT 'no_lateness_check',
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    created_by TEXT DEFAULT 'system',
-                    FOREIGN KEY (employee_id) REFERENCES employees (id),
-                    UNIQUE(employee_id, exception_date)
-                )
-            """, db_type=db_type)
-        elif db_type == "sqlite":
-            cursor = conn.cursor()
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS employee_exceptions (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    employee_id INTEGER NOT NULL,
-                    exception_date DATE NOT NULL,
-                    reason TEXT NOT NULL,
-                    exception_type TEXT DEFAULT 'no_lateness_check',
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    created_by TEXT DEFAULT 'system',
-                    FOREIGN KEY (employee_id) REFERENCES employees (id),
-                    UNIQUE(employee_id, exception_date)
-                )
-            """)
-            conn.commit()
-        # Создаем индекс для быстрого поиска
+        execute_query(conn, """
+            CREATE TABLE IF NOT EXISTS employee_exceptions (
+                id SERIAL PRIMARY KEY,
+                employee_id INTEGER NOT NULL,
+                exception_date DATE NOT NULL,
+                reason TEXT NOT NULL,
+                exception_type TEXT DEFAULT 'no_lateness_check',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                created_by TEXT DEFAULT 'system',
+                FOREIGN KEY (employee_id) REFERENCES employees (id),
+                UNIQUE(employee_id, exception_date)
+            )
+        """)
         execute_query(conn, """
             CREATE INDEX IF NOT EXISTS idx_employee_exceptions_date 
             ON employee_exceptions (employee_id, exception_date)
-        """, db_type=db_type)
+        """)
         conn.close()
         return True
     except Exception as e:
