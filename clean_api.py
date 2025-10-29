@@ -273,31 +273,22 @@ def create_initial_admin():
     """Создает начального администратора, если пользователей нет"""
     try:
         conn = get_db_connection()
-        
         # Проверяем, есть ли уже пользователи
-        count_result = execute_query(conn, "SELECT COUNT(*) as count FROM users", fetch_one=True)
-        user_count = count_result['count'] if count_result else 0
-        
+        cursor = conn.cursor()
+        cursor.execute("SELECT COUNT(*) as count FROM users")
+        result = cursor.fetchone()
+        user_count = result[0] if result else 0
         if user_count == 0:
             # Создаем root пользователя
             hashed_password = hash_password("admin123")
-            
-            if hasattr(conn, 'db_type') and conn.db_type == "postgresql":
-                execute_query(conn, """
-                    INSERT INTO users (username, email, full_name, password_hash, role, is_active, created_at)
-                    VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-                """, ("admin", "admin@skud.local", "Администратор", hashed_password, 0, True))
-            else:
-                execute_query(conn, """
-                    INSERT INTO users (username, email, full_name, password_hash, role, is_active, created_at)
-                    VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
-                """, ("admin", "admin@skud.local", "Администратор", hashed_password, 0, True))
-            
+            execute_query(conn, """
+                INSERT INTO users (username, email, full_name, password_hash, role, is_active, created_at)
+                VALUES (%s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
+            """, ("admin", "admin@skud.local", "Администратор", hashed_password, 0, True))
             print("Создан начальный администратор:")
             print("Логин: admin")
             print("Пароль: admin123")
             print("Роль: 0 (root)")
-        
         conn.close()
         return True
     except Exception as e:
