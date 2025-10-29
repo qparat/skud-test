@@ -178,7 +178,7 @@ export default function ExceptionsPage() {
   const fetchExceptions = async () => {
     try {
       const data = await apiRequest('employee-exceptions')
-      setExceptions(Array.isArray(data) ? data : [])
+      setExceptions(Array.isArray(data.exceptions) ? data.exceptions : [])
     } catch (error) {
       console.error('Ошибка при загрузке исключений:', error)
       setExceptions([]) // Устанавливаем пустой массив при ошибке
@@ -526,7 +526,7 @@ export default function ExceptionsPage() {
                       <div className="flex items-center">
                         <User className="h-4 w-4 text-gray-400 mr-2" />
                         <span className="text-sm font-medium text-gray-900">
-                          {exception.employee_name}
+                          {exception.full_name}
                         </span>
                       </div>
                     </td>
