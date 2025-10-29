@@ -6,8 +6,7 @@ services:
       dockerfile: Dockerfile.backend
     container_name: skud-backend
     restart: unless-stopped
-    expose:
-      - "8003"
+    network_mode: host
     volumes:
       # Монтируем базу данных SQLite для fallback
       - ./real_skud_data.db:/app/real_skud_data.db
@@ -19,8 +18,6 @@ services:
       - ./uploads:/app/uploads
     environment:
       - PYTHONUNBUFFERED=1
-    networks:
-      - skud-network
 
   # Frontend сервис
   frontend:
