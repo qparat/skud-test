@@ -470,28 +470,45 @@ def get_db_connection():
                 'password': config.get('DATABASE', 'password', fallback='password')
             }
             
+            # Попытка подключения к PostgreSQL
             conn = psycopg2.connect(**pg_config)
             conn.autocommit = True  # Для совместимости с SQLite
             # Добавляем атрибут для определения типа БД
             conn.db_type = "postgresql"
+            # Принудительно вызываем ensure_db_type для гарантии
+            conn = ensure_db_type(conn)
+            print("✅ PostgreSQL подключение успешно")
             return conn
     except Exception as e:
         print(f"⚠️ PostgreSQL недоступен, используем SQLite: {e}")
     
     # Fallback на SQLite
-    conn = sqlite3.connect("real_skud_data.db")
-    conn.execute("PRAGMA encoding = 'UTF-8'")
-    conn.db_type = "sqlite"
-    return conn
+    try:
+        conn = sqlite3.connect("real_skud_data.db")
+        conn.execute("PRAGMA encoding = 'UTF-8'")
+        conn.db_type = "sqlite"
+        # Принудительно вызываем ensure_db_type для гарантии
+        conn = ensure_db_type(conn)
+        print("✅ SQLite подключение успешно")
+        return conn
+    except Exception as e:
+        print(f"❌ Критическая ошибка SQLite: {e}")
+        raise
 
 def ensure_db_type(conn):
     """Убеждается, что у соединения есть атрибут db_type"""
     if not hasattr(conn, 'db_type'):
         # Определяем тип по модулю соединения
-        if 'psycopg2' in str(type(conn)):
+        conn_type_str = str(type(conn))
+        if 'psycopg2' in conn_type_str:
             conn.db_type = "postgresql"
+            print("🔧 Установлен db_type = postgresql для psycopg2 соединения")
         else:
             conn.db_type = "sqlite"
+            print("🔧 Установлен db_type = sqlite для sqlite3 соединения")
+    else:
+        print(f"✅ db_type уже установлен: {conn.db_type}")
+    
     return conn
 
 def execute_query(conn, query, params=None, fetch_one=False, fetch_all=False):
