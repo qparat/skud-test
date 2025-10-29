@@ -466,36 +466,28 @@ def get_db_connection():
                 'user': config.get('DATABASE', 'user', fallback='postgres'),
                 'password': config.get('DATABASE', 'password', fallback='password')
             }
-            
-            # Попытка подключения к PostgreSQL
-            conn = psycopg2.connect(**pg_config)
-            conn.autocommit = True  # Для совместимости с SQLite
-            # Добавляем атрибут для определения типа БД
-            if db_type == "postgresql":
-                try:
-                    import psycopg2
-                    conn = psycopg2.connect(
-                        dbname=pg_config["dbname"],
-                        user=pg_config["user"],
-                        password=pg_config["password"],
-                        host=pg_config["host"],
-                        port=pg_config["port"]
-                    )
-                    conn.db_type = "postgresql"  # Явно добавляем атрибут
-                    return conn
-                except Exception as e:
-                    print(f"⚠️ PostgreSQL недоступен, используем SQLite: {e}")
-                    db_type = "sqlite"
-            if db_type == "sqlite":
-                try:
-                    import sqlite3
-                    conn = sqlite3.connect(sqlite_db_path)
-                    conn.db_type = "sqlite"  # Явно добавляем атрибут
-                    return conn
-                except Exception as e:
-                    print(f"❌ Критическая ошибка SQLite: {e}")
-                    return None
-    # ...весь рабочий код уже внутри try/except выше...
+            try:
+                import psycopg2
+                conn = psycopg2.connect(
+                    dbname=pg_config["database"],
+                    user=pg_config["user"],
+                    password=pg_config["password"],
+                    host=pg_config["host"],
+                    port=pg_config["port"]
+                )
+                conn.autocommit = True
+                conn.db_type = "postgresql"
+                return conn
+            except Exception as e:
+                print(f"⚠️ PostgreSQL недоступен, используем SQLite: {e}")
+        try:
+            import sqlite3
+            conn = sqlite3.connect(sqlite_db_path)
+            conn.db_type = "sqlite"
+            return conn
+        except Exception as e:
+            print(f"❌ Критическая ошибка SQLite: {e}")
+            return None
 
 def execute_query(conn, query, params=None, fetch_one=False, fetch_all=False):
     """Универсальная функция для выполнения запросов с поддержкой разных БД"""
