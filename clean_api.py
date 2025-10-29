@@ -707,27 +707,38 @@ async def create_user_simple(
 
         return {
             "message": "Пользователь создан",
-            "user": {
-                "id": user_id,
-                "username": user_data.username,
-                "email": user_data.email,
-                "full_name": user_data.full_name,
-                "role": user_data.role,
-                "role_name": role_names.get(user_data.role, f"роль {user_data.role}"),
-                "is_active": True
-            }
-        }
-    except HTTPException:
-        raise
-    except Exception as e:
-        if 'conn' in locals():
-            conn.close()
-        raise HTTPException(status_code=500, detail=f"Ошибка создания пользователя: {str(e)}")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Ошибка создания пользователя: {str(e)}")
-
-@app.post("/logout")
-async def logout(credentials: HTTPAuthorizationCredentials = Depends(security)):
+            try:
+                conn = get_db_connection()
+                cursor = conn.cursor()
+                # Root видит всех, superadmin - только не-root пользователей
+                if current_user["role"] == 0:
+                    cursor.execute("""
+                        SELECT id, username, email, full_name, role, is_active, created_at
+                        FROM users
+                        ORDER BY id
+                    """)
+                else:
+                    cursor.execute("""
+                        SELECT id, username, email, full_name, role, is_active, created_at
+                        FROM users
+                        WHERE role != 0
+                        ORDER BY id
+                    """)
+                users = []
+                for row in cursor.fetchall():
+                    users.append({
+                        "id": row[0],
+                        "username": row[1],
+                        "email": row[2],
+                        "full_name": row[3],
+                        "role": row[4],
+                        "is_active": row[5],
+                        "created_at": row[6]
+                    })
+                conn.close()
+                return {"users": users}
+            except Exception as e:
+                raise HTTPException(status_code=500, detail=f"Ошибка получения пользователей: {str(e)}")
     """Выход из системы"""
     try:
         conn = get_db_connection()
