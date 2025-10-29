@@ -564,7 +564,7 @@ async def get_users(current_user: dict = Depends(require_role)):
         raise HTTPException(status_code=500, detail=f"Ошибка получения пользователей: {str(e)}")
 
 @app.put("/users/{user_id}")
-async def update_user(user_id: int, updates: dict, current_user: dict = Depends(require_role(2))):
+async def update_user(user_id: int, updates: dict, current_user: dict = Depends(require_role)):
     """Обновление пользователя (для superadmin и выше)"""
     try:
         conn = get_db_connection()
