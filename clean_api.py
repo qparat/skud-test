@@ -2065,17 +2065,17 @@ async def create_position(position: PositionCreate):
         cursor = conn.cursor()
         
         # Проверяем, что должность с таким именем не существует
-        cursor.execute("SELECT id FROM positions WHERE name = ?", (position.name,))
+        cursor.execute("SELECT id FROM positions WHERE name = %s", (position.name,))
         if cursor.fetchone():
             raise HTTPException(status_code=400, detail="Должность с таким названием уже существует")
-        
-        # Создаем новую должность
-        cursor.execute("INSERT INTO positions (name) VALUES (?)", (position.name,))
-        position_id = cursor.lastrowid
-        
+
+        # Создаем новую должность и получаем id
+        cursor.execute("INSERT INTO positions (name) VALUES (%s) RETURNING id", (position.name,))
+        position_id = cursor.fetchone()[0]
+
         conn.commit()
         conn.close()
-        
+
         return {
             "id": position_id,
             "name": position.name,
