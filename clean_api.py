@@ -517,7 +517,7 @@ async def get_me(current_user: dict = Depends(get_current_user)):
     )
 
 @app.get("/users")
-async def get_users(current_user: dict = Depends(require_role(2))):
+async def get_users(current_user: dict = Depends(require_role)):
     """Получение списка всех пользователей (для superadmin и выше)"""
     try:
         conn = get_db_connection()
