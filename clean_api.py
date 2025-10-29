@@ -496,41 +496,39 @@ def get_db_connection():
 
 def execute_query(conn, query, params=None, fetch_one=False, fetch_all=False):
     """Универсальная функция для выполнения запросов с поддержкой разных БД"""
-    # Убеждаемся, что у соединения есть db_type
-    # conn = ensure_db_type(conn)  # Удалено, теперь db_type устанавливается сразу
-
-    if hasattr(conn, 'db_type') and conn.db_type == "postgresql":
-        # PostgreSQL - используем %s плейсхолдеры
-        query_pg = query.replace('?', '%s')
-        cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-        cursor.execute(query_pg, params or ())
-
-        if fetch_one:
-            result = cursor.fetchone()
-            return dict(result) if result else None
-        elif fetch_all:
-            results = cursor.fetchall()
-            return [dict(row) for row in results]
+    # Теперь db_type передается отдельно
+    def _execute(conn, query, params, fetch_one, fetch_all, db_type):
+        if db_type == "postgresql":
+            query_pg = query.replace('?', '%s')
+            cursor = conn.cursor()
+            cursor.execute(query_pg, params or ())
+            if fetch_one:
+                result = cursor.fetchone()
+                return dict(result) if result else None
+            elif fetch_all:
+                results = cursor.fetchall()
+                return [dict(row) for row in results]
+            else:
+                return cursor
+        elif db_type == "sqlite":
+            cursor = conn.cursor()
+            cursor.execute(query, params or ())
+            if fetch_one:
+                result = cursor.fetchone()
+                if result:
+                    columns = [desc[0] for desc in cursor.description]
+                    return dict(zip(columns, result))
+                return None
+            elif fetch_all:
+                results = cursor.fetchall()
+                columns = [desc[0] for desc in cursor.description] if cursor.description else []
+                return [dict(zip(columns, row)) for row in results]
+            else:
+                return cursor
         else:
-            return cursor
-    else:
-        # SQLite
-        cursor = conn.cursor()
-        cursor.execute(query, params or ())
-
-        if fetch_one:
-            result = cursor.fetchone()
-            if result:
-                columns = [desc[0] for desc in cursor.description]
-                return dict(zip(columns, result))
             return None
-        elif fetch_all:
-            results = cursor.fetchall()
-            # Преобразуем в словари для совместимости
-            columns = [desc[0] for desc in cursor.description] if cursor.description else []
-            return [dict(zip(columns, row)) for row in results]
-        else:
-            return cursor
+    # Вызов внутренней функции
+    return _execute(conn, query, params, fetch_one, fetch_all, getattr(conn, 'db_type', None))
 
 # CORS middleware
 app.add_middleware(
