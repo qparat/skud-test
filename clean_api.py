@@ -228,17 +228,6 @@ def generate_simple_token():
         print(f"Ошибка генерации токена: {e}")
         return None
 
-                # Удаляем ветку SQLite, оставляем только PostgreSQL
-
-def generate_simple_token():
-    """Генерирует простой токен для авторизации"""
-    try:
-        token = secrets.token_urlsafe(32)
-        return token
-    except Exception as e:
-        print(f"Ошибка генерации токена: {e}")
-        return None
-
 def verify_token(token: str) -> Optional[dict]:
     """Проверяет токен и возвращает данные пользователя"""
     try:
@@ -377,13 +366,6 @@ def require_role(min_role: int = 3):
     except Exception as e:
         print(f"Ошибка создания таблиц авторизации: {e}")
         return False
-
-        return None
-    except Exception as e:
-        print(f"❌ Ошибка при попытке подключения к базе данных PostgreSQL: {e}")
-        return None
-
-    # (Удалено ошибочное вложенное объявление execute_query)
 
 def execute_query(conn, query, params=None, fetch_one=False, fetch_all=False):
     """Выполняет запросы только для PostgreSQL"""
