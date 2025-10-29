@@ -38,6 +38,13 @@ import sys
 import hashlib
 import secrets
 from functools import wraps
+def hash_password(password: str) -> str:
+    """Хеширует пароль с помощью SHA-256"""
+    return hashlib.sha256(password.encode()).hexdigest()
+
+def verify_password(password: str, hashed: str) -> bool:
+    """Проверяет пароль, сравнивая хеш"""
+    return hash_password(password) == hashed
 import psycopg2
 import psycopg2.extras
 import configparser
@@ -174,122 +181,55 @@ def create_auth_tables():
     """Создает таблицы для системы авторизации"""
     try:
         conn = get_db_connection()
-        
-        if hasattr(conn, 'db_type') and conn.db_type == "postgresql":
-            # PostgreSQL синтаксис
-            execute_query(conn, """
-                CREATE TABLE IF NOT EXISTS users (
-                    id SERIAL PRIMARY KEY,
-                    username VARCHAR(50) UNIQUE NOT NULL,
-                    email VARCHAR(100) UNIQUE NOT NULL,
-                    password_hash VARCHAR(255) NOT NULL,
-                    full_name VARCHAR(100),
-                    role INTEGER DEFAULT 3,
-                    is_active BOOLEAN DEFAULT TRUE,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    last_login TIMESTAMP,
-                    created_by INTEGER,
-                    FOREIGN KEY (created_by) REFERENCES users (id)
-                )
-            """)
+        # Только PostgreSQL
+        execute_query(conn, """
+            CREATE TABLE IF NOT EXISTS users (
+                id SERIAL PRIMARY KEY,
+                username VARCHAR(50) UNIQUE NOT NULL,
+                email VARCHAR(100) UNIQUE NOT NULL,
+                password_hash VARCHAR(255) NOT NULL,
+                full_name VARCHAR(100),
+                role INTEGER DEFAULT 3,
+                is_active BOOLEAN DEFAULT TRUE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                last_login TIMESTAMP,
+                created_by INTEGER,
+                FOREIGN KEY (created_by) REFERENCES users (id)
+            )
+        """)
 
-            execute_query(conn, """
-                CREATE TABLE IF NOT EXISTS roles (
-                    id SERIAL PRIMARY KEY,
-                    name VARCHAR(50) UNIQUE NOT NULL,
-                    description TEXT,
-                    permissions TEXT
-                )
-            """)
+        execute_query(conn, """
+            CREATE TABLE IF NOT EXISTS roles (
+                id SERIAL PRIMARY KEY,
+                name VARCHAR(50) UNIQUE NOT NULL,
+                description TEXT,
+                permissions TEXT
+            )
+        """)
 
-            execute_query(conn, """
-                CREATE TABLE IF NOT EXISTS user_sessions (
-                    id SERIAL PRIMARY KEY,
-                    user_id INTEGER NOT NULL,
-                    token_hash TEXT NOT NULL,
-                    expires_at TIMESTAMP NOT NULL,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    FOREIGN KEY (user_id) REFERENCES users (id)
-                )
-            """)
-        else:
-            # SQLite синтаксис
-            cursor = conn.cursor()
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS users (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    username TEXT UNIQUE NOT NULL,
-                    email TEXT UNIQUE NOT NULL,
-                    password_hash TEXT NOT NULL,
-                    full_name TEXT,
-                    role INTEGER DEFAULT 3,
-                    is_active BOOLEAN DEFAULT 1,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    last_login TIMESTAMP,
-                    created_by INTEGER,
-                    FOREIGN KEY (created_by) REFERENCES users (id)
-                )
-            """)
-            
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS roles (
-                    id INTEGER PRIMARY KEY,
-                    name TEXT UNIQUE NOT NULL,
-                    description TEXT,
-                    permissions TEXT
-                )
-            """)
-            
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS user_sessions (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    user_id INTEGER NOT NULL,
-                    token_hash TEXT NOT NULL,
-                    expires_at TIMESTAMP NOT NULL,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    FOREIGN KEY (user_id) REFERENCES users (id)
-                )
-            """)
-            try:
-                from . import get_db_connection, execute_query
-                conn = get_db_connection()
-                # PostgreSQL синтаксис
-                execute_query(conn, """
-                    CREATE TABLE IF NOT EXISTS users (
-                        id SERIAL PRIMARY KEY,
-                        username VARCHAR(50) UNIQUE NOT NULL,
-                        email VARCHAR(100) UNIQUE NOT NULL,
-                        password_hash VARCHAR(255) NOT NULL,
-                        full_name VARCHAR(100),
-                        role INTEGER DEFAULT 3,
-                        is_active BOOLEAN DEFAULT TRUE,
-                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        last_login TIMESTAMP,
-                        created_by INTEGER,
-                        FOREIGN KEY (created_by) REFERENCES users (id)
-                    )
-                """)
+        execute_query(conn, """
+            CREATE TABLE IF NOT EXISTS user_sessions (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER NOT NULL,
+                token_hash TEXT NOT NULL,
+                expires_at TIMESTAMP NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users (id)
+            )
+        """)
+    except Exception as e:
+        print(f"Ошибка создания таблиц авторизации: {e}")
+def generate_simple_token():
+    """Генерирует простой токен для авторизации"""
+    try:
+        token = secrets.token_urlsafe(32)
+        return token
+    except Exception as e:
+        print(f"Ошибка генерации токена: {e}")
+        return None
 
-                execute_query(conn, """
-                    CREATE TABLE IF NOT EXISTS roles (
-                        id SERIAL PRIMARY KEY,
-                        name VARCHAR(50) UNIQUE NOT NULL,
-                        description TEXT,
-                        permissions TEXT
-                    )
-                """)
-
-                execute_query(conn, """
-                    CREATE TABLE IF NOT EXISTS user_sessions (
-                        id SERIAL PRIMARY KEY,
-                        user_id INTEGER NOT NULL,
-                        token_hash TEXT NOT NULL,
-                        expires_at TIMESTAMP NOT NULL,
-                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        FOREIGN KEY (user_id) REFERENCES users (id)
-                    )
-                """)
                 # Удаляем ветку SQLite, оставляем только PostgreSQL
+
 def generate_simple_token():
     """Генерирует простой токен для авторизации"""
     try:
@@ -437,7 +377,8 @@ def require_role(min_role: int = 3):
     except Exception as e:
         print(f"Ошибка создания таблиц авторизации: {e}")
         return False
-            return None
+
+        return None
     except Exception as e:
         print(f"❌ Ошибка при попытке подключения к базе данных PostgreSQL: {e}")
         return None
@@ -473,7 +414,7 @@ async def startup_event():
     """Инициализация при запуске приложения"""
     create_employee_exceptions_table()
     create_auth_tables()
-    update_employees_table()
+    # update_employees_table()  # Функция не определена, убрано для предотвращения ошибки
     create_initial_admin()
 
 # ================================
@@ -1166,7 +1107,7 @@ async def get_employee_history(
         avg_arrival_time = None
         avg_departure_time = None
         if all_entries:
-            # ...existing code...
+            try:
                 times = [datetime.strptime(t, '%H:%M:%S') for t in all_entries]
                 avg_seconds = sum(t.hour * 3600 + t.minute * 60 + t.second for t in times) / len(times)
                 avg_arrival_time = f"{int(avg_seconds // 3600):02d}:{int((avg_seconds % 3600) // 60):02d}"
