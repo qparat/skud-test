@@ -147,7 +147,7 @@ class ExceptionRangeCreate(BaseModel):
 def create_employee_exceptions_table():
     """Создает таблицу исключений для сотрудников, если её нет"""
     try:
-        conn, db_type = get_db_connection()
+        conn = get_db_connection()
         if not conn:
             print("Ошибка: не удалось получить соединение с БД")
             return False
