@@ -249,7 +249,7 @@ def verify_token(token: str) -> Optional[dict]:
                 SELECT u.id, u.username, u.email, u.full_name, u.role, u.is_active
                 FROM users u
                 JOIN user_sessions s ON u.id = s.user_id
-                WHERE s.token_hash = %s AND s.expires_at > datetime('now')
+                WHERE s.token_hash = %s AND s.expires_at > NOW()
             """
         
         user_data = execute_query(conn, query, (token_hash,), fetch_one=True)
@@ -470,7 +470,7 @@ async def login(user_login: UserLogin):
         
         # Обновляем время последнего входа
         cursor.execute("""
-            UPDATE users SET last_login = datetime('now') WHERE id = %s
+            UPDATE users SET last_login = NOW() WHERE id = %s
         """, (user_data[0],))
         
         conn.commit()
