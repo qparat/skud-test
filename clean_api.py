@@ -552,6 +552,8 @@ async def get_me(current_user: dict = Depends(get_current_user)):
 @app.get("/users")
 async def get_users(current_user: dict = Depends(require_role)):
     """Получение списка всех пользователей (для superadmin и выше)"""
+    if not isinstance(current_user, dict):
+        raise HTTPException(status_code=401, detail="Неавторизовано")
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -2044,6 +2046,8 @@ async def update_department(department_id: int, department: DepartmentUpdate):
         cursor.execute("SELECT id FROM departments WHERE id = %s", (department_id,))
         if not cursor.fetchone():
             raise HTTPException(status_code=404, detail="Отдел не найден")
+
+       
 
         # Проверяем уникальность нового имени
         cursor.execute("SELECT id FROM departments WHERE name = %s AND id != %s", (department.name, department_id))
