@@ -489,7 +489,6 @@ def get_db_connection():
             print(f"❌ Критическая ошибка SQLite: {e}")
             return None
 
-def execute_query(conn, query, params=None, fetch_one=False, fetch_all=False):
 
 def execute_query(conn, query, params=None, fetch_one=False, fetch_all=False):
     """Универсальная функция для выполнения запросов с поддержкой разных БД"""
