@@ -1,3 +1,30 @@
+def get_db_connection():
+    """Создает соединение с PostgreSQL"""
+    import psycopg2
+    import psycopg2.extras
+    import configparser
+    config = configparser.ConfigParser()
+    config.read('real_skud_config.ini')
+    db_params = {
+        'host': config.get('postgres', 'host', fallback='localhost'),
+        'port': config.get('postgres', 'port', fallback='5432'),
+        'user': config.get('postgres', 'user', fallback='postgres'),
+        'password': config.get('postgres', 'password', fallback='postgres'),
+        'dbname': config.get('postgres', 'dbname', fallback='skud')
+    }
+    conn = psycopg2.connect(**db_params)
+    conn.autocommit = True
+    return conn
+
+def get_employee_status(is_late, first_entry, exception_info):
+    """Простая функция статуса сотрудника для отчёта"""
+    if exception_info and exception_info.get('has_exception'):
+        return 'Исключение'
+    if not first_entry:
+        return 'Нет данных'
+    if is_late:
+        return 'Опоздание'
+    return 'Вовремя'
 from fastapi import FastAPI, HTTPException, Query, UploadFile, File, Depends, status, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -163,21 +190,21 @@ def create_auth_tables():
                     FOREIGN KEY (created_by) REFERENCES users (id)
                 )
             """)
-            
+
             execute_query(conn, """
                 CREATE TABLE IF NOT EXISTS roles (
-                    id INTEGER PRIMARY KEY,
+                    id SERIAL PRIMARY KEY,
                     name VARCHAR(50) UNIQUE NOT NULL,
                     description TEXT,
                     permissions TEXT
                 )
             """)
-            
+
             execute_query(conn, """
                 CREATE TABLE IF NOT EXISTS user_sessions (
                     id SERIAL PRIMARY KEY,
                     user_id INTEGER NOT NULL,
-                    token_hash VARCHAR(255) NOT NULL,
+                    token_hash TEXT NOT NULL,
                     expires_at TIMESTAMP NOT NULL,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     FOREIGN KEY (user_id) REFERENCES users (id)
@@ -221,47 +248,45 @@ def create_auth_tables():
                     FOREIGN KEY (user_id) REFERENCES users (id)
                 )
             """)
-            conn.commit()
-        
-        # Вставляем базовые роли (универсально)
-        try:
-            execute_query(conn, """
-                INSERT INTO roles (id, name, description, permissions) VALUES
-                (0, 'root', 'Суперпользователь с полными правами', 'all')
-                ON CONFLICT (id) DO NOTHING
-            """)
-        except:
-            # Fallback для SQLite
-            cursor = conn.cursor()
-            cursor.execute("""
-                INSERT OR IGNORE INTO roles (id, name, description, permissions) VALUES
-                (0, 'root', 'Суперпользователь с полными правами', 'all'),
-                (2, 'superadmin', 'Администратор с расширенными правами', 'read,write,delete,manage_users'),
-                (3, 'user', 'Обычный пользователь с ограниченными правами', 'read')
-            """)
-            conn.commit()
-        
-        # Создаем индексы
-        execute_query(conn, "CREATE INDEX IF NOT EXISTS idx_users_username ON users (username)")
-        execute_query(conn, "CREATE INDEX IF NOT EXISTS idx_users_email ON users (email)")
-        execute_query(conn, "CREATE INDEX IF NOT EXISTS idx_sessions_token ON user_sessions (token_hash)")
-        execute_query(conn, "CREATE INDEX IF NOT EXISTS idx_sessions_expires ON user_sessions (expires_at)")
-        
-        conn.close()
-        return True
-    except Exception as e:
-        print(f"Ошибка создания таблиц авторизации: {e}")
-        return False
+            try:
+                from . import get_db_connection, execute_query
+                conn = get_db_connection()
+                # PostgreSQL синтаксис
+                execute_query(conn, """
+                    CREATE TABLE IF NOT EXISTS users (
+                        id SERIAL PRIMARY KEY,
+                        username VARCHAR(50) UNIQUE NOT NULL,
+                        email VARCHAR(100) UNIQUE NOT NULL,
+                        password_hash VARCHAR(255) NOT NULL,
+                        full_name VARCHAR(100),
+                        role INTEGER DEFAULT 3,
+                        is_active BOOLEAN DEFAULT TRUE,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        last_login TIMESTAMP,
+                        created_by INTEGER,
+                        FOREIGN KEY (created_by) REFERENCES users (id)
+                    )
+                """)
 
-def update_employees_table():
-    """Добавляет колонку birth_date в таблицу employees, если её нет"""
-    try:
-        conn = get_db_connection()
-        
-        # Проверяем, есть ли уже колонка birth_date
-        if hasattr(conn, 'db_type') and conn.db_type == "postgresql":
-            # PostgreSQL - проверяем через information_schema
-            check_column = execute_query(
+                execute_query(conn, """
+                    CREATE TABLE IF NOT EXISTS roles (
+                        id SERIAL PRIMARY KEY,
+                        name VARCHAR(50) UNIQUE NOT NULL,
+                        description TEXT,
+                        permissions TEXT
+                    )
+                """)
+
+                execute_query(conn, """
+                    CREATE TABLE IF NOT EXISTS user_sessions (
+                        id SERIAL PRIMARY KEY,
+                        user_id INTEGER NOT NULL,
+                        token_hash TEXT NOT NULL,
+                        expires_at TIMESTAMP NOT NULL,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (user_id) REFERENCES users (id)
+                    )
+                """)
                 conn,
                 """
                 SELECT column_name 
@@ -269,43 +294,7 @@ def update_employees_table():
                 WHERE table_name = ? AND column_name = ?
                 """,
                 ('employees', 'birth_date'),
-                fetch_one=True
-            )
-            
-            if not check_column:
-                # Добавляем колонку birth_date в PostgreSQL
-                execute_query(conn, "ALTER TABLE employees ADD COLUMN birth_date DATE")
-                print("✅ Добавлена колонка birth_date в таблицу employees (PostgreSQL)")
-        else:
-            # SQLite - используем PRAGMA
-            cursor = conn.cursor()
-            cursor.execute("PRAGMA table_info(employees)")
-            columns = [column[1] for column in cursor.fetchall()]
-            
-            if 'birth_date' not in columns:
-                # Добавляем колонку birth_date
-                cursor.execute("ALTER TABLE employees ADD COLUMN birth_date DATE")
-                conn.commit()
-                print("✅ Добавлена колонка birth_date в таблицу employees (SQLite)")
-        
-        conn.close()
-        return True
-    except Exception as e:
-        print(f"Ошибка обновления таблицы employees: {e}")
-        return False
-
-# Функции для работы с паролями и токенами
-def hash_password(password: str) -> str:
-    """Хеширует пароль"""
-    return hashlib.sha256(password.encode()).hexdigest()
-
-def verify_password(password: str, hashed_password: str) -> bool:
-    """Проверяет пароль"""
-    return hash_password(password) == hashed_password
-
-def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
-    """Создает JWT токен"""
-    to_encode = data.copy()
+                # Удаляем ветку SQLite, оставляем только PostgreSQL
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
     else:
@@ -412,48 +401,48 @@ def require_role(min_role: int = 3):
                 detail="Insufficient permissions"
             )
         return user
-    return decorator
-
-def get_employee_status(is_late, first_entry, exception_info):
-    """Определяет статус сотрудника с учетом исключений"""
-    if exception_info and exception_info.get('has_exception'):
-        if is_late:
-            return f"Опоздал (исключение: {exception_info['reason']})"
-        else:
-            return f"В норме (исключение: {exception_info['reason']})"
-    else:
-        if is_late:
-            return "Опоздал"
-        elif first_entry:
-            return "В норме"
-        else:
-            return "Отсутствовал"
-
-def get_db_connection():
-    """Создает подключение только к базе данных PostgreSQL"""
     try:
-        config = configparser.ConfigParser()
-        config.read('postgres_config.ini', encoding='utf-8')
-        if config.has_section('DATABASE'):
-            pg_config = {
-                'host': config.get('DATABASE', 'host', fallback='localhost'),
-                'port': config.getint('DATABASE', 'port', fallback=5432),
-                'database': config.get('DATABASE', 'database', fallback='skud_db'),
-                'user': config.get('DATABASE', 'user', fallback='postgres'),
-                'password': config.get('DATABASE', 'password', fallback='password')
-            }
-            import psycopg2
-            conn = psycopg2.connect(
-                dbname=pg_config["database"],
-                user=pg_config["user"],
-                password=pg_config["password"],
-                host=pg_config["host"],
-                port=pg_config["port"]
+        conn = get_db_connection()
+        # PostgreSQL синтаксис
+        execute_query(conn, """
+            CREATE TABLE IF NOT EXISTS users (
+                id SERIAL PRIMARY KEY,
+                username VARCHAR(50) UNIQUE NOT NULL,
+                email VARCHAR(100) UNIQUE NOT NULL,
+                password_hash VARCHAR(255) NOT NULL,
+                full_name VARCHAR(100),
+                role INTEGER DEFAULT 3,
+                is_active BOOLEAN DEFAULT TRUE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                last_login TIMESTAMP,
+                created_by INTEGER,
+                FOREIGN KEY (created_by) REFERENCES users (id)
             )
-            conn.autocommit = True
-            return conn
-        else:
-            print("❌ Не найдена секция DATABASE в postgres_config.ini")
+        """)
+
+        execute_query(conn, """
+            CREATE TABLE IF NOT EXISTS roles (
+                id SERIAL PRIMARY KEY,
+                name VARCHAR(50) UNIQUE NOT NULL,
+                description TEXT,
+                permissions TEXT
+            )
+        """)
+
+        execute_query(conn, """
+            CREATE TABLE IF NOT EXISTS user_sessions (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER NOT NULL,
+                token_hash TEXT NOT NULL,
+                expires_at TIMESTAMP NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users (id)
+            )
+        """)
+        return True
+    except Exception as e:
+        print(f"Ошибка создания таблиц авторизации: {e}")
+        return False
             return None
     except Exception as e:
         print(f"❌ Ошибка при попытке подключения к базе данных PostgreSQL: {e}")
@@ -2465,29 +2454,21 @@ async def upload_skud_file(file: UploadFile = File(..., description="СКУД ф
                 return {
                     "success": True,
                     "message": f"Файл '{file.filename}' успешно обработан",
-                    "stats": {
-                        "processed_lines": result.get('processed_lines', 0),
-                        "new_employees": result.get('new_employees', 0),
-                        "new_access_records": result.get('new_access_records', 0)
-                    }
-                }
-            else:
-                raise HTTPException(status_code=400, detail=f"Ошибка обработки файла: {result.get('error', 'Неизвестная ошибка')}")
-                
-        finally:
-            # Удаляем временный файл
-            if os.path.exists(temp_file_path):
-                os.unlink(temp_file_path)
-                
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Ошибка загрузки файла: {str(e)}")
-
-if __name__ == "__main__":
-    # Создаем таблицы при запуске
-    create_employee_exceptions_table()
-    create_auth_tables()
-    update_employees_table()
-    create_initial_admin()
-    
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8003, reload=True)
+                    try:
+                        conn = get_db_connection()
+                        # PostgreSQL: проверяем столбцы через information_schema
+                        check_column = execute_query(
+                            conn,
+                            """
+                            SELECT column_name FROM information_schema.columns
+                            WHERE table_name='employees' AND column_name='birth_date'
+                            """,
+                            fetch_one=True
+                        )
+                        if not check_column:
+                            execute_query(conn, "ALTER TABLE employees ADD COLUMN birth_date DATE")
+                        conn.close()
+                        return True
+                    except Exception as e:
+                        print(f"Ошибка обновления таблицы employees: {e}")
+                        return False
