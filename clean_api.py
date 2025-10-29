@@ -450,7 +450,7 @@ async def login(user_login: UserLogin):
         # Ищем пользователя
         cursor.execute("""
             SELECT id, username, email, password_hash, full_name, role, is_active
-            FROM users WHERE username = %s AND is_active = 1
+            FROM users WHERE username = %s AND is_active = TRUE
         """, (user_login.username,))
         
         user_data = cursor.fetchone()
@@ -1248,7 +1248,7 @@ async def get_unassigned_employees():
             FROM employees e
             LEFT JOIN positions p ON e.position_id = p.id
             LEFT JOIN departments d ON e.department_id = d.id
-            WHERE e.is_active = 1
+            WHERE e.is_active = TRUE
             ORDER BY e.full_name
         """)
         
@@ -1358,7 +1358,7 @@ async def get_department_by_id(department_id: int):
         cursor.execute("""
             SELECT d.id, d.name, COUNT(e.id) as employee_count
             FROM departments d
-            LEFT JOIN employees e ON d.id = e.department_id AND e.is_active = 1
+            LEFT JOIN employees e ON d.id = e.department_id AND e.is_active = TRUE
             WHERE d.id = ?
             GROUP BY d.id, d.name
         """, (department_id,))
@@ -1391,7 +1391,7 @@ async def get_all_positions():
         cursor.execute("""
             SELECT p.id, p.name, COUNT(e.id) as employee_count
             FROM positions p
-            LEFT JOIN employees e ON p.id = e.position_id AND e.is_active = 1
+            LEFT JOIN employees e ON p.id = e.position_id AND e.is_active = TRUE
             GROUP BY p.id, p.name
             ORDER BY p.name
         """)
@@ -1420,7 +1420,7 @@ async def get_position_by_id(position_id: int):
         cursor.execute("""
             SELECT p.id, p.name, COUNT(e.id) as employee_count
             FROM positions p
-            LEFT JOIN employees e ON p.id = e.position_id AND e.is_active = 1
+            LEFT JOIN employees e ON p.id = e.position_id AND e.is_active = TRUE
             WHERE p.id = ?
             GROUP BY p.id, p.name
         """, (position_id,))
@@ -1461,7 +1461,7 @@ async def get_employees_by_department(department_id: int):
             SELECT e.id, e.full_name, p.name as position_name
             FROM employees e
             LEFT JOIN positions p ON e.position_id = p.id
-            WHERE e.department_id = ? AND e.is_active = 1
+            WHERE e.department_id = %s AND e.is_active = TRUE
             ORDER BY e.full_name
         """, (department_id,))
         
@@ -1832,7 +1832,7 @@ async def get_department_positions(department_id: int):
             SELECT p.id, p.name, COUNT(e.id) as employee_count
             FROM department_positions dp
             LEFT JOIN positions p ON dp.position_id = p.id
-            LEFT JOIN employees e ON p.id = e.position_id AND e.department_id = ? AND e.is_active = 1
+            LEFT JOIN employees e ON p.id = e.position_id AND e.department_id = %s AND e.is_active = TRUE
             WHERE dp.department_id = ?
             GROUP BY p.id, p.name
             ORDER BY p.name
@@ -1875,7 +1875,7 @@ async def get_position_departments(position_id: int):
             SELECT d.id, d.name, COUNT(e.id) as employee_count
             FROM department_positions dp
             LEFT JOIN departments d ON dp.department_id = d.id
-            LEFT JOIN employees e ON d.id = e.department_id AND e.position_id = ? AND e.is_active = 1
+            LEFT JOIN employees e ON d.id = e.department_id AND e.position_id = %s AND e.is_active = TRUE
             WHERE dp.position_id = ?
             GROUP BY d.id, d.name
             ORDER BY d.name
@@ -1914,7 +1914,7 @@ async def get_all_department_positions():
             FROM department_positions dp
             LEFT JOIN departments d ON dp.department_id = d.id
             LEFT JOIN positions p ON dp.position_id = p.id
-            LEFT JOIN employees e ON d.id = e.department_id AND p.id = e.position_id AND e.is_active = 1
+            LEFT JOIN employees e ON d.id = e.department_id AND p.id = e.position_id AND e.is_active = TRUE
             GROUP BY d.id, d.name, p.id, p.name
             ORDER BY d.name, p.name
         """)
@@ -1958,7 +1958,7 @@ async def get_department_positions(department_id: int):
                    COUNT(e.id) as employee_count
             FROM department_positions dp
             LEFT JOIN positions p ON dp.position_id = p.id
-            LEFT JOIN employees e ON p.id = e.position_id AND e.department_id = ? AND e.is_active = 1
+            LEFT JOIN employees e ON p.id = e.position_id AND e.department_id = %s AND e.is_active = TRUE
             WHERE dp.department_id = ?
             GROUP BY dp.department_id, dp.position_id, p.id, p.name
             ORDER BY p.name
@@ -2050,33 +2050,32 @@ async def delete_department(department_id: int):
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        
+
         # Проверяем, что отдел существует
-        cursor.execute("SELECT name FROM departments WHERE id = ?", (department_id,))
+        cursor.execute("SELECT name FROM departments WHERE id = %s", (department_id,))
         dept_result = cursor.fetchone()
         if not dept_result:
             raise HTTPException(status_code=404, detail="Отдел не найден")
-        
+
         # Проверяем, есть ли сотрудники в этом отделе
-        cursor.execute("SELECT COUNT(*) FROM employees WHERE department_id = ? AND is_active = 1", (department_id,))
+        cursor.execute("SELECT COUNT(*) FROM employees WHERE department_id = %s AND is_active = TRUE", (department_id,))
         employee_count = cursor.fetchone()[0]
-        
+
         if employee_count > 0:
             raise HTTPException(status_code=400, detail=f"Нельзя удалить отдел с {employee_count} активными сотрудниками")
-        
+
         # Удаляем связи отдел-должность
-        cursor.execute("DELETE FROM department_positions WHERE department_id = ?", (department_id,))
-        
+        cursor.execute("DELETE FROM department_positions WHERE department_id = %s", (department_id,))
+
         # Удаляем отдел
-        cursor.execute("DELETE FROM departments WHERE id = ?", (department_id,))
-        
+        cursor.execute("DELETE FROM departments WHERE id = %s", (department_id,))
+
         conn.commit()
         conn.close()
-        
+
         return {
             "message": f"Отдел '{dept_result[0]}' успешно удален"
         }
-        
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка удаления отдела: {str(e)}")
 
@@ -2147,33 +2146,32 @@ async def delete_position(position_id: int):
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        
+
         # Проверяем, что должность существует
-        cursor.execute("SELECT name FROM positions WHERE id = ?", (position_id,))
+        cursor.execute("SELECT name FROM positions WHERE id = %s", (position_id,))
         pos_result = cursor.fetchone()
         if not pos_result:
             raise HTTPException(status_code=404, detail="Должность не найдена")
-        
+
         # Проверяем, есть ли сотрудники с этой должностью
-        cursor.execute("SELECT COUNT(*) FROM employees WHERE position_id = ? AND is_active = 1", (position_id,))
+        cursor.execute("SELECT COUNT(*) FROM employees WHERE position_id = %s AND is_active = TRUE", (position_id,))
         employee_count = cursor.fetchone()[0]
-        
+
         if employee_count > 0:
             raise HTTPException(status_code=400, detail=f"Нельзя удалить должность с {employee_count} активными сотрудниками")
-        
+
         # Удаляем связи отдел-должность
-        cursor.execute("DELETE FROM department_positions WHERE position_id = ?", (position_id,))
-        
+        cursor.execute("DELETE FROM department_positions WHERE position_id = %s", (position_id,))
+
         # Удаляем должность
-        cursor.execute("DELETE FROM positions WHERE id = ?", (position_id,))
-        
+        cursor.execute("DELETE FROM positions WHERE id = %s", (position_id,))
+
         conn.commit()
         conn.close()
-        
+
         return {
             "message": f"Должность '{pos_result[0]}' успешно удалена"
         }
-        
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка удаления должности: {str(e)}")
 
@@ -2239,7 +2237,7 @@ async def delete_department_position_link(department_id: int, position_id: int):
         # Проверяем, есть ли сотрудники с такой комбинацией отдел-должность
         cursor.execute("""
             SELECT COUNT(*) FROM employees 
-            WHERE department_id = ? AND position_id = ? AND is_active = 1
+            WHERE department_id = %s AND position_id = %s AND is_active = TRUE
         """, (department_id, position_id))
         
         employee_count = cursor.fetchone()[0]
