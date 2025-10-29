@@ -10,7 +10,7 @@ def get_db_connection():
         'port': config.get('DATABASE', 'port', fallback='5432'),
         'user': config.get('DATABASE', 'user', fallback='postgres'),
         'password': config.get('DATABASE', 'password', fallback='postgres'),
-        'dbname': config.get('DATABASE', 'dbname', fallback='skud')
+        'dbname': config.get('DATABASE', 'database', fallback='skud_db')
     }
     conn = psycopg2.connect(**db_params)
     conn.autocommit = True
