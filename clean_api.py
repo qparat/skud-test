@@ -242,14 +242,14 @@ def verify_token(token: str) -> Optional[dict]:
                 SELECT u.id, u.username, u.email, u.full_name, u.role, u.is_active
                 FROM users u
                 JOIN user_sessions s ON u.id = s.user_id
-                WHERE s.token_hash = ? AND s.expires_at > NOW()
+                WHERE s.token_hash = %s AND s.expires_at > NOW()
             """
         else:
             query = """
                 SELECT u.id, u.username, u.email, u.full_name, u.role, u.is_active
                 FROM users u
                 JOIN user_sessions s ON u.id = s.user_id
-                WHERE s.token_hash = ? AND s.expires_at > datetime('now')
+                WHERE s.token_hash = %s AND s.expires_at > datetime('now')
             """
         
         user_data = execute_query(conn, query, (token_hash,), fetch_one=True)
@@ -400,31 +400,30 @@ async def register(user: UserCreate, current_user: dict = Depends(require_role))
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        
+
         # Проверяем, существует ли пользователь
-        cursor.execute("SELECT id FROM users WHERE username = ? OR email = ?", 
-                      (user.username, user.email))
+        cursor.execute("SELECT id FROM users WHERE username = %s OR email = %s", (user.username, user.email))
         if cursor.fetchone():
             raise HTTPException(status_code=400, detail="Пользователь уже существует")
-        
+
         # Хешируем пароль
         password_hash = hash_password(user.password)
-        
+
         # Создаем пользователя
         cursor.execute("""
             INSERT INTO users (username, email, password_hash, full_name, role)
-            VALUES (?, ?, ?, ?, ?)
+            VALUES (%s, %s, %s, %s, %s)
         """, (user.username, user.email, password_hash, user.full_name, user.role))
-        
+
         user_id = cursor.lastrowid
         conn.commit()
-        
+
         # Получаем созданного пользователя
         cursor.execute("""
             SELECT id, username, email, full_name, role, is_active, created_at
-            FROM users WHERE id = ?
+            FROM users WHERE id = %s
         """, (user_id,))
-        
+
         user_data = cursor.fetchone()
         conn.close()
         
@@ -451,7 +450,7 @@ async def login(user_login: UserLogin):
         # Ищем пользователя
         cursor.execute("""
             SELECT id, username, email, password_hash, full_name, role, is_active
-            FROM users WHERE username = ? AND is_active = 1
+            FROM users WHERE username = %s AND is_active = 1
         """, (user_login.username,))
         
         user_data = cursor.fetchone()
@@ -466,12 +465,12 @@ async def login(user_login: UserLogin):
         # Сохраняем сессию
         cursor.execute("""
             INSERT INTO user_sessions (user_id, token_hash, expires_at)
-            VALUES (?, ?, ?)
+            VALUES (%s, %s, %s)
         """, (user_data[0], token_hash, expires_at))
         
         # Обновляем время последнего входа
         cursor.execute("""
-            UPDATE users SET last_login = datetime('now') WHERE id = ?
+            UPDATE users SET last_login = datetime('now') WHERE id = %s
         """, (user_data[0],))
         
         conn.commit()
@@ -560,25 +559,25 @@ async def update_user(user_id: int, updates: dict, current_user: dict = Depends(
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        
+
         # Проверяем существование пользователя
-        cursor.execute("SELECT id, role FROM users WHERE id = ?", (user_id,))
+        cursor.execute("SELECT id, role FROM users WHERE id = %s", (user_id,))
         target_user = cursor.fetchone()
         if not target_user:
             raise HTTPException(status_code=404, detail="Пользователь не найден")
-        
+
         # Запрещаем обычным superadmin изменять root пользователей
         if current_user["role"] > 0 and target_user[1] == 0:
             raise HTTPException(status_code=403, detail="Недостаточно прав для изменения root пользователя")
-        
+
         # Создаем запрос обновления
         update_fields = []
         update_values = []
-        
+
         allowed_fields = ["username", "email", "full_name", "role", "is_active"]
         for field in allowed_fields:
             if field in updates:
-                update_fields.append(f"{field} = ?")
+                update_fields.append(f"{field} = %s")
                 update_values.append(updates[field])
         
         if not update_fields:
@@ -586,14 +585,14 @@ async def update_user(user_id: int, updates: dict, current_user: dict = Depends(
         
         # Обновляем пароль отдельно, если передан
         if "password" in updates:
-            update_fields.append("password_hash = ?")
+            update_fields.append("password_hash = %s")
             update_values.append(hash_password(updates["password"]))
         
         update_values.append(user_id)
         
         cursor.execute(f"""
             UPDATE users SET {', '.join(update_fields)}
-            WHERE id = ?
+            WHERE id = %s
         """, update_values)
         
         conn.commit()
@@ -612,23 +611,22 @@ async def delete_user(user_id: int, current_user: dict = Depends(require_role)):
     try:
         if user_id == current_user["id"]:
             raise HTTPException(status_code=400, detail="Нельзя удалить самого себя")
-        
+
         conn = get_db_connection()
         cursor = conn.cursor()
-        
+
         # Проверяем существование пользователя
-        cursor.execute("SELECT id FROM users WHERE id = ?", (user_id,))
+        cursor.execute("SELECT id FROM users WHERE id = %s", (user_id,))
         if not cursor.fetchone():
             raise HTTPException(status_code=404, detail="Пользователь не найден")
-        
+
         # Удаляем пользователя
-        cursor.execute("DELETE FROM users WHERE id = ?", (user_id,))
-        
+        cursor.execute("DELETE FROM users WHERE id = %s", (user_id,))
+
         conn.commit()
         conn.close()
-        
+
         return {"message": "Пользователь удален"}
-        
     except HTTPException:
         raise
     except Exception as e:
