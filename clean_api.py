@@ -6,11 +6,11 @@ def get_db_connection():
     config = configparser.ConfigParser()
     config.read('real_skud_config.ini')
     db_params = {
-        'host': config.get('postgres', 'host', fallback='localhost'),
-        'port': config.get('postgres', 'port', fallback='5432'),
-        'user': config.get('postgres', 'user', fallback='postgres'),
-        'password': config.get('postgres', 'password', fallback='postgres'),
-        'dbname': config.get('postgres', 'dbname', fallback='skud')
+        'host': config.get('DATABASE', 'host', fallback='localhost'),
+        'port': config.get('DATABASE', 'port', fallback='5432'),
+        'user': config.get('DATABASE', 'user', fallback='postgres'),
+        'password': config.get('DATABASE', 'password', fallback='postgres'),
+        'dbname': config.get('DATABASE', 'dbname', fallback='skud')
     }
     conn = psycopg2.connect(**db_params)
     conn.autocommit = True
