@@ -1967,25 +1967,25 @@ async def create_department(department: DepartmentCreate):
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        
+
         # Проверяем, что отдел с таким именем не существует
         cursor.execute("SELECT id FROM departments WHERE name = %s", (department.name,))
         if cursor.fetchone():
             raise HTTPException(status_code=400, detail="Отдел с таким названием уже существует")
-        
-        # Создаем новый отдел
-        cursor.execute("INSERT INTO departments (name) VALUES (?)", (department.name,))
-        department_id = cursor.lastrowid
-        
+
+        # Создаем новый отдел и получаем id
+        cursor.execute("INSERT INTO departments (name) VALUES (%s) RETURNING id", (department.name,))
+        department_id = cursor.fetchone()[0]
+
         conn.commit()
         conn.close()
-        
+
         return {
             "id": department_id,
             "name": department.name,
             "message": "Отдел успешно создан"
         }
-        
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка создания отдела: {str(e)}")
 
