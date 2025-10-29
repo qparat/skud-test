@@ -144,6 +144,9 @@ def create_employee_exceptions_table():
         if not conn:
             print("Ошибка: не удалось получить соединение с БД")
             return False
+    except Exception as e:
+        print(f"Ошибка создания таблицы исключений: {e}")
+        return False
         execute_query(conn, """
             CREATE TABLE IF NOT EXISTS employee_exceptions (
                 id SERIAL PRIMARY KEY,
@@ -294,15 +297,13 @@ def create_auth_tables():
                 """,
                 ('employees', 'birth_date'),
                 # Удаляем ветку SQLite, оставляем только PostgreSQL
-    if expires_delta:
-        expire = datetime.utcnow() + expires_delta
-    else:
-        expire = datetime.utcnow() + timedelta(minutes=15)
-    to_encode.update({"exp": expire})
-    
-    # Используем простое кодирование вместо JWT для упрощения
-    token = secrets.token_urlsafe(32)
-    return token
+    # Генерация простого токена
+    try:
+        token = secrets.token_urlsafe(32)
+        return token
+    except Exception as e:
+        print(f"Ошибка генерации токена: {e}")
+        return None
 
 def verify_token(token: str) -> Optional[dict]:
     """Проверяет токен и возвращает данные пользователя"""
@@ -729,16 +730,7 @@ async def delete_user(user_id: int, current_user: dict = Depends(require_role(0)
 async def create_user_simple(
     user_data: UserCreate,
     current_user: dict = Depends(require_role(2))
-):
-    """Упрощенное создание пользователя"""
-    try:
-        # Запрещаем создавать root пользователей обычным superadmin
-        if current_user["role"] > 0 and user_data.role == 0:
-            raise HTTPException(status_code=403, detail="Недостаточно прав для создания root пользователя")
-        
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
+            # ...existing code...
         # Проверяем, существует ли пользователь
         cursor.execute("SELECT id FROM users WHERE username = ? OR email = ?", 
                       (user_data.username, user_data.email))
@@ -1173,7 +1165,7 @@ async def get_employee_history(
         avg_arrival_time = None
         avg_departure_time = None
         if all_entries:
-            try:
+            # ...existing code...
                 times = [datetime.strptime(t, '%H:%M:%S') for t in all_entries]
                 avg_seconds = sum(t.hour * 3600 + t.minute * 60 + t.second for t in times) / len(times)
                 avg_arrival_time = f"{int(avg_seconds // 3600):02d}:{int((avg_seconds % 3600) // 60):02d}"
