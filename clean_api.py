@@ -1494,47 +1494,46 @@ async def update_employee_department(employee_id: int, request_data: dict):
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        
+
         new_department_id = request_data.get('department_id')
         new_position_id = request_data.get('position_id', None)
-        
+
         # Проверяем существование сотрудника
-        cursor.execute("SELECT id, full_name FROM employees WHERE id = ?", (employee_id,))
+        cursor.execute("SELECT id, full_name FROM employees WHERE id = %s", (employee_id,))
         employee = cursor.fetchone()
         if not employee:
             raise HTTPException(status_code=404, detail="Сотрудник не найден")
-            
+
         # Проверяем существование службы (если указана)
         if new_department_id is not None:
-            cursor.execute("SELECT id, name FROM departments WHERE id = ?", (new_department_id,))
+            cursor.execute("SELECT id, name FROM departments WHERE id = %s", (new_department_id,))
             department = cursor.fetchone()
             if not department:
                 raise HTTPException(status_code=404, detail="Служба не найдена")
-            
+
         # Если указана должность, проверяем что она существует
         if new_position_id:
-            cursor.execute("SELECT id, name FROM positions WHERE id = ?", (new_position_id,))
+            cursor.execute("SELECT id, name FROM positions WHERE id = %s", (new_position_id,))
             position = cursor.fetchone()
             if not position:
                 raise HTTPException(status_code=404, detail="Должность не найдена")
-        
+
         # Обновляем данные сотрудника
         cursor.execute("""
             UPDATE employees 
-            SET department_id = ?, position_id = ?
-            WHERE id = ?
+            SET department_id = %s, position_id = %s
+            WHERE id = %s
         """, (new_department_id, new_position_id, employee_id))
-        
+
         conn.commit()
         conn.close()
-        
+
         return {
             "message": f"Сотрудник {employee[1]} переведен в службу {department[1]}",
             "employee_id": employee_id,
             "department_id": new_department_id,
             "position_id": new_position_id
         }
-        
     except HTTPException:
         raise
     except Exception as e:
@@ -1546,67 +1545,41 @@ async def update_employee_position(employee_id: int, request_data: dict):
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        
+
         new_position_id = request_data.get('position_id')
-        
+
         # Проверяем существование сотрудника
-        cursor.execute("SELECT id, full_name FROM employees WHERE id = ?", (employee_id,))
+        cursor.execute("SELECT id, full_name FROM employees WHERE id = %s", (employee_id,))
         employee = cursor.fetchone()
         if not employee:
             raise HTTPException(status_code=404, detail="Сотрудник не найден")
-            
+
         # Проверяем существование должности (если указана)
         if new_position_id is not None:
-            cursor.execute("SELECT id, name FROM positions WHERE id = ?", (new_position_id,))
+            cursor.execute("SELECT id, name FROM positions WHERE id = %s", (new_position_id,))
             position = cursor.fetchone()
             if not position:
                 raise HTTPException(status_code=404, detail="Должность не найдена")
-        
+
         # Обновляем должность сотрудника
         cursor.execute("""
             UPDATE employees 
-            SET position_id = ?
-            WHERE id = ?
+            SET position_id = %s
+            WHERE id = %s
         """, (new_position_id, employee_id))
-        
+
         conn.commit()
         conn.close()
-        
-        position_name = position[1] if new_position_id and position else "не указана"
-        
+
         return {
-            "message": f"Должность сотрудника {employee[1]} изменена на '{position_name}'",
+            "message": f"Должность сотрудника {employee[1]} обновлена на {position[1] if new_position_id is not None else None}",
             "employee_id": employee_id,
             "position_id": new_position_id
         }
-        
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка при обновлении должности: {str(e)}")
-
-# ======================= ИСКЛЮЧЕНИЯ СОТРУДНИКОВ =======================
-
-@app.get("/employee-exceptions")
-async def get_employee_exceptions(employee_id: Optional[int] = Query(None), 
-                                exception_date: Optional[str] = Query(None)):
-    """Получение исключений для сотрудников"""
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        query = """
-            SELECT ee.id, ee.employee_id, e.full_name, ee.exception_date, 
-                   ee.reason, ee.exception_type, ee.created_at
-            FROM employee_exceptions ee
-            JOIN employees e ON ee.employee_id = e.id
-            WHERE 1=1
-        """
-        params = []
-        
-        if employee_id:
-            query += " AND ee.employee_id = ?"
-            params.append(employee_id)
             
         if exception_date:
             query += " AND ee.exception_date = ?"
@@ -1640,29 +1613,28 @@ async def create_employee_exception(exception: ExceptionCreate, current_user: di
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        
+
         # Проверяем существование сотрудника
-        cursor.execute("SELECT full_name FROM employees WHERE id = ?", (exception.employee_id,))
+        cursor.execute("SELECT full_name FROM employees WHERE id = %s", (exception.employee_id,))
         employee = cursor.fetchone()
         if not employee:
             raise HTTPException(status_code=404, detail="Сотрудник не найден")
-        
+
         # Создаем исключение
         cursor.execute("""
             INSERT INTO employee_exceptions (employee_id, exception_date, reason, exception_type)
-            VALUES (?, ?, ?, ?)
+            VALUES (%s, %s, %s, %s)
         """, (exception.employee_id, exception.exception_date, exception.reason, exception.exception_type))
-        
+
         exception_id = cursor.lastrowid
         conn.commit()
         conn.close()
-        
+
         return {
             "message": f"Исключение для {employee[0]} на {exception.exception_date} создано",
             "exception_id": exception_id,
             "employee_name": employee[0]
         }
-        
     except HTTPException:
         raise
     except Exception as e:
@@ -1766,7 +1738,7 @@ async def create_employee_exception_range(exception_range: ExceptionRangeCreate)
         cursor = conn.cursor()
         
         # Проверяем существование сотрудника
-        cursor.execute("SELECT full_name FROM employees WHERE id = ?", (exception_range.employee_id,))
+        cursor.execute("SELECT full_name FROM employees WHERE id = %s", (exception_range.employee_id,))
         employee = cursor.fetchone()
         if not employee:
             raise HTTPException(status_code=404, detail="Сотрудник не найден")
