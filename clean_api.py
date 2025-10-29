@@ -1204,7 +1204,7 @@ async def get_employees_simple():
         raise HTTPException(status_code=500, detail=f"Ошибка получения списка сотрудников: {str(e)}")
 
 @app.put("/employees/{employee_id}")
-async def update_employee(employee_id: int, updates: dict, current_user: dict = Depends(require_role(2))):
+async def update_employee(employee_id: int, updates: dict, current_user: dict = Depends(require_role)):
     """Обновление данных сотрудника (для superadmin и выше)"""
     try:
         conn = get_db_connection()
@@ -1641,7 +1641,7 @@ async def get_employee_exceptions(employee_id: Optional[int] = Query(None),
         raise HTTPException(status_code=500, detail=f"Ошибка при получении исключений: {str(e)}")
 
 @app.post("/employee-exceptions")
-async def create_employee_exception(exception: ExceptionCreate, current_user: dict = Depends(require_role(2))):
+async def create_employee_exception(exception: ExceptionCreate, current_user: dict = Depends(require_role)):
     """Создание нового исключения для сотрудника"""
     try:
         conn = get_db_connection()
