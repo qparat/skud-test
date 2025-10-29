@@ -1,6 +1,165 @@
 # Получить все исключения сотрудников
 
 # ...existing code...
+from fastapi import FastAPI, Depends, HTTPException, status, Request
+from fastapi.security import OAuth2PasswordBearer
+from pydantic import BaseModel
+import jwt
+import datetime
+import sqlite3
+from typing import List, Optional
+
+app = FastAPI()
+
+# --- DATABASE SETUP ---
+def get_db():
+    conn = sqlite3.connect('skud.db')
+    conn.row_factory = sqlite3.Row
+    return conn
+
+def create_auth_tables():
+    conn = get_db()
+    c = conn.cursor()
+    c.execute('''CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT UNIQUE NOT NULL,
+        password TEXT NOT NULL,
+        full_name TEXT,
+        role TEXT
+    )''')
+    c.execute('''CREATE TABLE IF NOT EXISTS roles (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT UNIQUE NOT NULL
+    )''')
+    c.execute('''CREATE TABLE IF NOT EXISTS user_sessions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER,
+        token TEXT,
+        expires_at DATETIME,
+        FOREIGN KEY(user_id) REFERENCES users(id)
+    )''')
+    conn.commit()
+    conn.close()
+
+create_auth_tables()
+
+# --- MODELS ---
+class UserCreate(BaseModel):
+    username: str
+    password: str
+    full_name: Optional[str] = None
+    role: Optional[str] = "user"
+
+class UserLogin(BaseModel):
+    username: str
+    password: str
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+class UserResponse(BaseModel):
+    id: int
+    username: str
+    full_name: Optional[str]
+    role: Optional[str]
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+SECRET_KEY = "supersecretkey"
+ALGORITHM = "HS256"
+
+# --- AUTH HELPERS ---
+def create_access_token(data: dict, expires_delta: Optional[datetime.timedelta] = None):
+    to_encode = data.copy()
+    if expires_delta:
+        expire = datetime.datetime.utcnow() + expires_delta
+    else:
+        expire = datetime.datetime.utcnow() + datetime.timedelta(hours=1)
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
+
+def get_current_user(token: str = Depends(oauth2_scheme)):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username = payload.get("sub")
+        if username is None:
+            raise HTTPException(status_code=401, detail="Invalid token")
+        conn = get_db()
+        user = conn.execute("SELECT * FROM users WHERE username = ?", (username,)).fetchone()
+        conn.close()
+        if user is None:
+            raise HTTPException(status_code=401, detail="User not found")
+        return dict(user)
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token expired")
+    except Exception:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+def require_role(role: str = "admin"):
+    def role_checker(user: dict = Depends(get_current_user)):
+        if user.get("role") != role:
+            raise HTTPException(status_code=403, detail="Insufficient permissions")
+        return user
+    return role_checker
+
+# --- ENDPOINTS ---
+@app.post("/register", response_model=UserResponse)
+def register(user: UserCreate):
+    conn = get_db()
+    try:
+        conn.execute("INSERT INTO users (username, password, full_name, role) VALUES (?, ?, ?, ?)",
+                     (user.username, user.password, user.full_name, user.role))
+        conn.commit()
+        db_user = conn.execute("SELECT * FROM users WHERE username = ?", (user.username,)).fetchone()
+        return dict(db_user)
+    except sqlite3.IntegrityError:
+        raise HTTPException(status_code=400, detail="Username already exists")
+    finally:
+        conn.close()
+
+@app.post("/login", response_model=Token)
+def login(user: UserLogin):
+    conn = get_db()
+    db_user = conn.execute("SELECT * FROM users WHERE username = ? AND password = ?", (user.username, user.password)).fetchone()
+    conn.close()
+    if not db_user:
+        raise HTTPException(status_code=401, detail="Incorrect username or password")
+    access_token = create_access_token(data={"sub": user.username})
+    return {"access_token": access_token, "token_type": "bearer"}
+
+@app.get("/me", response_model=UserResponse)
+def get_me(user: dict = Depends(get_current_user)):
+    return user
+
+@app.get("/users", response_model=List[UserResponse])
+def get_users(user: dict = Depends(require_role("admin"))):
+    conn = get_db()
+    users = conn.execute("SELECT * FROM users").fetchall()
+    conn.close()
+    return [dict(u) for u in users]
+
+@app.post("/users/create", response_model=UserResponse)
+def create_user(new_user: UserCreate, user: dict = Depends(require_role("admin"))):
+    conn = get_db()
+    try:
+        conn.execute("INSERT INTO users (username, password, full_name, role) VALUES (?, ?, ?, ?)",
+                     (new_user.username, new_user.password, new_user.full_name, new_user.role))
+        conn.commit()
+        db_user = conn.execute("SELECT * FROM users WHERE username = ?", (new_user.username,)).fetchone()
+        return dict(db_user)
+    except sqlite3.IntegrityError:
+        raise HTTPException(status_code=400, detail="Username already exists")
+    finally:
+        conn.close()
+
+@app.delete("/users/{user_id}")
+def delete_user(user_id: int, user: dict = Depends(require_role("admin"))):
+    conn = get_db()
+    conn.execute("DELETE FROM users WHERE id = ?", (user_id,))
+    conn.commit()
+    conn.close()
+    return {"detail": "User deleted"}
 
 # Добавляю GET-эндпоинт /employee-exceptions после создания app
 
@@ -353,204 +512,10 @@ def require_role(min_role: int = 3):
                 detail="Insufficient permissions"
             )
         return user
-    try:
-        conn = get_db_connection()
-        # PostgreSQL синтаксис
-        execute_query(conn, """
-            CREATE TABLE IF NOT EXISTS users (
-                id SERIAL PRIMARY KEY,
-                username VARCHAR(50) UNIQUE NOT NULL,
-                email VARCHAR(100) UNIQUE NOT NULL,
-                password_hash VARCHAR(255) NOT NULL,
-                full_name VARCHAR(100),
-                role INTEGER DEFAULT 3,
-                is_active BOOLEAN DEFAULT TRUE,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                last_login TIMESTAMP,
-                created_by INTEGER,
-                FOREIGN KEY (created_by) REFERENCES users (id)
-            )
-        """)
-
-        execute_query(conn, """
-            CREATE TABLE IF NOT EXISTS roles (
-                id SERIAL PRIMARY KEY,
-                name VARCHAR(50) UNIQUE NOT NULL,
-                description TEXT,
-                permissions TEXT
-            )
-        """)
-
-        execute_query(conn, """
-            CREATE TABLE IF NOT EXISTS user_sessions (
-                id SERIAL PRIMARY KEY,
-                user_id INTEGER NOT NULL,
-                token_hash TEXT NOT NULL,
-                expires_at TIMESTAMP NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (user_id) REFERENCES users (id)
-            )
-        """)
-        return True
-    except Exception as e:
-        print(f"Ошибка создания таблиц авторизации: {e}")
-        return False
-
-def execute_query(conn, query, params=None, fetch_one=False, fetch_all=False):
-    """Выполняет запросы только для PostgreSQL"""
-    query_pg = query.replace('?', '%s')
-    cursor = conn.cursor()
-    cursor.execute(query_pg, params or ())
-    if fetch_one:
-        result = cursor.fetchone()
-        if result:
-            columns = [desc[0] for desc in cursor.description]
-            return dict(zip(columns, result))
-        else:
-            return None
-    elif fetch_all:
-        results = cursor.fetchall()
-        columns = [desc[0] for desc in cursor.description]
-        return [dict(zip(columns, row)) for row in results]
-    else:
-        return cursor
-
-# CORS middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# Инициализация таблиц при запуске
-@app.on_event("startup")
-async def startup_event():
-    """Инициализация при запуске приложения"""
-    create_employee_exceptions_table()
-    create_auth_tables()
-    # update_employees_table()  # Функция не определена, убрано для предотвращения ошибки
-    create_initial_admin()
-
-# ================================
-# АУТЕНТИФИКАЦИЯ И АВТОРИЗАЦИЯ
-# ================================
-
-@app.post("/register", response_model=UserResponse)
-async def register(user: UserCreate, current_user: dict = Depends(require_role)):
-    """Регистрация нового пользователя (только для root)"""
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-
-        # Проверяем, существует ли пользователь
-        cursor.execute("SELECT id FROM users WHERE username = %s OR email = %s", (user.username, user.email))
-        if cursor.fetchone():
-            raise HTTPException(status_code=400, detail="Пользователь уже существует")
-
-        # Хешируем пароль
-        password_hash = hash_password(user.password)
-
-        # Создаем пользователя
-        cursor.execute("""
-            INSERT INTO users (username, email, password_hash, full_name, role)
-            VALUES (%s, %s, %s, %s, %s)
-        """, (user.username, user.email, password_hash, user.full_name, user.role))
-
-        user_id = cursor.lastrowid
-        conn.commit()
-
-        # Получаем созданного пользователя
-        cursor.execute("""
-            SELECT id, username, email, full_name, role, is_active, created_at
-            FROM users WHERE id = %s
-        """, (user_id,))
-
-        user_data = cursor.fetchone()
-        conn.close()
-        
-        return UserResponse(
-            id=user_data[0],
-            username=user_data[1],
-            email=user_data[2],
-            full_name=user_data[3],
-            role=user_data[4],
-            is_active=user_data[5],
-            created_at=user_data[6]
-        )
-        
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Ошибка регистрации: {str(e)}")
-
-@app.post("/login", response_model=Token)
-async def login(user_login: UserLogin):
-    """Вход в систему"""
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        # Ищем пользователя
-        cursor.execute("""
-            SELECT id, username, email, password_hash, full_name, role, is_active
-            FROM users WHERE username = %s AND is_active = TRUE
-        """, (user_login.username,))
-        
-        user_data = cursor.fetchone()
-        if not user_data or not verify_password(user_login.password, user_data[3]):
-            raise HTTPException(status_code=401, detail="Неверные учетные данные")
-        
-        # Создаем токен
-        token = secrets.token_urlsafe(32)
-        token_hash = hashlib.sha256(token.encode()).hexdigest()
-        expires_at = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-        
-        # Сохраняем сессию
-        cursor.execute("""
-            INSERT INTO user_sessions (user_id, token_hash, expires_at)
-            VALUES (%s, %s, %s)
-        """, (user_data[0], token_hash, expires_at))
-        
-        # Обновляем время последнего входа
-        cursor.execute("""
-            UPDATE users SET last_login = NOW() WHERE id = %s
-        """, (user_data[0],))
-        
-        conn.commit()
-        conn.close()
-        
-        return Token(
-            access_token=token,
-            token_type="bearer",
-            user={
-                "id": user_data[0],
-                "username": user_data[1],
-                "email": user_data[2],
-                "full_name": user_data[4],
-                "role": user_data[5]
-            }
-        )
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Ошибка входа: {str(e)}")
-
-@app.get("/me", response_model=UserResponse)
-async def get_me(current_user: dict = Depends(get_current_user)):
-    """Получение информации о текущем пользователе"""
-    return UserResponse(
-        id=current_user["id"],
-        username=current_user["username"],
-        email=current_user["email"],
-        full_name=current_user["full_name"],
-        role=current_user["role"],
-        is_active=current_user["is_active"],
-        created_at=""
-    )
+    return decorator
 
 @app.get("/users")
-async def get_users(current_user: dict = Depends(require_role)):
+async def get_users(current_user: dict = Depends(require_role())):
     """Получение списка всех пользователей (для superadmin и выше)"""
     try:
         conn = get_db_connection()
