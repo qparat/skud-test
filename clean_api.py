@@ -297,7 +297,8 @@ def create_auth_tables():
                 """,
                 ('employees', 'birth_date'),
                 # Удаляем ветку SQLite, оставляем только PostgreSQL
-    # Генерация простого токена
+def generate_simple_token():
+    """Генерирует простой токен для авторизации"""
     try:
         token = secrets.token_urlsafe(32)
         return token
@@ -730,28 +731,32 @@ async def delete_user(user_id: int, current_user: dict = Depends(require_role(0)
 async def create_user_simple(
     user_data: UserCreate,
     current_user: dict = Depends(require_role(2))
-            # ...existing code...
+):
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
         # Проверяем, существует ли пользователь
-        cursor.execute("SELECT id FROM users WHERE username = ? OR email = ?", 
-                      (user_data.username, user_data.email))
+        cursor.execute("SELECT id FROM users WHERE username = %s OR email = %s", (user_data.username, user_data.email))
         if cursor.fetchone():
+            conn.close()
             raise HTTPException(status_code=400, detail="Пользователь с таким именем или email уже существует")
-        
+
         # Хешируем пароль
         password_hash = hash_password(user_data.password)
-        
+
         # Создаем пользователя
         cursor.execute("""
             INSERT INTO users (username, email, password_hash, full_name, role, is_active, created_at, created_by)
-            VALUES (?, ?, ?, ?, ?, ?, datetime('now'), ?)
+            VALUES (%s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, %s)
         """, (user_data.username, user_data.email, password_hash, user_data.full_name, user_data.role, True, current_user["id"]))
-        
-        user_id = cursor.lastrowid
+
+        cursor.execute("SELECT id FROM users WHERE username = %s", (user_data.username,))
+        user_id = cursor.fetchone()[0]
         conn.commit()
         conn.close()
-        
+
         role_names = {0: "root", 2: "superadmin", 3: "user"}
-        
+
         return {
             "message": "Пользователь создан",
             "user": {
@@ -764,9 +769,12 @@ async def create_user_simple(
                 "is_active": True
             }
         }
-        
     except HTTPException:
         raise
+    except Exception as e:
+        if 'conn' in locals():
+            conn.close()
+        raise HTTPException(status_code=500, detail=f"Ошибка создания пользователя: {str(e)}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка создания пользователя: {str(e)}")
 
