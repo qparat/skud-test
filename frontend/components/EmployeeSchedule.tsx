@@ -495,6 +495,7 @@ export function EmployeeSchedule() {
       const sortedDates = Object.keys(grouped).sort()
       let rowIndex = 1
       sortedDates.forEach(date => {
+        // Первая строка — только дата
         excelData.push({
           '№': '',
           'ФИО': date,
@@ -505,6 +506,7 @@ export function EmployeeSchedule() {
           'Опоздание (мин)': '',
           'Исключение': ''
         })
+        // Данные сотрудников за эту дату (без столбца 'Дата')
         grouped[date].forEach(emp => {
           excelData.push({
             '№': rowIndex++,
@@ -517,6 +519,7 @@ export function EmployeeSchedule() {
             'Исключение': emp.exception?.has_exception ? emp.exception.reason : '-'
           })
         })
+        // Пустая строка после данных за дату
         excelData.push({
           '№': '',
           'ФИО': '',
@@ -529,7 +532,7 @@ export function EmployeeSchedule() {
         })
       })
     } else {
-      // Обычный экспорт для одной даты
+      // Обычный экспорт для одной даты — без строки с датой, без столбца 'Дата', без пустых строк
       excelData = (sortedData as Employee[]).map((employee, index) => ({
         '№': index + 1,
         'ФИО': employee.full_name,
