@@ -23,8 +23,6 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
-      # Монтируем базу данных SQLite для fallback
-      - ./real_skud_data.db:/app/real_skud_data.db
       # Монтируем конфигурации
       - ./real_skud_config.ini:/app/real_skud_config.ini
       - ./postgres_config.ini:/app/postgres_config.ini
