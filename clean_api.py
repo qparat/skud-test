@@ -495,20 +495,7 @@ def get_db_connection():
                 except Exception as e:
                     print(f"❌ Критическая ошибка SQLite: {e}")
                     return None
-    """Убеждается, что у соединения есть атрибут db_type"""
-    if not hasattr(conn, 'db_type'):
-        # Определяем тип по модулю соединения
-        conn_type_str = str(type(conn))
-        if 'psycopg2' in conn_type_str:
-            conn.db_type = "postgresql"
-            print("🔧 Установлен db_type = postgresql для psycopg2 соединения")
-        else:
-            conn.db_type = "sqlite"
-            print("🔧 Установлен db_type = sqlite для sqlite3 соединения")
-    else:
-        print(f"✅ db_type уже установлен: {conn.db_type}")
-    
-    return conn
+    # ...весь рабочий код уже внутри try/except выше...
 
 def execute_query(conn, query, params=None, fetch_one=False, fetch_all=False):
     """Универсальная функция для выполнения запросов с поддержкой разных БД"""
