@@ -988,8 +988,8 @@ async def get_employee_schedule_range(start_date: str = Query(...), end_date: st
         if (end_dt - start_dt).days > 31:
             raise HTTPException(status_code=400, detail="Максимальный диапазон - 31 день")
         
-        conn = sqlite3.connect("real_skud_data.db")
-        cursor = conn.cursor()
+    conn = get_db_connection()
+    cursor = conn.cursor()
         
         # Получаем только сотрудников, у которых есть записи доступа в указанном диапазоне дат
         cursor.execute("""
@@ -1137,8 +1137,8 @@ async def get_employee_history(
         end_date = date.today()
         start_date = end_date - timedelta(days=days_back)
         
-        conn = sqlite3.connect("real_skud_data.db")
-        cursor = conn.cursor()
+    conn = get_db_connection()
+    cursor = conn.cursor()
         
         # Получаем информацию о сотруднике из таблицы employees
         cursor.execute("SELECT full_name FROM employees WHERE id = ?", (employee_id,))
@@ -2443,8 +2443,8 @@ async def delete_department_position_link(department_id: int, position_id: int):
 async def health_check():
     """Проверка работоспособности API"""
     try:
-        conn = sqlite3.connect("real_skud_data.db")
-        cursor = conn.cursor()
+    conn = get_db_connection()
+    cursor = conn.cursor()
         cursor.execute("SELECT COUNT(*) FROM access_logs")
         count = cursor.fetchone()[0]
         
