@@ -289,13 +289,6 @@ def create_auth_tables():
                         FOREIGN KEY (user_id) REFERENCES users (id)
                     )
                 """)
-                conn,
-                """
-                SELECT column_name 
-                FROM information_schema.columns 
-                WHERE table_name = ? AND column_name = ?
-                """,
-                ('employees', 'birth_date'),
                 # Удаляем ветку SQLite, оставляем только PostgreSQL
 def generate_simple_token():
     """Генерирует простой токен для авторизации"""
