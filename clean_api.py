@@ -732,7 +732,7 @@ async def get_employee_schedule(date: Optional[str] = Query(None), current_user:
         all_logs = execute_query(
             conn,
             """
-            SELECT al.employee_id, e.full_name, TIME(al.access_datetime) as access_time, al.door_location
+            SELECT al.employee_id, e.full_name, CAST(al.access_datetime AS TIME) as access_time, al.door_location
             FROM access_logs al
             JOIN employees e ON al.employee_id = e.id
             WHERE DATE(al.access_datetime) = %s
