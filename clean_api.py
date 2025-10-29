@@ -1,4 +1,7 @@
-# Получить все исключения сотрудников
+
+# ...existing code...
+
+# Добавляю GET-эндпоинт /employee-exceptions после создания app
 @app.get("/employee-exceptions")
 async def get_employee_exceptions(employee_id: int = None, exception_date: str = None):
     """Получить список исключений сотрудников (фильтрация по сотруднику и дате)"""
