@@ -353,9 +353,12 @@ def require_role(min_role: int = 3):
                 detail="Insufficient permissions"
             )
         return user
+    return decorator
+
+# Восстанавливаем функцию инициализации таблиц авторизации
+def init_auth_tables():
     try:
         conn = get_db_connection()
-        # PostgreSQL синтаксис
         execute_query(conn, """
             CREATE TABLE IF NOT EXISTS users (
                 id SERIAL PRIMARY KEY,
@@ -371,7 +374,6 @@ def require_role(min_role: int = 3):
                 FOREIGN KEY (created_by) REFERENCES users (id)
             )
         """)
-
         execute_query(conn, """
             CREATE TABLE IF NOT EXISTS roles (
                 id SERIAL PRIMARY KEY,
@@ -380,7 +382,6 @@ def require_role(min_role: int = 3):
                 permissions TEXT
             )
         """)
-
         execute_query(conn, """
             CREATE TABLE IF NOT EXISTS user_sessions (
                 id SERIAL PRIMARY KEY,
@@ -391,10 +392,9 @@ def require_role(min_role: int = 3):
                 FOREIGN KEY (user_id) REFERENCES users (id)
             )
         """)
-        return True
+        conn.close()
     except Exception as e:
-        print(f"Ошибка создания таблиц авторизации: {e}")
-        return False
+        print(f"Ошибка инициализации таблиц авторизации: {e}")
 
 def execute_query(conn, query, params=None, fetch_one=False, fetch_all=False):
     """Выполняет запросы только для PostgreSQL"""
