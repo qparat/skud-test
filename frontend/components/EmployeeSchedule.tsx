@@ -487,7 +487,7 @@ export function EmployeeSchedule() {
 
     if (isRangeData) {
       // Группировка по датам и пустые строки — только для диапазона
-      const grouped: Record<string, (Employee & { date: string })[]> = {}
+  const grouped = {} as Record<string, (Employee & { date: string })[]>
       (sortedData as (Employee & { date: string })[]).forEach((emp: Employee & { date: string }) => {
         if (!grouped[emp.date]) grouped[emp.date] = []
         grouped[emp.date].push(emp)
