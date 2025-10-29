@@ -257,7 +257,7 @@ class SkudDatabaseIntegrator:
         else:
             # SQLite синтаксис
             # Ищем существующего сотрудника
-            cursor.execute("SELECT id FROM employees WHERE full_name = ?", (full_name,))
+            cursor.execute("SELECT id FROM employees WHERE full_name = %s", (full_name,))
             employee = cursor.fetchone()
             
             if employee:
@@ -428,7 +428,7 @@ class SkudDatabaseIntegrator:
                         if self.db_type == "postgresql":
                             cursor.execute("SELECT id FROM employees WHERE full_name = %s", (skud_record.full_name,))
                         else:
-                            cursor.execute("SELECT id FROM employees WHERE full_name = ?", (skud_record.full_name,))
+                            cursor.execute("SELECT id FROM employees WHERE full_name = %s", (skud_record.full_name,))
                         existing_employee = cursor.fetchone()
                         
                         # Добавляем запись
@@ -542,7 +542,7 @@ class SkudDatabaseIntegrator:
                     if skud_record:
                         # Проверяем, новый ли это сотрудник
                         cursor = self.connection.cursor()
-                        cursor.execute("SELECT id FROM employees WHERE full_name = ?", (skud_record.full_name,))
+                        cursor.execute("SELECT id FROM employees WHERE full_name = %s", (skud_record.full_name,))
                         existing_employee = cursor.fetchone()
                         
                         # Добавляем запись

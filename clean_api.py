@@ -696,7 +696,7 @@ async def logout(credentials: HTTPAuthorizationCredentials = Depends(security)):
         cursor = conn.cursor()
         
         token_hash = hashlib.sha256(credentials.credentials.encode()).hexdigest()
-        cursor.execute("DELETE FROM user_sessions WHERE token_hash = ?", (token_hash,))
+        cursor.execute("DELETE FROM user_sessions WHERE token_hash = %s", (token_hash,))
         
         conn.commit()
         conn.close()
@@ -735,7 +735,7 @@ async def get_employee_schedule(date: Optional[str] = Query(None), current_user:
             SELECT al.employee_id, e.full_name, TIME(al.access_datetime) as access_time, al.door_location
             FROM access_logs al
             JOIN employees e ON al.employee_id = e.id
-            WHERE DATE(al.access_datetime) = ?
+            WHERE DATE(al.access_datetime) = %s
             AND e.full_name NOT IN ('Охрана М.', '1 пост о.', '2 пост о.', 'Крыша К.', 'Водитель 1 В.', 'Водитель 2 В.', 'Дежурный в.', 'Дежурный В.')
             ORDER BY al.employee_id, al.access_datetime
             """,
@@ -773,7 +773,7 @@ async def get_employee_schedule(date: Optional[str] = Query(None), current_user:
             """
             SELECT employee_id, exception_type, reason
             FROM employee_exceptions 
-            WHERE exception_date = ?
+            WHERE exception_date = %s
             """,
             (date,),
             fetch_all=True
@@ -1127,7 +1127,7 @@ async def get_all_employees():
             FROM employees e
             LEFT JOIN departments d ON e.department_id = d.id
             LEFT JOIN positions p ON e.position_id = p.id
-            WHERE e.is_active = ?
+            WHERE e.is_active = %s
             AND e.full_name NOT IN ('Охрана М.', '1 пост о.', '2 пост о.', 'Крыша К.', 'Водитель 1 В.', 'Водитель 2 В.', 'Дежурный в.', 'Дежурный В.')
             ORDER BY d.name, e.full_name
             """,
@@ -1176,7 +1176,7 @@ async def get_employees_simple():
             """
             SELECT id, full_name
             FROM employees
-            WHERE is_active = ?
+            WHERE is_active = %s
             AND full_name NOT IN ('Охрана М.', '1 пост о.', '2 пост о.', 'Крыша К.', 'Водитель 1 В.', 'Водитель 2 В.', 'Дежурный в.', 'Дежурный В.')
             ORDER BY full_name
             """,
@@ -1205,7 +1205,7 @@ async def update_employee(employee_id: int, updates: dict, current_user: dict = 
         cursor = conn.cursor()
         
         # Проверяем существование сотрудника
-        cursor.execute("SELECT id FROM employees WHERE id = ?", (employee_id,))
+        cursor.execute("SELECT id FROM employees WHERE id = %s", (employee_id,))
         if not cursor.fetchone():
             raise HTTPException(status_code=404, detail="Сотрудник не найден")
         
@@ -1216,7 +1216,7 @@ async def update_employee(employee_id: int, updates: dict, current_user: dict = 
         allowed_fields = ["full_name", "birth_date", "department_id", "position_id", "card_number", "is_active"]
         for field in allowed_fields:
             if field in updates:
-                update_fields.append(f"{field} = ?")
+                update_fields.append(f"{field} = %s")
                 update_values.append(updates[field])
         
         if not update_fields:
@@ -1228,7 +1228,7 @@ async def update_employee(employee_id: int, updates: dict, current_user: dict = 
         
         cursor.execute(f"""
             UPDATE employees SET {', '.join(update_fields)}
-            WHERE id = ?
+            WHERE id = %s
         """, update_values)
         
         conn.commit()
@@ -1288,7 +1288,7 @@ async def get_employee_details(employee_id: int):
             FROM employees e
             LEFT JOIN departments d ON e.department_id = d.id
             LEFT JOIN positions p ON e.position_id = p.id
-            WHERE e.id = ?
+            WHERE e.id = %s
         """, (employee_id,))
         
         employee_data = cursor.fetchone()
@@ -1331,7 +1331,7 @@ async def get_all_departments():
             """
             SELECT d.id, d.name, COUNT(e.id) as employee_count
             FROM departments d
-            LEFT JOIN employees e ON d.id = e.department_id AND e.is_active = ?
+            LEFT JOIN employees e ON d.id = e.department_id AND e.is_active = %s
             GROUP BY d.id, d.name
             ORDER BY d.name
             """,
@@ -1364,7 +1364,7 @@ async def get_department_by_id(department_id: int):
             SELECT d.id, d.name, COUNT(e.id) as employee_count
             FROM departments d
             LEFT JOIN employees e ON d.id = e.department_id AND e.is_active = TRUE
-            WHERE d.id = ?
+            WHERE d.id = %s
             GROUP BY d.id, d.name
         """, (department_id,))
         
@@ -1426,7 +1426,7 @@ async def get_position_by_id(position_id: int):
             SELECT p.id, p.name, COUNT(e.id) as employee_count
             FROM positions p
             LEFT JOIN employees e ON p.id = e.position_id AND e.is_active = TRUE
-            WHERE p.id = ?
+            WHERE p.id = %s
             GROUP BY p.id, p.name
         """, (position_id,))
         
@@ -1456,7 +1456,7 @@ async def get_employees_by_department(department_id: int):
         cursor = conn.cursor()
         
         # Получаем информацию об отделе
-        cursor.execute("SELECT name FROM departments WHERE id = ?", (department_id,))
+        cursor.execute("SELECT name FROM departments WHERE id = %s", (department_id,))
         dept_result = cursor.fetchone()
         if not dept_result:
             raise HTTPException(status_code=404, detail="Отдел не найден")
@@ -1582,7 +1582,7 @@ async def update_employee_position(employee_id: int, request_data: dict):
         raise HTTPException(status_code=500, detail=f"Ошибка при обновлении должности: {str(e)}")
             
         if exception_date:
-            query += " AND ee.exception_date = ?"
+            query += " AND ee.exception_date = %s"
             params.append(exception_date)
             
         query += " ORDER BY ee.exception_date DESC, e.full_name"
@@ -1654,7 +1654,7 @@ async def update_employee_exception(exception_id: int, exception: ExceptionUpdat
             SELECT ee.id, e.full_name 
             FROM employee_exceptions ee
             JOIN employees e ON ee.employee_id = e.id
-            WHERE ee.id = ?
+            WHERE ee.id = %s
         """, (exception_id,))
         existing = cursor.fetchone()
         
@@ -1664,8 +1664,8 @@ async def update_employee_exception(exception_id: int, exception: ExceptionUpdat
         # Обновляем исключение
         cursor.execute("""
             UPDATE employee_exceptions 
-            SET reason = ?, exception_type = ?
-            WHERE id = ?
+            SET reason = %s, exception_type = %s
+            WHERE id = %s
         """, (exception.reason, exception.exception_type, exception_id))
         
         conn.commit()
@@ -1693,7 +1693,7 @@ async def delete_employee_exception(exception_id: int):
             SELECT ee.id, e.full_name, ee.exception_date
             FROM employee_exceptions ee
             JOIN employees e ON ee.employee_id = e.id
-            WHERE ee.id = ?
+            WHERE ee.id = %s
         """, (exception_id,))
         existing = cursor.fetchone()
         
@@ -1701,7 +1701,7 @@ async def delete_employee_exception(exception_id: int):
             raise HTTPException(status_code=404, detail="Исключение не найдено")
         
         # Удаляем исключение
-        cursor.execute("DELETE FROM employee_exceptions WHERE id = ?", (exception_id,))
+        cursor.execute("DELETE FROM employee_exceptions WHERE id = %s", (exception_id,))
         
         conn.commit()
         conn.close()
@@ -1761,8 +1761,8 @@ async def create_employee_exception_range(exception_range: ExceptionRangeCreate)
                     # Если исключение уже существует, обновляем его
                     cursor.execute("""
                         UPDATE employee_exceptions 
-                        SET reason = ?, exception_type = ?
-                        WHERE employee_id = ? AND exception_date = ?
+                        SET reason = %s, exception_type = %s
+                        WHERE employee_id = %s AND exception_date = %s
                     """, (exception_range.reason, exception_range.exception_type,
                           exception_range.employee_id, current_date.strftime('%Y-%m-%d')))
                     updated_count += 1
@@ -1799,7 +1799,7 @@ async def get_department_positions(department_id: int):
         cursor = conn.cursor()
         
         # Получаем информацию об отделе
-        cursor.execute("SELECT name FROM departments WHERE id = ?", (department_id,))
+        cursor.execute("SELECT name FROM departments WHERE id = %s", (department_id,))
         dept_result = cursor.fetchone()
         if not dept_result:
             raise HTTPException(status_code=404, detail="Отдел не найден")
@@ -1810,7 +1810,7 @@ async def get_department_positions(department_id: int):
             FROM department_positions dp
             LEFT JOIN positions p ON dp.position_id = p.id
             LEFT JOIN employees e ON p.id = e.position_id AND e.department_id = %s AND e.is_active = TRUE
-            WHERE dp.department_id = ?
+            WHERE dp.department_id = %s
             GROUP BY p.id, p.name
             ORDER BY p.name
         """, (department_id, department_id))
@@ -1842,7 +1842,7 @@ async def get_position_departments(position_id: int):
         cursor = conn.cursor()
         
         # Получаем информацию о должности
-        cursor.execute("SELECT name FROM positions WHERE id = ?", (position_id,))
+        cursor.execute("SELECT name FROM positions WHERE id = %s", (position_id,))
         pos_result = cursor.fetchone()
         if not pos_result:
             raise HTTPException(status_code=404, detail="Должность не найдена")
@@ -1853,7 +1853,7 @@ async def get_position_departments(position_id: int):
             FROM department_positions dp
             LEFT JOIN departments d ON dp.department_id = d.id
             LEFT JOIN employees e ON d.id = e.department_id AND e.position_id = %s AND e.is_active = TRUE
-            WHERE dp.position_id = ?
+            WHERE dp.position_id = %s
             GROUP BY d.id, d.name
             ORDER BY d.name
         """, (position_id, position_id))
@@ -1936,7 +1936,7 @@ async def get_department_positions(department_id: int):
             FROM department_positions dp
             LEFT JOIN positions p ON dp.position_id = p.id
             LEFT JOIN employees e ON p.id = e.position_id AND e.department_id = %s AND e.is_active = TRUE
-            WHERE dp.department_id = ?
+            WHERE dp.department_id = %s
             GROUP BY dp.department_id, dp.position_id, p.id, p.name
             ORDER BY p.name
         """, (department_id, department_id))
@@ -1969,7 +1969,7 @@ async def create_department(department: DepartmentCreate):
         cursor = conn.cursor()
         
         # Проверяем, что отдел с таким именем не существует
-        cursor.execute("SELECT id FROM departments WHERE name = ?", (department.name,))
+        cursor.execute("SELECT id FROM departments WHERE name = %s", (department.name,))
         if cursor.fetchone():
             raise HTTPException(status_code=400, detail="Отдел с таким названием уже существует")
         
@@ -2161,12 +2161,12 @@ async def create_department_position_link(link: DepartmentPositionLink):
         cursor = conn.cursor()
         
         # Проверяем, что отдел и должность существуют
-        cursor.execute("SELECT name FROM departments WHERE id = ?", (link.department_id,))
+        cursor.execute("SELECT name FROM departments WHERE id = %s", (link.department_id,))
         dept_result = cursor.fetchone()
         if not dept_result:
             raise HTTPException(status_code=404, detail="Отдел не найден")
         
-        cursor.execute("SELECT name FROM positions WHERE id = ?", (link.position_id,))
+        cursor.execute("SELECT name FROM positions WHERE id = %s", (link.position_id,))
         pos_result = cursor.fetchone()
         if not pos_result:
             raise HTTPException(status_code=404, detail="Должность не найдена")
@@ -2204,7 +2204,7 @@ async def delete_department_position_link(department_id: int, position_id: int):
             FROM department_positions dp
             LEFT JOIN departments d ON dp.department_id = d.id
             LEFT JOIN positions p ON dp.position_id = p.id
-            WHERE dp.department_id = ? AND dp.position_id = ?
+            WHERE dp.department_id = %s AND dp.position_id = %s
         """, (department_id, position_id))
         
         link_result = cursor.fetchone()
@@ -2224,7 +2224,7 @@ async def delete_department_position_link(department_id: int, position_id: int):
         # Удаляем связь
         cursor.execute("""
             DELETE FROM department_positions 
-            WHERE department_id = ? AND position_id = ?
+            WHERE department_id = %s AND position_id = %s
         """, (department_id, position_id))
         
         conn.commit()
