@@ -16,9 +16,9 @@ import {
 
 const navigation = [
   { name: 'Главная панель', href: '/', icon: LayoutDashboard },
-  { name: 'Список сотрудников', href: '/employees', icon: Users },
   { name: 'Расписание на день', href: '/schedule', icon: Calendar },
   { name: 'Загрузка файлов', href: '/upload', icon: Upload },
+  { name: 'Список сотрудников', href: '/employees', icon: Users },
   { name: 'Службы', href: '/departments', icon: Building2 },
   { name: 'Должности', href: '/positions', icon: Briefcase },
   { name: 'Исключения', href: '/exceptions', icon: Shield },
