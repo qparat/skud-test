@@ -11,6 +11,10 @@ interface Department {
 }
 
 export default function DepartmentsPage() {
+  const [search, setSearch] = useState('');
+  const filteredDepartments = departments.filter((department) =>
+    department.name.toLowerCase().includes(search.toLowerCase())
+  );
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -94,6 +98,16 @@ export default function DepartmentsPage() {
         </button>
       </div>
 
+      <div className="mb-6">
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Поиск по названию службы..."
+          className="w-full border border-gray-300 rounded-md px-3 py-2"
+        />
+      </div>
+
       {error && (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
           {error}
@@ -142,7 +156,7 @@ export default function DepartmentsPage() {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {departments.map((department) => (
+        {filteredDepartments.map((department) => (
           <div key={department.id} className="bg-white border rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow">
             <div className="flex justify-between items-start mb-3">
               <h3 className="text-xl font-semibold text-blue-600">
@@ -179,7 +193,7 @@ export default function DepartmentsPage() {
         ))}
       </div>
 
-      {departments.length === 0 && !loading && (
+      {filteredDepartments.length === 0 && !loading && (
         <div className="text-center py-12">
           <p className="text-gray-500 text-lg">Службы не найдены</p>
           <button
