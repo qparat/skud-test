@@ -19,6 +19,7 @@ export interface AuthContextType {
   logout: () => void
   isAuthenticated: boolean
   hasRole: (minRole: number) => boolean
+  hasAnyRole: (roles: number[]) => boolean
   loading: boolean
 }
 
@@ -134,13 +135,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return user.role <= minRole // Меньше число = больше прав
   }
 
+  const hasAnyRole = (roles: number[]): boolean => {
+    if (!user) return false
+    return roles.includes(user.role)
+  }
+
   const value: AuthContextType = {
     user,
     token,
     login,
     logout,
     isAuthenticated: !!user && !!token,
-    hasRole,
+  hasRole,
+  hasAnyRole,
     loading
   }
 

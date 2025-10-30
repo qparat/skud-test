@@ -26,11 +26,14 @@ const navigation = [
 
 export function Sidebar() {
   const pathname = usePathname()
-  const { hasRole } = useAuth()
+  const { hasRole, hasAnyRole } = useAuth()
 
   // Фильтруем навигацию по ролям
   const filteredNavigation = navigation.filter(item => {
     if (item.requireRole) {
+      if (Array.isArray(item.requireRole)) {
+        return hasAnyRole(item.requireRole)
+      }
       return hasRole(item.requireRole)
     }
     return true
