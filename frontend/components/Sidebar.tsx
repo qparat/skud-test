@@ -17,11 +17,11 @@ import {
 const navigation = [
   { name: 'Расписание', href: '/', icon: LayoutDashboard },
   { name: 'Список сотрудников', href: '/employees', icon: Users },
-  { name: 'Службы', href: '/departments', icon: Building2, requireRole: [1,2] },
-  { name: 'Должности', href: '/positions', icon: Briefcase, requireRole: [1,2] },
-  { name: 'Исключения', href: '/exceptions', icon: Shield, requireRole: [1,2] },
-  { name: 'Пользователи', href: '/users', icon: UserCog, requireRole: [1,2] },
-  { name: 'Загрузка файлов', href: '/upload', icon: Upload, requireRole: [1,2] },
+  { name: 'Службы', href: '/departments', icon: Building2, requireRole: 2 },
+  { name: 'Должности', href: '/positions', icon: Briefcase, requireRole: 2 },
+  { name: 'Исключения', href: '/exceptions', icon: Shield, requireRole: 2 },
+  { name: 'Пользователи', href: '/users', icon: UserCog, requireRole: 0 },
+    { name: 'Загрузка файлов', href: '/upload', icon: Upload, requireRole: 0  },
 ]
 
 export function Sidebar() {
@@ -31,9 +31,6 @@ export function Sidebar() {
   // Фильтруем навигацию по ролям
   const filteredNavigation = navigation.filter(item => {
     if (item.requireRole) {
-      if (Array.isArray(item.requireRole)) {
-        return item.requireRole.some(role => hasRole(role))
-      }
       return hasRole(item.requireRole)
     }
     return true
