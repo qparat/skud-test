@@ -956,7 +956,19 @@ export function EmployeeSchedule() {
                                 ) : (
                                   <div className="flex items-center space-x-1">
                                     <ChevronDown className="h-4 w-4" />
-                                    <span className="bg-green-100 text-green-800 text-xs font-medium px-2 py-0.5 rounded-full">+{emp.totalInGroup - 1}</span>
+                                    {/* Счетчики дней без опозданий и с опозданием */}
+                                    {(() => {
+                                      // Найти все дни этого сотрудника в диапазоне
+                                      const allDays = getDisplayData().filter(e => (e as any).date && e.employee_id === emp.employee_id);
+                                      const lateDays = allDays.filter(d => d.is_late).length;
+                                      const okDays = allDays.filter(d => !d.is_late).length;
+                                      return (
+                                        <>
+                                          <span className="bg-green-100 text-green-800 text-xs font-medium px-2 py-0.5 rounded-full">+{okDays}</span>
+                                          <span className="bg-red-100 text-red-800 text-xs font-medium px-2 py-0.5 rounded-full ml-1">+{lateDays}</span>
+                                        </>
+                                      );
+                                    })()}
                                   </div>
                                 )}
                               </button>
