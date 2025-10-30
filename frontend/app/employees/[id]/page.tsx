@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, Calendar, Clock, TrendingUp, User, Edit2, Save, X } from 'lucide-react'
 import { apiRequest } from '@/lib/api'
+import { useAuth } from '@/components/AuthProvider'
 
 interface DailyRecord {
   date: string
@@ -54,6 +55,7 @@ interface EmployeePageProps {
 }
 
 export default function EmployeePage({ params }: EmployeePageProps) {
+  const { hasAnyRole } = useAuth();
   const router = useRouter()
   const [employeeData, setEmployeeData] = useState<EmployeeHistory | null>(null)
   const [employeeDetails, setEmployeeDetails] = useState<EmployeeDetails | null>(null)
@@ -209,58 +211,60 @@ export default function EmployeePage({ params }: EmployeePageProps) {
 
       {/* Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Statistics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white p-6 rounded-lg shadow-sm border">
-            <div className="flex items-center">
-              <div className="bg-blue-100 p-3 rounded-full">
-                <Calendar className="h-6 w-6 text-blue-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Дней присутствия</p>
-                <p className="text-2xl font-bold text-gray-900">{employeeData.total_days}</p>
+        {/* Statistics Cards (только для ролей 1 и 2) */}
+        {hasAnyRole([1]) && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div className="bg-white p-6 rounded-lg shadow-sm border">
+              <div className="flex items-center">
+                <div className="bg-blue-100 p-3 rounded-full">
+                  <Calendar className="h-6 w-6 text-blue-600" />
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600">Дней присутствия</p>
+                  <p className="text-2xl font-bold text-gray-900">{employeeData.total_days}</p>
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="bg-white p-6 rounded-lg shadow-sm border">
-            <div className="flex items-center">
-              <div className="bg-green-100 p-3 rounded-full">
-                <TrendingUp className="h-6 w-6 text-green-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Посещаемость</p>
-                <p className="text-2xl font-bold text-gray-900">{employeeData.attendance_rate.toFixed(1)}%</p>
+            <div className="bg-white p-6 rounded-lg shadow-sm border">
+              <div className="flex items-center">
+                <div className="bg-green-100 p-3 rounded-full">
+                  <TrendingUp className="h-6 w-6 text-green-600" />
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600">Посещаемость</p>
+                  <p className="text-2xl font-bold text-gray-900">{employeeData.attendance_rate.toFixed(1)}%</p>
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="bg-white p-6 rounded-lg shadow-sm border">
-            <div className="flex items-center">
-              <div className="bg-orange-100 p-3 rounded-full">
-                <Clock className="h-6 w-6 text-orange-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Пунктуальность</p>
-                <p className="text-2xl font-bold text-gray-900">{employeeData.punctuality_rate.toFixed(1)}%</p>
+            <div className="bg-white p-6 rounded-lg shadow-sm border">
+              <div className="flex items-center">
+                <div className="bg-orange-100 p-3 rounded-full">
+                  <Clock className="h-6 w-6 text-orange-600" />
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600">Пунктуальность</p>
+                  <p className="text-2xl font-bold text-gray-900">{employeeData.punctuality_rate.toFixed(1)}%</p>
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="bg-white p-6 rounded-lg shadow-sm border">
-            <div className="flex items-center">
-              <div className="bg-purple-100 p-3 rounded-full">
-                <Clock className="h-6 w-6 text-purple-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Часы работы</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {employeeData.avg_work_hours ? `${employeeData.avg_work_hours.toFixed(1)}ч` : '-'}
-                </p>
+            <div className="bg-white p-6 rounded-lg shadow-sm border">
+              <div className="flex items-center">
+                <div className="bg-purple-100 p-3 rounded-full">
+                  <Clock className="h-6 w-6 text-purple-600" />
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600">Часы работы</p>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {employeeData.avg_work_hours ? `${employeeData.avg_work_hours.toFixed(1)}ч` : '-'}
+                  </p>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Personal Information */}
         {employeeDetails && (
