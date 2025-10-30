@@ -148,22 +148,26 @@ export default function ExceptionsPage() {
 
   // Генерация календаря
   const generateCalendar = () => {
-    const year = currentMonth.getFullYear()
-    const month = currentMonth.getMonth()
-    
-    const firstDay = new Date(year, month, 1)
-    const startDate = new Date(firstDay)
-    startDate.setDate(startDate.getDate() - firstDay.getDay()) // Начинаем с воскресенья
-    
-    const days = []
-    const currentDate = new Date(startDate)
-    
+    const year = currentMonth.getFullYear();
+    const month = currentMonth.getMonth();
+
+    const firstDay = new Date(year, month, 1);
+    // Определяем день недели для первого дня месяца (0 - воскресенье, 1 - понедельник, ...)
+    let dayOfWeek = firstDay.getDay();
+    // Для понедельника как первого дня недели: если воскресенье (0), то 6, иначе dayOfWeek - 1
+    dayOfWeek = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+    const startDate = new Date(firstDay);
+    startDate.setDate(startDate.getDate() - dayOfWeek); // Начинаем с понедельника
+
+    const days = [];
+    const currentDate = new Date(startDate);
+
     for (let i = 0; i < 42; i++) { // 6 недель по 7 дней
-      days.push(new Date(currentDate))
-      currentDate.setDate(currentDate.getDate() + 1)
+      days.push(new Date(currentDate));
+      currentDate.setDate(currentDate.getDate() + 1);
     }
-    
-    return days
+
+    return days;
   }
 
   // Навигация по месяцам
@@ -407,7 +411,7 @@ export default function ExceptionsPage() {
                   
                   {/* Дни недели */}
                   <div className="grid grid-cols-7 gap-1 mb-2">
-                    {['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'].map(day => (
+                    {['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'].map(day => (
                       <div key={day} className="text-xs text-center text-gray-500 font-medium py-1">
                         {day}
                       </div>
