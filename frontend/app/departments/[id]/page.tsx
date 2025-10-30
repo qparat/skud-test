@@ -562,7 +562,7 @@ export default function DepartmentDetailPage() {
           )}
 
           {filteredEmployees.length > 0 ? (
-            <div className="space-y-3 overflow-y-auto">
+            <div className="space-y-3">
               {filteredEmployees.map((employee) => (
                 <div key={employee.employee_id} className="bg-gray-50 border rounded-lg p-4">
                   <div className="flex justify-between items-start">
