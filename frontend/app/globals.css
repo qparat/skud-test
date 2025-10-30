@@ -19,14 +19,15 @@
 body {
 }
 
-@media (min-width: 1920px) {
-  .w-84 {
-    width: 27rem !important;
-  }
-}
+
 
 .w-84 {
   width: 20rem;
+}
+@media (min-width: 1920px) {
+  .w-84 {
+    width: 27rem;
+  }
 }
 @layer utilities {
   .text-balance {
