@@ -2218,7 +2218,7 @@ async def create_department_position_link(link: DepartmentPositionLink):
         # Создаем связь (INSERT OR IGNORE для избежания дублей)
         cursor.execute("""
             INSERT OR IGNORE INTO department_positions (department_id, position_id) 
-            VALUES (?, ?)
+            VALUES (%s, %s)
         """, (link.department_id, link.position_id))
         
         conn.commit()
