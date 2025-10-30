@@ -2215,10 +2215,11 @@ async def create_department_position_link(link: DepartmentPositionLink):
         if not pos_result:
             raise HTTPException(status_code=404, detail="Должность не найдена")
         
-        # Создаем связь (INSERT OR IGNORE для избежания дублей)
+        # Создаем связь (ON CONFLICT DO NOTHING для избежания дублей в PostgreSQL)
         cursor.execute("""
-            INSERT OR IGNORE INTO department_positions (department_id, position_id) 
+            INSERT INTO department_positions (department_id, position_id)
             VALUES (%s, %s)
+            ON CONFLICT (department_id, position_id) DO NOTHING
         """, (link.department_id, link.position_id))
         
         conn.commit()
