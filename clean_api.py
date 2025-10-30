@@ -1796,7 +1796,7 @@ async def create_employee_exception_range(exception_range: ExceptionRangeCreate)
             try:
                 cursor.execute("""
                     INSERT INTO employee_exceptions (employee_id, exception_date, reason, exception_type)
-                    VALUES (?, ?, ?, ?)
+                    VALUES (%s, %s, %s, %s)
                 """, (exception_range.employee_id, current_date.strftime('%Y-%m-%d'), 
                       exception_range.reason, exception_range.exception_type))
                 created_count += 1
