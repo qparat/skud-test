@@ -212,7 +212,7 @@ export default function EmployeePage({ params }: EmployeePageProps) {
       {/* Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Statistics Cards (только для ролей 1 и 2) */}
-        {hasAnyRole([1]) && (
+        {hasAnyRole([0]) && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <div className="bg-white p-6 rounded-lg shadow-sm border">
               <div className="flex items-center">
