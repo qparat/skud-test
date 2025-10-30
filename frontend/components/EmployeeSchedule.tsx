@@ -600,7 +600,7 @@ export function EmployeeSchedule() {
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="">
                   <div className="flex items-center">
                     <div className="flex items-center space-x-2">
@@ -613,7 +613,49 @@ export function EmployeeSchedule() {
                     </div>
                   </div>
                 </div>
-                
+
+                {/* Новый блок для диапазона дат: счетчик дней с опозданием и без */}
+                {startDate && endDate && (
+                  <div className="">
+                    <div className="flex items-center">
+                      {/* Считаем дни с опозданием и без */}
+                      {(() => {
+                        // flatData: массив всех дней всех сотрудников
+                        const flatData: Array<Employee & { date: string }> = [];
+                        if (scheduleData.employees.length > 0 && 'days' in scheduleData.employees[0]) {
+                          (scheduleData.employees as EmployeeWithDays[]).forEach(emp => {
+                            emp.days.forEach(day => {
+                              flatData.push({
+                                employee_id: emp.employee_id,
+                                full_name: emp.full_name,
+                                date: day.date,
+                                first_entry: day.first_entry,
+                                last_exit: day.last_exit,
+                                first_entry_door: day.first_entry_door,
+                                last_exit_door: day.last_exit_door,
+                                is_late: day.is_late,
+                                late_minutes: day.late_minutes,
+                                work_hours: day.work_hours,
+                                status: day.status,
+                                exception: day.exception
+                              });
+                            });
+                          });
+                        }
+                        // Считаем
+                        const lateDays = flatData.filter(d => d.is_late).length;
+                        const okDays = flatData.filter(d => !d.is_late).length;
+                        return (
+                          <div className="flex items-center space-x-2">
+                            <span className="bg-red-100 text-red-800 text-xs font-bold px-2 py-1 rounded-full">+{lateDays} опозд.</span>
+                            <span className="bg-green-100 text-green-800 text-xs font-bold px-2 py-1 rounded-full">+{okDays} норм.</span>
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  </div>
+                )}
+
                 <div className="">
                   <div className="flex items-center">
                     <div className="flex items-center space-x-2">
