@@ -21,7 +21,7 @@ body {
 
 @media (min-width: 1920px) {
   .w-84 {
-    width: 27rem;
+    width: 27rem !important;
   }
 }
 
