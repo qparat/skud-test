@@ -16,12 +16,12 @@ import {
 
 const navigation = [
   { name: 'Расписание', href: '/', icon: LayoutDashboard },
-  { name: 'Загрузка файлов', href: '/upload', icon: Upload },
   { name: 'Список сотрудников', href: '/employees', icon: Users },
   { name: 'Службы', href: '/departments', icon: Building2 },
   { name: 'Должности', href: '/positions', icon: Briefcase },
   { name: 'Исключения', href: '/exceptions', icon: Shield },
   { name: 'Пользователи', href: '/users', icon: UserCog, requireRole: 2 },
+    { name: 'Загрузка файлов', href: '/upload', icon: Upload, requireRole: 2  },
 ]
 
 export function Sidebar() {
