@@ -931,16 +931,31 @@ export function EmployeeSchedule() {
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center justify-between">
                             {emp.isFirstInGroup ? (
-                              <button
-                                onClick={() => handleEmployeeClick(emp.employee_id)}
-                                className={`text-left font-medium ${
-                                  emp.is_late 
-                                    ? 'text-red-600 hover:text-red-800' 
-                                    : 'text-blue-600 hover:text-blue-800'
-                                }`}
-                              >
-                                {emp.full_name}
-                              </button>
+                              <>
+                                <button
+                                  onClick={() => handleEmployeeClick(emp.employee_id)}
+                                  className={`text-left font-medium ${
+                                    emp.is_late 
+                                      ? 'text-red-600 hover:text-red-800' 
+                                      : 'text-blue-600 hover:text-blue-800'
+                                  }`}
+                                >
+                                  {emp.full_name}
+                                </button>
+                                {/* Счетчик дней с опозданием и без для сотрудника */}
+                                {(() => {
+                                  // Найти все дни этого сотрудника в диапазоне
+                                  const allDays = getDisplayData().filter(e => 'date' in e && e.employee_id === emp.employee_id) as (Employee & { date: string })[];
+                                  const lateDays = allDays.filter(d => d.is_late).length;
+                                  const okDays = allDays.filter(d => !d.is_late).length;
+                                  return (
+                                    <span className="ml-2 flex items-center space-x-1">
+                                      <span className="bg-red-100 text-red-800 text-xs font-bold px-2 py-0.5 rounded-full">+{lateDays}</span>
+                                      <span className="bg-green-100 text-green-800 text-xs font-bold px-2 py-0.5 rounded-full">+{okDays}</span>
+                                    </span>
+                                  );
+                                })()}
+                              </>
                             ) : (
                               <span className="text-gray-400 text-sm">↳</span>
                             )}
