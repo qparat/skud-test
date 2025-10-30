@@ -12,10 +12,10 @@ interface Department {
 
 export default function DepartmentsPage() {
   const [search, setSearch] = useState('');
-  const filteredDepartments = departments.filter((department) =>
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const filteredDepartments = departments.filter((department: Department) =>
     department.name.toLowerCase().includes(search.toLowerCase())
   );
-  const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
