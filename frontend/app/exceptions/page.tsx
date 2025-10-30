@@ -99,42 +99,52 @@ export default function ExceptionsPage() {
 
   // Обработка клика по дате в календаре
   const handleDateClick = (dateStr: string) => {
-    // Проверяем текущее состояние
-    const hasSelectedDate = selectedDate !== ''
-    const hasRange = startDate !== '' && endDate !== ''
-    
+    // Новый алгоритм: первый клик — выделение, второй по той же — выбор дня, второй по другой — диапазон
+    const hasSelectedDate = selectedDate !== '';
+    const hasRange = startDate !== '' && endDate !== '';
+
     if (!hasSelectedDate && !hasRange) {
-      // Ничего не выбрано - выбираем одну дату
-      setSelectedDate(dateStr)
-      setStartDate('')
-      setEndDate('')
-      setFormData(prev => ({ ...prev, exception_date: dateStr, start_date: '', end_date: '' }))
-      setIsDateRange(false)
-    } else if (hasSelectedDate && !hasRange) {
-      // Уже выбрана одна дата - создаем диапазон
-      if (dateStr === selectedDate) {
-        // Клик по той же дате - остается одна дата
-        return
-      }
-      
-      const start = dateStr < selectedDate ? dateStr : selectedDate
-      const end = dateStr < selectedDate ? selectedDate : dateStr
-      
-      setStartDate(start)
-      setEndDate(end)
-      setSelectedDate('')
-      setFormData(prev => ({ ...prev, exception_date: '', start_date: start, end_date: end }))
-      setIsDateRange(true)
-    } else {
-      // Уже есть диапазон или что-то выбрано - сбрасываем и выбираем новую дату
-      setSelectedDate(dateStr)
-      setStartDate('')
-      setEndDate('')
-      setFormData(prev => ({ ...prev, exception_date: dateStr, start_date: '', end_date: '' }))
-      setIsDateRange(false)
+      // Первый клик — просто выделяем дату, не выбираем
+      setSelectedDate(dateStr);
+      setStartDate('');
+      setEndDate('');
+      setFormData(prev => ({ ...prev, exception_date: '', start_date: '', end_date: '' }));
+      setIsDateRange(false);
+      // НЕ закрываем календарь, чтобы можно было кликнуть второй раз
+      return;
     }
-    
-    setShowCalendar(false)
+
+    if (hasSelectedDate && !hasRange) {
+      if (dateStr === selectedDate) {
+        // Второй клик по той же дате — выбираем один день
+        setFormData(prev => ({ ...prev, exception_date: dateStr, start_date: '', end_date: '' }));
+        setIsDateRange(false);
+        setShowCalendar(false);
+        setSelectedDate('');
+        setStartDate('');
+        setEndDate('');
+        return;
+      } else {
+        // Второй клик по другой дате — диапазон
+        const start = dateStr < selectedDate ? dateStr : selectedDate;
+        const end = dateStr < selectedDate ? selectedDate : dateStr;
+        setStartDate(start);
+        setEndDate(end);
+        setFormData(prev => ({ ...prev, exception_date: '', start_date: start, end_date: end }));
+        setIsDateRange(true);
+        setShowCalendar(false);
+        setSelectedDate('');
+        return;
+      }
+    }
+
+    // Если уже выбран диапазон или что-то выбрано — сбрасываем и выделяем новую дату
+    setSelectedDate(dateStr);
+    setStartDate('');
+    setEndDate('');
+    setFormData(prev => ({ ...prev, exception_date: '', start_date: '', end_date: '' }));
+    setIsDateRange(false);
+    // НЕ закрываем календарь, чтобы можно было кликнуть второй раз
   }
 
   // Сброс выбора дат
