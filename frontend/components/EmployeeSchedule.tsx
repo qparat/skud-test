@@ -945,7 +945,7 @@ export function EmployeeSchedule() {
                                 {/* Счетчик дней с опозданием и без для сотрудника */}
                                 {(() => {
                                   // Найти все дни этого сотрудника в диапазоне
-                                  const allDays = getDisplayData().filter(e => (e as any).date && e.employee_id === emp.employee_id);
+                                  const allDays = getDisplayData().filter(e => 'date' in e && e.employee_id === emp.employee_id) as (Employee & { date: string })[];
                                   const lateDays = allDays.filter(d => d.is_late).length;
                                   const okDays = allDays.filter(d => !d.is_late).length;
                                   return (
