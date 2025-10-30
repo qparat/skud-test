@@ -1586,8 +1586,12 @@ async def update_employee_department(employee_id: int, request_data: dict):
         conn.commit()
         conn.close()
 
+        if new_department_id is not None and 'department' in locals() and department:
+            dept_name = department[1]
+        else:
+            dept_name = 'Без службы'
         return {
-            "message": f"Сотрудник {employee[1]} переведен в службу {department[1]}",
+            "message": f"Сотрудник {employee[1]} переведен в службу {dept_name}",
             "employee_id": employee_id,
             "department_id": new_department_id,
             "position_id": new_position_id
