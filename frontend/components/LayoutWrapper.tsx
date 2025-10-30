@@ -49,17 +49,17 @@ export function LayoutWrapper({ children }: LayoutWrapperProps) {
   }
   
  // Страницы, которые должны отображаться без Sidebar (только главная)
-  const fullWidthPages = ['/']
+  // const fullWidthPages = ['/']
   
-  const isFullWidth = fullWidthPages.includes(pathname)
+  // const isFullWidth = fullWidthPages.includes(pathname)
 
-  if (isFullWidth) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        {children}
-      </div>
-    )
-  }
+  // if (isFullWidth) {
+  //   return (
+  //     <div className="min-h-screen bg-gray-50">
+  //       {children}
+  //     </div>
+  //   )
+  // }
 
  // Страницы отдельных сотрудников не используют стандартный layout
   if (pathname.startsWith('/employees/') && pathname !== '/employees') {
