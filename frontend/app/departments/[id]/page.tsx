@@ -41,7 +41,38 @@ export default function DepartmentDetailPage() {
   const params = useParams();
   const router = useRouter();
   const departmentId = parseInt(params.id as string);
+  const [showAssignPositionForEmployeeId, setShowAssignPositionForEmployeeId] = useState<number | null>(null);
+  const [assignPositionSearch, setAssignPositionSearch] = useState('');
+  const [assignSelectedPositionId, setAssignSelectedPositionId] = useState<number | null>(null);
+  const [showAssignDropdown, setShowAssignDropdown] = useState(false);
 
+  // Назначить должность сотруднику
+  const assignPositionToEmployee = async (employeeId: number) => {
+    if (!assignSelectedPositionId) return;
+    try {
+      await apiRequest(`/employees/${employeeId}/position`, {
+        method: 'PUT',
+        body: JSON.stringify({ position_id: assignSelectedPositionId }),
+      });
+      setShowAssignPositionForEmployeeId(null);
+      setAssignSelectedPositionId(null);
+      setAssignPositionSearch('');
+      setShowAssignDropdown(false);
+      await fetchDepartmentDetails();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Ошибка при назначении должности');
+    }
+  };
+
+  // Фильтрация доступных должностей для назначения
+  const getAvailablePositionsForAssign = () => {
+    if (!assignPositionSearch.trim()) {
+      return allPositions;
+    }
+    return allPositions.filter((position: Position) =>
+      position.name.toLowerCase().includes(assignPositionSearch.toLowerCase())
+    );
+  };
   const [department, setDepartment] = useState<Department | null>(null);
   const [positions, setPositions] = useState<Position[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -537,7 +568,77 @@ export default function DepartmentDetailPage() {
                   <div className="flex justify-between items-start">
                     <div>
                       <h3 className="font-medium text-gray-900">{employee.full_name}</h3>
-                      <p className="text-sm text-blue-600 mt-1">{employee.position}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm text-blue-600 mt-1">{employee.position}</p>
+                        {employee.position === 'Не указана должность' && (
+                          <>
+                            <button
+                              className="ml-2 text-xs bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded"
+                              onClick={() => {
+                                setShowAssignPositionForEmployeeId(employee.employee_id);
+                                setAssignPositionSearch('');
+                                setAssignSelectedPositionId(null);
+                                setShowAssignDropdown(true);
+                              }}
+                            >
+                              Назначить должность
+                            </button>
+                          </>
+                        )}
+                      </div>
+                      {showAssignPositionForEmployeeId === employee.employee_id && (
+                        <div className="mt-2 position-search-container relative">
+                          <input
+                            type="text"
+                            value={assignPositionSearch}
+                            onChange={(e) => {
+                              setAssignPositionSearch(e.target.value);
+                              setShowAssignDropdown(true);
+                              setAssignSelectedPositionId(null);
+                            }}
+                            onFocus={() => setShowAssignDropdown(true)}
+                            placeholder="Поиск должности..."
+                            className="w-full border border-gray-300 rounded-md px-3 py-2"
+                          />
+                          {showAssignDropdown && getAvailablePositionsForAssign().length > 0 && (
+                            <div className="absolute z-10 w-full bg-white border border-gray-300 rounded-md mt-1 max-h-48 overflow-y-auto shadow-lg">
+                              {getAvailablePositionsForAssign().map((position) => (
+                                <div
+                                  key={position.id}
+                                  onClick={() => {
+                                    setAssignSelectedPositionId(position.id);
+                                    setAssignPositionSearch(position.name);
+                                    setShowAssignDropdown(false);
+                                  }}
+                                  className="px-3 py-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0"
+                                >
+                                  {position.name}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          <div className="flex gap-2 mt-2">
+                            <button
+                              onClick={() => assignPositionToEmployee(employee.employee_id)}
+                              disabled={!assignSelectedPositionId}
+                              className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded disabled:opacity-50"
+                            >
+                              Назначить
+                            </button>
+                            <button
+                              onClick={() => {
+                                setShowAssignPositionForEmployeeId(null);
+                                setAssignSelectedPositionId(null);
+                                setAssignPositionSearch('');
+                                setShowAssignDropdown(false);
+                              }}
+                              className="bg-gray-500 hover:bg-gray-600 text-white px-3 py-1 rounded"
+                            >
+                              Отмена
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-gray-500">ID: {employee.employee_id}</span>
