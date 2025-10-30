@@ -10,6 +10,7 @@ interface Employee {
   full_name: string
   position: string
   birth_date?: string
+  department?: string
 }
 
 interface DepartmentsData {
@@ -23,7 +24,6 @@ export default function EmployeesPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
-
   useEffect(() => {
     const fetchEmployees = async () => {
       try {
@@ -53,22 +53,26 @@ export default function EmployeesPage() {
 
   // Фильтрация сотрудников по введенному запросу
   const getFilteredDepartments = () => {
-    if (!departmentsData || !searchTerm) return departmentsData?.departments || {}
-    
+    if (!departmentsData || !searchTerm.trim()) return departmentsData?.departments || {}
     const filtered: Record<string, Employee[]> = {}
-    
     Object.entries(departmentsData.departments).forEach(([departmentName, employees]) => {
-      const filteredEmployees = employees.filter(emp => 
-        emp.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        emp.position.toLowerCase().includes(searchTerm.toLowerCase())
-      )
-      
-      if (filteredEmployees.length > 0) {
-        filtered[departmentName] = filteredEmployees
+      const empList = employees as Employee[];
+      const term = searchTerm.toLowerCase();
+      // Фильтруем по ФИО, должности или названию службы
+      if (departmentName.toLowerCase().includes(term)) {
+        filtered[departmentName] = empList;
+      } else {
+        const filteredEmployees = empList.filter((emp: Employee) =>
+          emp.full_name.toLowerCase().includes(term) ||
+          emp.position.toLowerCase().includes(term) ||
+          (emp.department && emp.department.toLowerCase().includes(term))
+        );
+        if (filteredEmployees.length > 0) {
+          filtered[departmentName] = filteredEmployees;
+        }
       }
-    })
-    
-    return filtered
+    });
+    return filtered;
   }
 
   if (loading) {
@@ -99,7 +103,7 @@ export default function EmployeesPage() {
   }
 
   const filteredDepartments = getFilteredDepartments()
-  const totalFiltered = Object.values(filteredDepartments).reduce((sum, employees) => sum + employees.length, 0)
+  const totalFiltered = Object.values(filteredDepartments).reduce((sum: number, employees: unknown) => sum + ((employees as Employee[]).length), 0)
 
   return (
     <div className="space-y-6">
@@ -131,7 +135,7 @@ export default function EmployeesPage() {
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
         <input
           type="text"
-          placeholder="Поиск по ФИО или должности..."
+          placeholder="Поиск по ФИО, должности или названию службы..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
