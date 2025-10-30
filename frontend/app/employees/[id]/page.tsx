@@ -439,7 +439,7 @@ export default function EmployeePage({ params }: EmployeePageProps) {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         {record.has_exception ? (
-                          <div className="space-y-1">
+                          <div className="flex items-center space-x-2">
                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                               Исключение
                             </span>
