@@ -425,11 +425,31 @@ app.add_middleware(
 )
 
 # Инициализация таблиц при запуске
+
+def create_department_positions_table():
+    """Создает таблицу связей отдел-должность, если её нет"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS department_positions (
+                id SERIAL PRIMARY KEY,
+                department_id INTEGER NOT NULL REFERENCES departments(id),
+                position_id INTEGER NOT NULL REFERENCES positions(id),
+                UNIQUE(department_id, position_id)
+            )
+        """)
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print(f"Ошибка создания таблицы department_positions: {e}")
+
 @app.on_event("startup")
 async def startup_event():
     """Инициализация при запуске приложения"""
     create_employee_exceptions_table()
     create_auth_tables()
+    create_department_positions_table()
     # update_employees_table()  # Функция не определена, убрано для предотвращения ошибки
     create_initial_admin()
 
