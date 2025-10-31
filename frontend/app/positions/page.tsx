@@ -105,15 +105,6 @@ export default function PositionsPage() {
 
   return (
     <div className="container">
-      <div className="mb-6">
-        <input
-          type="text"
-          placeholder="Поиск по названию должности..."
-          value={searchTerm}
-          onChange={e => setSearchTerm(e.target.value)}
-          className="w-full border border-gray-300 rounded-md px-3 py-2"
-        />
-      </div>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Управление должностями</h1>
         <div className="flex gap-2">
@@ -130,6 +121,15 @@ export default function PositionsPage() {
             Добавить должность
           </button>
         </div>
+      </div>
+      <div className="mb-6">
+        <input
+          type="text"
+          placeholder="Поиск по названию должности..."
+          value={searchTerm}
+          onChange={e => setSearchTerm(e.target.value)}
+          className="w-full border border-gray-300 rounded-md px-3 py-2"
+        />
       </div>
 
       {error && (
