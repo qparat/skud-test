@@ -960,12 +960,14 @@ export function EmployeeSchedule() {
                                     {(() => {
                                       // Найти все дни этого сотрудника в диапазоне
                                       const allDays = getDisplayData().filter(e => (e as any).date && e.employee_id === emp.employee_id);
-                                      const lateDays = allDays.filter(d => d.is_late).length;
-                                      const okDays = allDays.filter(d => !d.is_late).length;
+                                      const lateDays = allDays.filter(d => d.is_late && !(d.exception?.has_exception)).length;
+                                      const okDays = allDays.filter(d => !d.is_late && !(d.exception?.has_exception)).length;
+                                      const excDays = allDays.filter(d => d.exception?.has_exception).length;
                                       return (
                                         <>
                                           <span className="bg-green-100 text-green-800 text-xs font-medium px-2 py-0.5 rounded-full">+{okDays}</span>
                                           <span className="bg-red-100 text-red-800 text-xs font-medium px-2 py-0.5 rounded-full ml-1">+{lateDays}</span>
+                                          <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-0.5 rounded-full ml-1">+{excDays}</span>
                                         </>
                                       );
                                     })()}
