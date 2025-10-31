@@ -1,4 +1,5 @@
 from fastapi import Body
+from fastapi import FastAPI
 import os
 import sys
 from fastapi import HTTPException
