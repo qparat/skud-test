@@ -934,8 +934,8 @@ async def get_employee_schedule_range(start_date: str = Query(...), end_date: st
         end_dt = datetime.strptime(end_date, '%Y-%m-%d').date()
         if start_dt > end_dt:
             raise HTTPException(status_code=400, detail="Начальная дата не может быть позже конечной")
-        if (end_dt - start_dt).days > 90:
-            raise HTTPException(status_code=400, detail="Максимальный диапазон - 90 дней (квартал)")
+        if (end_dt - start_dt).days > 365:
+            raise HTTPException(status_code=400, detail="Максимальный диапазон - 365 дней")
 
         conn = get_db_connection()
         cursor = conn.cursor()
