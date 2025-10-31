@@ -126,75 +126,75 @@ export default function ManageEmployeePositionsPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-end bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="w-full max-w-4xl mr-8">
-        <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
-          <div className="p-6 border-b">
-            <div className="flex items-center gap-2 mb-2">
-              <Link href="/positions" className="text-blue-500 hover:underline">
-                ← Должности
-              </Link>
-              <h1 className="text-2xl font-bold ml-2">Управление должностями сотрудников</h1>
-            </div>
-            <p className="text-gray-600 mb-4">Назначайте и изменяйте должности сотрудников</p>
+    <div className="container mx-auto px-4 py-8">
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <div className="flex items-center gap-2 mb-2">
+            <Link href="/positions" className="text-blue-500 hover:underline">
+              ← Должности
+            </Link>
+          </div>
+          <h1 className="text-3xl font-bold">Управление должностями сотрудников</h1>
+          <p className="text-gray-600 mt-2">Назначайте и изменяйте должности сотрудников</p>
+        </div>
+      </div>
+
+      {error && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+          {error}
+        </div>
+      )}
+
+      <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
+        <div className="p-6 border-b">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-semibold">Сотрудники</h2>
+            <span className="text-gray-500 text-sm">
+              Всего: {employees.length}
+            </span>
+          </div>
+
+          <div className="mb-4">
             <input
               type="text"
               placeholder="Поиск по имени, должности или службе..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 mb-4"
+              className="w-full border border-gray-300 rounded-md px-3 py-2"
             />
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="text-left py-3 px-4 font-medium text-gray-700">ID</th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-700">ФИО</th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-700">Текущая должность</th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-700">Служба</th>
-                    <th className="text-right py-3 px-4 font-medium text-gray-700">Действия</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredEmployees.map((employee) => (
-                    <tr key={employee.employee_id} className="border-b hover:bg-gray-50">
-                      <td className="py-3 px-4 text-sm text-gray-600">{employee.employee_id}</td>
-                      <td className="py-3 px-4 font-medium">{employee.full_name}</td>
-                      <td className="py-3 px-4">
-                        {editingEmployee === employee.employee_id ? (
-                          <div>
-                            <input
-                              type="text"
-                              placeholder="Поиск по должности..."
-                              value={positionSearch}
-                              onChange={e => setPositionSearch(e.target.value)}
-                              className="mb-2 w-full border border-gray-300 rounded px-2 py-1"
-                            />
-                            <select
-                              value={selectedPositionId || ''}
-                              onChange={(e) => setSelectedPositionId(e.target.value ? parseInt(e.target.value) : null)}
-                              className="w-full border border-gray-300 rounded px-2 py-1"
-                            >
-                              <option value="">Выберите должность</option>
-                              {filteredPositions.map((position) => (
-                                <option key={position.id} value={position.id}>
-                                  {position.name}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-                        ) : (
-                          <span className="text-blue-600">{employee.position}</span>
-                        )}
-                      </td>
-                      <td className="py-3 px-4 text-gray-600">{employee.department || 'Не назначена'}</td>
-                      <td className="py-3 px-4 text-right">
-                        {editingEmployee === employee.employee_id ? (
-                          <div className="flex gap-2 justify-end">
-                            <button
-                              onClick={updateEmployeePosition}
-                              disabled={!selectedPositionId || updating}
-                              className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm disabled:opacity-50"
+          </div>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="text-left py-3 px-4 font-medium text-gray-700">ID</th>
+                <th className="text-left py-3 px-4 font-medium text-gray-700">ФИО</th>
+                <th className="text-left py-3 px-4 font-medium text-gray-700">Текущая должность</th>
+                <th className="text-left py-3 px-4 font-medium text-gray-700">Служба</th>
+                <th className="text-right py-3 px-4 font-medium text-gray-700">Действия</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredEmployees.map((employee) => (
+                <tr key={employee.employee_id} className="border-b hover:bg-gray-50">
+                  <td className="py-3 px-4 text-sm text-gray-600">{employee.employee_id}</td>
+                  <td className="py-3 px-4 font-medium">{employee.full_name}</td>
+                  <td className="py-3 px-4">
+                    {editingEmployee === employee.employee_id ? (
+                      <div>
+                        <input
+                          type="text"
+                          placeholder="Поиск по должности..."
+                          value={positionSearch}
+                          onChange={e => setPositionSearch(e.target.value)}
+                          className="mb-2 w-full border border-gray-300 rounded px-2 py-1"
+                        />
+                        <select
+                          value={selectedPositionId || ''}
+                          onChange={(e) => setSelectedPositionId(e.target.value ? parseInt(e.target.value) : null)}
+                          className="w-full border border-gray-300 rounded px-2 py-1"
                         >
                           <option value="">Выберите должность</option>
                           {filteredPositions.map((position) => (
