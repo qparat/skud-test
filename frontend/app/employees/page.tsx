@@ -48,7 +48,7 @@ export default function EmployeesPage() {
   }
 
   const handleScheduleClick = () => {
-    router.push('/schedule')
+    router.push('/')
   }
 
   // Фильтрация сотрудников по введенному запросу
