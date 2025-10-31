@@ -29,9 +29,9 @@ export default function LoginForm() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-end bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex items-center justify-end bg-gray-50 py-12 px-4 sm:px-6 lg:px-8 mr-21">
       {/* Картинка слева */}
-      <img src="/SCUD_1.svg" alt="SCUD" className="h-64 w-auto mr-12 hidden lg:block" />
+      <img src="/SCUD_1.svg" alt="SCUD" className="h-100 w-auto mr-20 hidden lg:block" />
       <div className="max-w-md w-full space-y-8">
         <div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
