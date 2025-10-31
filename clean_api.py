@@ -1,3 +1,25 @@
+# Создать таблицу whitelist_departments для бесконечных исключений по отделу
+def create_whitelist_departments_table():
+    """Создает таблицу whitelist_departments для отделов с бесконечным исключением"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS whitelist_departments (
+                id SERIAL PRIMARY KEY,
+                department_id INTEGER NOT NULL REFERENCES departments(id),
+                reason TEXT NOT NULL,
+                exception_type TEXT DEFAULT 'no_lateness_check',
+                is_permanent BOOLEAN DEFAULT TRUE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                created_by TEXT DEFAULT 'system',
+                UNIQUE(department_id)
+            )
+        """)
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print(f"Ошибка создания таблицы whitelist_departments: {e}")
 # Получить все исключения сотрудников
 
 # ...existing code...
@@ -450,6 +472,7 @@ async def startup_event():
     create_employee_exceptions_table()
     create_auth_tables()
     create_department_positions_table()
+    create_whitelist_departments_table()
     # update_employees_table()  # Функция не определена, убрано для предотвращения ошибки
     create_initial_admin()
 
