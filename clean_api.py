@@ -2434,3 +2434,22 @@ async def upload_skud_file(file: UploadFile = File(..., description="СКУД ф
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка загрузки файла: {str(e)}")
+
+def execute_query(conn, query, params=None, fetch_one=False, fetch_all=False):
+    """Выполняет запросы только для PostgreSQL"""
+    query_pg = query.replace('?', '%s')
+    cursor = conn.cursor()
+    cursor.execute(query_pg, params or ())
+    if fetch_one:
+        result = cursor.fetchone()
+        if result:
+            columns = [desc[0] for desc in cursor.description]
+            return dict(zip(columns, result))
+        else:
+            return None
+    elif fetch_all:
+        results = cursor.fetchall()
+        columns = [desc[0] for desc in cursor.description]
+        return [dict(zip(columns, row)) for row in results]
+    else:
+        return cursor
