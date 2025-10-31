@@ -109,7 +109,7 @@ export default function EditDepartmentPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-2xl">
+    <div className="container max-w-2xl">
       <div className="mb-6">
         <div className="flex items-center gap-2 mb-2">
           <Link href="/departments" className="text-blue-500 hover:underline">
