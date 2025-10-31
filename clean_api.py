@@ -1,4 +1,5 @@
 from fastapi import Body
+from fastapi import HTTPException
 import psycopg2
 import psycopg2.extras
 import configparser
@@ -6,101 +7,6 @@ sys.path.append(os.path.join(os.path.dirname(__file__)))
 
 app = FastAPI(title="СКУД API", description="API для системы контроля и управления доступом")
 
-# ================================
-# API для бесконечных исключений службы (whitelist_departments)
-# ================================
-@app.post("/whitelist-departments")
-async def add_whitelist_department(
-    department_id: int = Body(...),
-    reason: str = Body(...),
-    exception_type: str = Body('no_lateness_check'),
-    is_permanent: bool = Body(True),
-    current_user: dict = Depends(get_current_user)
-):
-    """Добавить бесконечное исключение для службы (отдела)"""
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        # Проверяем, есть ли уже исключение
-        cursor.execute("SELECT id FROM whitelist_departments WHERE department_id = %s", (department_id,))
-        exists = cursor.fetchone()
-        if exists:
-            # Обновляем причину и тип
-            cursor.execute("""
-                UPDATE whitelist_departments SET reason = %s, exception_type = %s, is_permanent = %s WHERE department_id = %s
-            """, (reason, exception_type, is_permanent, department_id))
-        else:
-            cursor.execute("""
-                INSERT INTO whitelist_departments (department_id, reason, exception_type, is_permanent)
-                VALUES (%s, %s, %s, %s)
-            """, (department_id, reason, exception_type, is_permanent))
-        conn.commit()
-        conn.close()
-        return {"message": "Исключение для службы добавлено"}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Ошибка добавления исключения: {str(e)}")
-
-@app.delete("/whitelist-departments/{department_id}")
-async def delete_whitelist_department(department_id: int, current_user: dict = Depends(get_current_user)):
-    """Удалить бесконечное исключение для службы (отдела)"""
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("DELETE FROM whitelist_departments WHERE department_id = %s", (department_id,))
-        conn.commit()
-        conn.close()
-        return {"message": "Исключение для службы удалено"}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Ошибка удаления исключения: {str(e)}")
-from fastapi import Body
-...existing code...
-
-# ================================
-# API для бесконечных исключений службы (whitelist_departments)
-# ================================
-@app.post("/whitelist-departments")
-async def add_whitelist_department(
-    department_id: int = Body(...),
-    reason: str = Body(...),
-    exception_type: str = Body('no_lateness_check'),
-    is_permanent: bool = Body(True),
-    current_user: dict = Depends(get_current_user)
-):
-    """Добавить бесконечное исключение для службы (отдела)"""
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        # Проверяем, есть ли уже исключение
-        cursor.execute("SELECT id FROM whitelist_departments WHERE department_id = %s", (department_id,))
-        exists = cursor.fetchone()
-        if exists:
-            # Обновляем причину и тип
-            cursor.execute("""
-                UPDATE whitelist_departments SET reason = %s, exception_type = %s, is_permanent = %s WHERE department_id = %s
-            """, (reason, exception_type, is_permanent, department_id))
-        else:
-            cursor.execute("""
-                INSERT INTO whitelist_departments (department_id, reason, exception_type, is_permanent)
-                VALUES (%s, %s, %s, %s)
-            """, (department_id, reason, exception_type, is_permanent))
-        conn.commit()
-        conn.close()
-        return {"message": "Исключение для службы добавлено"}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Ошибка добавления исключения: {str(e)}")
-
-@app.delete("/whitelist-departments/{department_id}")
-async def delete_whitelist_department(department_id: int, current_user: dict = Depends(get_current_user)):
-    """Удалить бесконечное исключение для службы (отдела)"""
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("DELETE FROM whitelist_departments WHERE department_id = %s", (department_id,))
-        conn.commit()
-        conn.close()
-        return {"message": "Исключение для службы удалено"}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Ошибка удаления исключения: {str(e)}")
 # Создать таблицу whitelist_departments для бесконечных исключений по отделу
 def create_whitelist_departments_table():
     """Создает таблицу whitelist_departments для отделов с бесконечным исключением"""
@@ -461,6 +367,26 @@ def create_initial_admin():
 def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
     # ...existing code...
 
+    user = verify_token(credentials.credentials)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid authentication credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return user
+
+def require_role(min_role: int = 3):
+    """Декоратор для проверки роли пользователя (меньше число = больше прав)"""
+    def decorator(user: dict = Depends(get_current_user)):
+        if user["role"] > min_role:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Insufficient permissions"
+            )
+        return user
+    return decorator
+
 # ================================
 # API для бесконечных исключений службы (whitelist_departments)
 # ================================
@@ -509,95 +435,8 @@ async def delete_whitelist_department(department_id: int, current_user: dict = D
         return {"message": "Исключение для службы удалено"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка удаления исключения: {str(e)}")
-    """Получает текущего пользователя из токена"""
-    user = verify_token(credentials.credentials)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid authentication credentials",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    return user
 
-def require_role(min_role: int = 3):
-    """Декоратор для проверки роли пользователя (меньше число = больше прав)"""
-    def decorator(user: dict = Depends(get_current_user)):
-        if user["role"] > min_role:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Insufficient permissions"
-            )
-        return user
-    return decorator
-
-# Восстанавливаем функцию инициализации таблиц авторизации
-def init_auth_tables():
-    try:
-        conn = get_db_connection()
-        execute_query(conn, """
-            CREATE TABLE IF NOT EXISTS users (
-                id SERIAL PRIMARY KEY,
-                username VARCHAR(50) UNIQUE NOT NULL,
-                email VARCHAR(100) UNIQUE NOT NULL,
-                password_hash VARCHAR(255) NOT NULL,
-                full_name VARCHAR(100),
-                role INTEGER DEFAULT 3,
-                is_active BOOLEAN DEFAULT TRUE,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                last_login TIMESTAMP,
-                created_by INTEGER,
-                FOREIGN KEY (created_by) REFERENCES users (id)
-            )
-        """)
-        execute_query(conn, """
-            CREATE TABLE IF NOT EXISTS roles (
-                id SERIAL PRIMARY KEY,
-                name VARCHAR(50) UNIQUE NOT NULL,
-                description TEXT,
-                permissions TEXT
-            )
-        """)
-        execute_query(conn, """
-            CREATE TABLE IF NOT EXISTS user_sessions (
-                id SERIAL PRIMARY KEY,
-                user_id INTEGER NOT NULL,
-                token_hash TEXT NOT NULL,
-                expires_at TIMESTAMP NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (user_id) REFERENCES users (id)
-            )
-        """)
-        conn.close()
-    except Exception as e:
-        print(f"Ошибка инициализации таблиц авторизации: {e}")
-
-def execute_query(conn, query, params=None, fetch_one=False, fetch_all=False):
-    """Выполняет запросы только для PostgreSQL"""
-    query_pg = query.replace('?', '%s')
-    cursor = conn.cursor()
-    cursor.execute(query_pg, params or ())
-    if fetch_one:
-        result = cursor.fetchone()
-        if result:
-            columns = [desc[0] for desc in cursor.description]
-            return dict(zip(columns, result))
-        else:
-            return None
-    elif fetch_all:
-        results = cursor.fetchall()
-        columns = [desc[0] for desc in cursor.description]
-        return [dict(zip(columns, row)) for row in results]
-    else:
-        return cursor
-
-# CORS middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# ...existing code...
 
 # Инициализация таблиц при запуске
 
