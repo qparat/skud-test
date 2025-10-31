@@ -415,57 +415,66 @@ export default function EmployeePage({ params }: EmployeePageProps) {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {employeeData.daily_records.length > 0 ? (
-                  employeeData.daily_records.map((record, index) => (
-                    <tr
-                      key={`${record.date}-${index}`}
-                      className={record.has_exception 
-                        ? 'bg-blue-50' 
-                        : record.is_late 
-                          ? 'bg-red-50' 
-                          : 'hover:bg-gray-50'
-                      }
-                    >
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {record.date}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {record.first_entry || '-'}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {record.last_exit || '-'}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {record.work_hours ? `${record.work_hours.toFixed(1)} ч` : '-'}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {record.has_exception ? (
-                          <div className="flex items-center space-x-2">
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                              Исключение
-                            </span>
-                            {record.exception_info && (
-                              <div className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-purple-100 text-purple-800" title={record.exception_info.reason}>
-                                {record.exception_info.reason.length > 20 
-                                  ? `🛡️ ${record.exception_info.reason.substring(0, 20)}...`
-                                  : `🛡️ ${record.exception_info.reason}`
-                                }
-                              </div>
-                            )}
-                          </div>
-                        ) : (
-                          <span
-                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                              record.is_late
-                                ? 'bg-red-100 text-red-800'
-                                : 'bg-green-100 text-green-800'
-                            }`}
-                          >
-                            {record.is_late ? 'Опоздал' : 'В норме'}
+                  employeeData.daily_records.map((record, index) => {
+                    // Логика для статуса: если есть исключение, показываем исключение; иначе если опоздал, показываем "Опоздал"; иначе "В норме"
+                    let statusBadge;
+                    if (record.has_exception) {
+                      statusBadge = (
+                        <div className="flex items-center space-x-2">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                            Исключение
                           </span>
-                        )}
-                      </td>
-                    </tr>
-                  ))
+                          {record.exception_info && (
+                            <div className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-purple-100 text-purple-800" title={record.exception_info.reason}>
+                              {record.exception_info.reason.length > 20 
+                                ? `🛡️ ${record.exception_info.reason.substring(0, 20)}...`
+                                : `🛡️ ${record.exception_info.reason}`
+                              }
+                            </div>
+                          )}
+                        </div>
+                      );
+                    } else if (record.is_late) {
+                      statusBadge = (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                          Опоздал
+                        </span>
+                      );
+                    } else {
+                      statusBadge = (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          В норме
+                        </span>
+                      );
+                    }
+                    return (
+                      <tr
+                        key={`${record.date}-${index}`}
+                        className={record.has_exception 
+                          ? 'bg-blue-50' 
+                          : record.is_late 
+                            ? 'bg-red-50' 
+                            : 'hover:bg-gray-50'
+                        }
+                      >
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          {record.date}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {record.first_entry || '-'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {record.last_exit || '-'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {record.work_hours ? `${record.work_hours.toFixed(1)} ч` : '-'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {statusBadge}
+                        </td>
+                      </tr>
+                    );
+                  })
                 ) : (
                   <tr>
                     <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
