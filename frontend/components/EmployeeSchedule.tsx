@@ -958,8 +958,14 @@ export function EmployeeSchedule() {
                                     <ChevronDown className="h-4 w-4" />
                                     {/* Счетчики дней без опозданий и с опозданием */}
                                     {(() => {
-                                      // Найти все дни этого сотрудника в диапазоне (все дни группы)
-                                      const allDays = getDisplayData().filter(e => (e as any).date && e.employee_id === emp.employee_id);
+                                      // Получаем все дни сотрудника из исходных scheduleData.employees
+                                      let allDays: DayData[] = [];
+                                      if (scheduleData && Array.isArray(scheduleData.employees)) {
+                                        const found = (scheduleData.employees as any[]).find(e => e.employee_id === emp.employee_id && Array.isArray(e.days));
+                                        if (found && Array.isArray(found.days)) {
+                                          allDays = found.days;
+                                        }
+                                      }
                                       const lateDays = allDays.filter(d => d.is_late && !(d.exception?.has_exception)).length;
                                       const okDays = allDays.filter(d => !d.is_late && !(d.exception?.has_exception)).length;
                                       const excDays = allDays.filter(d => d.exception?.has_exception).length;
