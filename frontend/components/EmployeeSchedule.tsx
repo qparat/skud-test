@@ -963,7 +963,7 @@ export function EmployeeSchedule() {
                                       if (scheduleData && Array.isArray(scheduleData.employees)) {
                                         const found = (scheduleData.employees as any[]).find(e => e.employee_id === emp.employee_id && Array.isArray(e.days));
                                         if (found && Array.isArray(found.days)) {
-                                          allDays = found.days.filter(d => d.date !== emp.date);
+                                          allDays = found.days.filter((d: DayData) => d.date !== emp.date);
                                         }
                                       }
                                       const lateDays = allDays.filter(d => d.is_late && !(d.exception?.has_exception)).length;
