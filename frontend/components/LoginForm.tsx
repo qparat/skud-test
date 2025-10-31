@@ -30,6 +30,9 @@ export default function LoginForm() {
 
   return (
     <div className="min-h-screen flex items-center justify-end bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <img src="/SCUD_1.svg" alt="SCUD" class="max-h-64 object-contain"></img>  
+    </div>
+    <div className="min-h-screen flex items-center justify-end bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         <div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
