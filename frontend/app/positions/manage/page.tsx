@@ -126,7 +126,7 @@ export default function ManageEmployeePositionsPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container">
       <div className="flex justify-between items-center mb-6">
         <div>
           <div className="flex items-center gap-2 mb-2">
