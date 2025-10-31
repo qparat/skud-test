@@ -1,4 +1,5 @@
 from fastapi import Body
+import os
 import sys
 from fastapi import HTTPException
 import psycopg2
