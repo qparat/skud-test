@@ -22,6 +22,7 @@ export default function ManageEmployeePositionsPage() {
   const [positions, setPositions] = useState<Position[]>([]);
   const [filteredEmployees, setFilteredEmployees] = useState<Employee[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [positionSearch, setPositionSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editingEmployee, setEditingEmployee] = useState<number | null>(null);
@@ -103,12 +104,18 @@ export default function ManageEmployeePositionsPage() {
   const startEditing = (employee: Employee) => {
     setEditingEmployee(employee.employee_id);
     setSelectedPositionId(employee.position_id || null);
+    setPositionSearch('');
   };
 
   const cancelEditing = () => {
     setEditingEmployee(null);
     setSelectedPositionId(null);
+    setPositionSearch('');
   };
+
+  const filteredPositions = positionSearch.trim()
+    ? positions.filter(pos => pos.name.toLowerCase().includes(positionSearch.toLowerCase()))
+    : positions;
 
   if (loading) {
     return (
@@ -176,18 +183,27 @@ export default function ManageEmployeePositionsPage() {
                   <td className="py-3 px-4 font-medium">{employee.full_name}</td>
                   <td className="py-3 px-4">
                     {editingEmployee === employee.employee_id ? (
-                      <select
-                        value={selectedPositionId || ''}
-                        onChange={(e) => setSelectedPositionId(e.target.value ? parseInt(e.target.value) : null)}
-                        className="w-full border border-gray-300 rounded px-2 py-1"
-                      >
-                        <option value="">Выберите должность</option>
-                        {positions.map((position) => (
-                          <option key={position.id} value={position.id}>
-                            {position.name}
-                          </option>
-                        ))}
-                      </select>
+                      <div>
+                        <input
+                          type="text"
+                          placeholder="Поиск по должности..."
+                          value={positionSearch}
+                          onChange={e => setPositionSearch(e.target.value)}
+                          className="mb-2 w-full border border-gray-300 rounded px-2 py-1"
+                        />
+                        <select
+                          value={selectedPositionId || ''}
+                          onChange={(e) => setSelectedPositionId(e.target.value ? parseInt(e.target.value) : null)}
+                          className="w-full border border-gray-300 rounded px-2 py-1"
+                        >
+                          <option value="">Выберите должность</option>
+                          {filteredPositions.map((position) => (
+                            <option key={position.id} value={position.id}>
+                              {position.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
                     ) : (
                       <span className="text-blue-600">{employee.position}</span>
                     )}
