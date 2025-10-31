@@ -995,8 +995,16 @@ async def get_employee_schedule_range(start_date: str = Query(...), end_date: st
         employees_with_days = []
         total_late_count = 0
 
+        # Получаем department_id для всех сотрудников
+        cursor.execute("SELECT id, department_id FROM employees")
+        emp_dept_map = {row[0]: row[1] for row in cursor.fetchall()}
+        # Получаем все whitelist_departments
+        cursor.execute("SELECT department_id, reason, exception_type FROM whitelist_departments")
+        whitelist_map = {row[0]: {'reason': row[1], 'type': row[2]} for row in cursor.fetchall()}
+
         for emp_id, emp_name in employees:
             employee_days = []
+            department_id = emp_dept_map.get(emp_id)
             current_date = start_dt
             while current_date <= end_dt:
                 date_str = current_date.strftime('%Y-%m-%d')
@@ -1021,15 +1029,55 @@ async def get_employee_schedule_range(start_date: str = Query(...), end_date: st
                     last_exit_door = max(exits)[1] if exits else None
                     is_late = False
                     late_minutes = 0
+                    exception_info = None
+                    # Проверяем персональное исключение
+                    cursor.execute("""
+                        SELECT reason, exception_type
+                        FROM employee_exceptions
+                        WHERE employee_id = %s AND exception_date = %s
+                    """, (emp_id, date_str))
+                    exception_data = cursor.fetchone()
+                    department_exception = whitelist_map.get(department_id)
                     if first_entry:
                         entry_time = datetime.strptime(first_entry, '%H:%M:%S').time()
                         work_start = datetime.strptime('09:00:00', '%H:%M:%S').time()
-                        is_late = entry_time > work_start
-                        if is_late:
-                            entry_datetime = datetime.combine(current_date, entry_time)
-                            work_start_datetime = datetime.combine(current_date, work_start)
-                            late_minutes = int((entry_datetime - work_start_datetime).total_seconds() / 60)
-                            total_late_count += 1
+                        if entry_time > work_start:
+                            # Если есть исключение типа "no_lateness_check" у сотрудника или отдела, не помечаем как опоздавшего
+                            if (exception_data and exception_data[1] == 'no_lateness_check') or (department_exception and department_exception['type'] == 'no_lateness_check'):
+                                is_late = False
+                                late_minutes = 0
+                                if exception_data and exception_data[1] == 'no_lateness_check':
+                                    exception_info = {
+                                        'has_exception': True,
+                                        'reason': exception_data[0],
+                                        'type': exception_data[1]
+                                    }
+                                else:
+                                    exception_info = {
+                                        'has_exception': True,
+                                        'reason': department_exception['reason'],
+                                        'type': department_exception['type']
+                                    }
+                            else:
+                                is_late = True
+                                entry_datetime = datetime.combine(current_date, entry_time)
+                                work_start_datetime = datetime.combine(current_date, work_start)
+                                late_minutes = int((entry_datetime - work_start_datetime).total_seconds() / 60)
+                                total_late_count += 1
+                        else:
+                            # Если пришел вовремя, но есть исключение, все равно отмечаем его
+                            if exception_data:
+                                exception_info = {
+                                    'has_exception': True,
+                                    'reason': exception_data[0],
+                                    'type': exception_data[1]
+                                }
+                            elif department_exception:
+                                exception_info = {
+                                    'has_exception': True,
+                                    'reason': department_exception['reason'],
+                                    'type': department_exception['type']
+                                }
                     work_hours = None
                     if first_entry and last_exit:
                         try:
@@ -1040,19 +1088,6 @@ async def get_employee_schedule_range(start_date: str = Query(...), end_date: st
                                 work_hours = work_duration.total_seconds() / 3600
                         except Exception:
                             pass
-                    cursor.execute("""
-                        SELECT reason, exception_type
-                        FROM employee_exceptions
-                        WHERE employee_id = %s AND exception_date = %s
-                    """, (emp_id, date_str))
-                    exception_data = cursor.fetchone()
-                    exception_info = None
-                    if exception_data:
-                        exception_info = {
-                            'has_exception': True,
-                            'reason': exception_data[0],
-                            'type': exception_data[1]
-                        }
                     status = get_employee_status(is_late, first_entry, exception_info)
                     day_data = {
                         'date': date_str,
