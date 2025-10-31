@@ -195,63 +195,44 @@ export default function ManageEmployeePositionsPage() {
                               onClick={updateEmployeePosition}
                               disabled={!selectedPositionId || updating}
                               className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm disabled:opacity-50"
-                        >
-                          <option value="">Выберите должность</option>
-                          {filteredPositions.map((position) => (
-                            <option key={position.id} value={position.id}>
-                              {position.name}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    ) : (
-                      <span className="text-blue-600">{employee.position}</span>
-                    )}
-                  </td>
-                  <td className="py-3 px-4 text-gray-600">{employee.department || 'Не назначена'}</td>
-                  <td className="py-3 px-4 text-right">
-                    {editingEmployee === employee.employee_id ? (
-                      <div className="flex gap-2 justify-end">
-                        <button
-                          onClick={updateEmployeePosition}
-                          disabled={!selectedPositionId || updating}
-                          className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm disabled:opacity-50"
-                        >
-                          {updating ? 'Сохранение...' : 'Сохранить'}
-                        </button>
-                        <button
-                          onClick={cancelEditing}
-                          disabled={updating}
-                          className="bg-gray-500 hover:bg-gray-600 text-white px-3 py-1 rounded text-sm"
-                        >
-                          Отмена
-                        </button>
-                      </div>
-                    ) : (
-                      <button
-                        onClick={() => startEditing(employee)}
-                        className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm"
-                      >
-                        Изменить должность
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                            >
+                              {updating ? 'Сохранение...' : 'Сохранить'}
+                            </button>
+                            <button
+                              onClick={cancelEditing}
+                              disabled={updating}
+                              className="bg-gray-500 hover:bg-gray-600 text-white px-3 py-1 rounded text-sm"
+                            >
+                              Отмена
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => startEditing(employee)}
+                            className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm"
+                          >
+                            Изменить должность
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
 
-          {filteredEmployees.length === 0 && employees.length > 0 && (
-            <div className="text-center py-12">
-              <p className="text-gray-500">По запросу "{searchTerm}" ничего не найдено</p>
-            </div>
-          )}
+              {filteredEmployees.length === 0 && employees.length > 0 && (
+                <div className="text-center py-12">
+                  <p className="text-gray-500">По запросу "{searchTerm}" ничего не найдено</p>
+                </div>
+              )}
 
-          {employees.length === 0 && (
-            <div className="text-center py-12">
-              <p className="text-gray-500 text-lg">Сотрудники не найдены</p>
+              {employees.length === 0 && (
+                <div className="text-center py-12">
+                  <p className="text-gray-500 text-lg">Сотрудники не найдены</p>
+                </div>
+              )}
             </div>
-          )}
+          </div>
         </div>
       </div>
     </div>
