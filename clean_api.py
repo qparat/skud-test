@@ -804,11 +804,11 @@ async def get_employee_schedule(date: Optional[str] = Query(None), current_user:
         
         conn = get_db_connection()
         
-        # Быстрый запрос - получаем все записи за день одним запросом с JOIN к таблице employees
+        # Получаем все записи за день с JOIN к таблице employees и department_id
         all_logs = execute_query(
             conn,
             """
-            SELECT al.employee_id, e.full_name, CAST(al.access_datetime AS TIME) as access_time, al.door_location
+            SELECT al.employee_id, e.full_name, e.department_id, CAST(al.access_datetime AS TIME) as access_time, al.door_location
             FROM access_logs al
             JOIN employees e ON al.employee_id = e.id
             WHERE DATE(al.access_datetime) = %s
@@ -818,12 +818,21 @@ async def get_employee_schedule(date: Optional[str] = Query(None), current_user:
             (date,),
             fetch_all=True
         )
-        
+
+        # Получаем все whitelist_departments для быстрого доступа
+        whitelist_rows = execute_query(
+            conn,
+            "SELECT department_id, reason, exception_type FROM whitelist_departments",
+            fetch_all=True
+        )
+        whitelist_map = {row['department_id']: {'reason': row['reason'], 'type': row['exception_type']} for row in whitelist_rows}
+
         # Группируем по сотрудникам
         employees_dict = {}
         for log in all_logs:
             employee_id = log['employee_id']
             full_name = log['full_name']
+            department_id = log['department_id']
             access_time = log['access_time']
             door_location = log['door_location']
             
@@ -831,6 +840,7 @@ async def get_employee_schedule(date: Optional[str] = Query(None), current_user:
                 employees_dict[employee_id] = {
                     'id': employee_id,
                     'name': full_name,
+                    'department_id': department_id,
                     'entries': [],
                     'exits': []
                 }
@@ -869,23 +879,31 @@ async def get_employee_schedule(date: Optional[str] = Query(None), current_user:
             is_late = False
             late_minutes = 0
             exception_info = None
-            
             # Проверяем наличие исключения для этого сотрудника на эту дату
             employee_exception = exceptions_for_date.get(emp_data['id'])
-            
+            department_exception = whitelist_map.get(emp_data['department_id'])
+
             if first_entry:
                 try:
                     entry_time = datetime.strptime(first_entry, '%H:%M:%S').time()
                     if entry_time > work_start_time:
-                        # Если есть исключение типа "no_lateness_check", не помечаем как опоздавшего
-                        if employee_exception and employee_exception['type'] == 'no_lateness_check':
+                        # Если есть исключение типа "no_lateness_check" у сотрудника или отдела, не помечаем как опоздавшего
+                        if (employee_exception and employee_exception['type'] == 'no_lateness_check') or (department_exception and department_exception['type'] == 'no_lateness_check'):
                             is_late = False
                             late_minutes = 0
-                            exception_info = {
-                                'has_exception': True,
-                                'reason': employee_exception['reason'],
-                                'type': employee_exception['type']
-                            }
+                            # Приоритет: персональное исключение, иначе от отдела
+                            if employee_exception and employee_exception['type'] == 'no_lateness_check':
+                                exception_info = {
+                                    'has_exception': True,
+                                    'reason': employee_exception['reason'],
+                                    'type': employee_exception['type']
+                                }
+                            else:
+                                exception_info = {
+                                    'has_exception': True,
+                                    'reason': department_exception['reason'],
+                                    'type': department_exception['type']
+                                }
                         else:
                             is_late = True
                             entry_datetime = datetime.combine(datetime.today().date(), entry_time)
@@ -898,6 +916,12 @@ async def get_employee_schedule(date: Optional[str] = Query(None), current_user:
                                 'has_exception': True,
                                 'reason': employee_exception['reason'],
                                 'type': employee_exception['type']
+                            }
+                        elif department_exception:
+                            exception_info = {
+                                'has_exception': True,
+                                'reason': department_exception['reason'],
+                                'type': department_exception['type']
                             }
                 except:
                     pass
