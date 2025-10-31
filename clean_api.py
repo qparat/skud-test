@@ -1,8 +1,63 @@
+from fastapi import Body
+import psycopg2
+import psycopg2.extras
+import configparser
+sys.path.append(os.path.join(os.path.dirname(__file__)))
+
+app = FastAPI(title="СКУД API", description="API для системы контроля и управления доступом")
+
 # ================================
 # API для бесконечных исключений службы (whitelist_departments)
 # ================================
-from fastapi import Body
+@app.post("/whitelist-departments")
+async def add_whitelist_department(
+    department_id: int = Body(...),
+    reason: str = Body(...),
+    exception_type: str = Body('no_lateness_check'),
+    is_permanent: bool = Body(True),
+    current_user: dict = Depends(get_current_user)
+):
+    """Добавить бесконечное исключение для службы (отдела)"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        # Проверяем, есть ли уже исключение
+        cursor.execute("SELECT id FROM whitelist_departments WHERE department_id = %s", (department_id,))
+        exists = cursor.fetchone()
+        if exists:
+            # Обновляем причину и тип
+            cursor.execute("""
+                UPDATE whitelist_departments SET reason = %s, exception_type = %s, is_permanent = %s WHERE department_id = %s
+            """, (reason, exception_type, is_permanent, department_id))
+        else:
+            cursor.execute("""
+                INSERT INTO whitelist_departments (department_id, reason, exception_type, is_permanent)
+                VALUES (%s, %s, %s, %s)
+            """, (department_id, reason, exception_type, is_permanent))
+        conn.commit()
+        conn.close()
+        return {"message": "Исключение для службы добавлено"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка добавления исключения: {str(e)}")
 
+@app.delete("/whitelist-departments/{department_id}")
+async def delete_whitelist_department(department_id: int, current_user: dict = Depends(get_current_user)):
+    """Удалить бесконечное исключение для службы (отдела)"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM whitelist_departments WHERE department_id = %s", (department_id,))
+        conn.commit()
+        conn.close()
+        return {"message": "Исключение для службы удалено"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка удаления исключения: {str(e)}")
+from fastapi import Body
+...existing code...
+
+# ================================
+# API для бесконечных исключений службы (whitelist_departments)
+# ================================
 @app.post("/whitelist-departments")
 async def add_whitelist_department(
     department_id: int = Body(...),
@@ -404,6 +459,56 @@ def create_initial_admin():
         return False
 
 def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    # ...existing code...
+
+# ================================
+# API для бесконечных исключений службы (whitelist_departments)
+# ================================
+from fastapi import Body
+
+@app.post("/whitelist-departments")
+async def add_whitelist_department(
+    department_id: int = Body(...),
+    reason: str = Body(...),
+    exception_type: str = Body('no_lateness_check'),
+    is_permanent: bool = Body(True),
+    current_user: dict = Depends(get_current_user)
+):
+    """Добавить бесконечное исключение для службы (отдела)"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        # Проверяем, есть ли уже исключение
+        cursor.execute("SELECT id FROM whitelist_departments WHERE department_id = %s", (department_id,))
+        exists = cursor.fetchone()
+        if exists:
+            # Обновляем причину и тип
+            cursor.execute("""
+                UPDATE whitelist_departments SET reason = %s, exception_type = %s, is_permanent = %s WHERE department_id = %s
+            """, (reason, exception_type, is_permanent, department_id))
+        else:
+            cursor.execute("""
+                INSERT INTO whitelist_departments (department_id, reason, exception_type, is_permanent)
+                VALUES (%s, %s, %s, %s)
+            """, (department_id, reason, exception_type, is_permanent))
+        conn.commit()
+        conn.close()
+        return {"message": "Исключение для службы добавлено"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка добавления исключения: {str(e)}")
+
+@app.delete("/whitelist-departments/{department_id}")
+async def delete_whitelist_department(department_id: int, current_user: dict = Depends(get_current_user)):
+    """Удалить бесконечное исключение для службы (отдела)"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM whitelist_departments WHERE department_id = %s", (department_id,))
+        conn.commit()
+        conn.close()
+        return {"message": "Исключение для службы удалено"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка удаления исключения: {str(e)}")
     """Получает текущего пользователя из токена"""
     user = verify_token(credentials.credentials)
     if not user:
