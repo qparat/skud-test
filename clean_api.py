@@ -1157,6 +1157,17 @@ async def get_employee_history(
                 daily_data[access_date]['exits'].append((access_time, door_location))
             else:
                 daily_data[access_date]['entries'].append((access_time, door_location))
+
+        # Получаем department_id сотрудника
+        cursor.execute("SELECT department_id FROM employees WHERE id = %s", (employee_id,))
+        dept_row = cursor.fetchone()
+        department_id = dept_row[0] if dept_row else None
+
+        # Получаем whitelist_departments
+        cursor.execute("SELECT department_id, reason, exception_type FROM whitelist_departments")
+        whitelist_map = {row[0]: {'reason': row[1], 'exception_type': row[2]} for row in cursor.fetchall()}
+
+        # Получаем персональные исключения
         cursor.execute("""
             SELECT exception_date, reason, exception_type
             FROM employee_exceptions 
@@ -1178,8 +1189,24 @@ async def get_employee_history(
             day_data = daily_data[date_str]
             first_entry = min(day_data['entries'])[0] if day_data['entries'] else None
             last_exit = max(day_data['exits'])[0] if day_data['exits'] else None
-            has_exception = date_str in exceptions_data
-            exception_info = exceptions_data.get(date_str, None)
+            # Проверяем персональное исключение
+            has_personal_exception = date_str in exceptions_data
+            personal_exception_info = exceptions_data.get(date_str, None)
+            # Проверяем whitelist исключение отдела
+            dept_exception_info = whitelist_map.get(department_id)
+            has_dept_exception = dept_exception_info is not None
+
+            # Если есть персональное исключение, оно приоритетнее
+            if has_personal_exception:
+                has_exception = True
+                exception_info = personal_exception_info
+            elif has_dept_exception:
+                has_exception = True
+                exception_info = dept_exception_info
+            else:
+                has_exception = False
+                exception_info = None
+
             is_late = False
             if first_entry and not has_exception:
                 try:
