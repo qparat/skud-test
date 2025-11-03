@@ -38,6 +38,8 @@ body {
 .img_login {
     width: 100%;
     height: 100vh;
+    justify-items: center;
+    align-content: center;
 }
 
 .img_login img {
@@ -48,10 +50,12 @@ body {
 .login_2.container {
     display: grid;
     align-items: center;
+    justify-items: center;
 }
 
 form.form_login {
-    max-width: 300px;
+    max-width: 350px;
+    width: 350px;
 }
 @media (min-width: 1920px) {
   .w-84 {
