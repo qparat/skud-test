@@ -36,7 +36,7 @@ export default function LoginForm() {
             </div>
       <div className="login_2 container">
         <form className="form_login" onSubmit={handleSubmit}>
-          <div>
+        <div className="title_login_for">
           <h2 className="title_login">
             Вход
           </h2>
