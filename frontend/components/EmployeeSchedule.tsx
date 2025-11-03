@@ -944,43 +944,6 @@ export function EmployeeSchedule() {
                             ) : (
                               <span className="text-gray-400 text-sm">↳</span>
                             )}
-                            
-                            {hasExpandButton && (
-                              <button
-                                onClick={() => toggleEmployeeExpanded(emp.employee_id)}
-                                className="ml-2 p-1 text-gray-400 hover:text-gray-600 focus:outline-none"
-                                title={isExpanded ? 'Свернуть' : `Показать еще ${emp.totalInGroup - 1} дней`}
-                              >
-                                {isExpanded ? (
-                                  <ChevronUp className="h-4 w-4" />
-                                ) : (
-                                  <div className="flex items-center space-x-1">
-                                    <ChevronDown className="h-4 w-4" />
-                                    {/* Счетчики дней без опозданий и с опозданием */}
-                                    {(() => {
-                                      // Получаем все дни сотрудника из исходных scheduleData.employees
-                                      let allDays: DayData[] = [];
-                                      if (scheduleData && Array.isArray(scheduleData.employees)) {
-                                        const found = (scheduleData.employees as any[]).find(e => e.employee_id === emp.employee_id && Array.isArray(e.days));
-                                        if (found && Array.isArray(found.days)) {
-                                          allDays = found.days.filter((d: DayData) => d.date !== emp.date);
-                                        }
-                                      }
-                                      const lateDays = allDays.filter(d => d.is_late && !(d.exception?.has_exception)).length;
-                                      const okDays = allDays.filter(d => !d.is_late && !(d.exception?.has_exception)).length;
-                                      const excDays = allDays.filter(d => d.exception?.has_exception).length;
-                                      return (
-                                        <>
-                                          <span className="bg-green-100 text-green-800 text-xs font-medium px-2 py-0.5 rounded-full">+{okDays}</span>
-                                          <span className="bg-red-100 text-red-800 text-xs font-medium px-2 py-0.5 rounded-full ml-1">+{lateDays}</span>
-                                          <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-0.5 rounded-full ml-1">+{excDays}</span>
-                                        </>
-                                      );
-                                    })()}
-                                  </div>
-                                )}
-                              </button>
-                            )}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
@@ -1042,6 +1005,42 @@ export function EmployeeSchedule() {
                             )}
                           </div>
                         </td>
+                        {hasExpandButton && (
+                              <button
+                                onClick={() => toggleEmployeeExpanded(emp.employee_id)}
+                                className="ml-2 p-1 text-gray-400 hover:text-gray-600 focus:outline-none"
+                                title={isExpanded ? 'Свернуть' : `Показать еще ${emp.totalInGroup - 1} дней`}
+                              >
+                                {isExpanded ? (
+                                  <ChevronUp className="h-4 w-4" />
+                                ) : (
+                                  <div className="flex items-center space-x-1">
+                                    <ChevronDown className="h-4 w-4" />
+                                    {/* Счетчики дней без опозданий и с опозданием */}
+                                    {(() => {
+                                      // Получаем все дни сотрудника из исходных scheduleData.employees
+                                      let allDays: DayData[] = [];
+                                      if (scheduleData && Array.isArray(scheduleData.employees)) {
+                                        const found = (scheduleData.employees as any[]).find(e => e.employee_id === emp.employee_id && Array.isArray(e.days));
+                                        if (found && Array.isArray(found.days)) {
+                                          allDays = found.days.filter((d: DayData) => d.date !== emp.date);
+                                        }
+                                      }
+                                      const lateDays = allDays.filter(d => d.is_late && !(d.exception?.has_exception)).length;
+                                      const okDays = allDays.filter(d => !d.is_late && !(d.exception?.has_exception)).length;
+                                      const excDays = allDays.filter(d => d.exception?.has_exception).length;
+                                      return (
+                                        <>
+                                          <span className="bg-green-100 text-green-800 text-xs font-medium px-2 py-0.5 rounded-full">+{okDays}</span>
+                                          <span className="bg-red-100 text-red-800 text-xs font-medium px-2 py-0.5 rounded-full ml-1">+{lateDays}</span>
+                                          <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-0.5 rounded-full ml-1">+{excDays}</span>
+                                        </>
+                                      );
+                                    })()}
+                                  </div>
+                                )}
+                              </button>
+                            )}
                       </tr>
                     )
                   }
