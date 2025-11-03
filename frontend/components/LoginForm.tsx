@@ -42,10 +42,9 @@ export default function LoginForm() {
             <div className="shape shape8"></div>
           </div>
           <div className="content">
-            <h1>Welcome to website</h1>
+            <h1>Welcome</h1>
             <p>
-              Lorem ipsum dolor sit amet, consectetuer adipiscing elit, sed diam nonummy nibh euismod 
-              tincidunt ut laoreet dolore magna aliquam erat volutpat.
+            
             </p>
           </div>
         </div>
