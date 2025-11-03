@@ -1005,7 +1005,9 @@ export function EmployeeSchedule() {
                             )}
                           </div>
                         </td>
-                        {hasExpandButton && (
+                            <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center justify-between">
+                            {hasExpandButton && (
                               <button
                                 onClick={() => toggleEmployeeExpanded(emp.employee_id)}
                                 className="ml-2 p-1 text-gray-400 hover:text-gray-600 focus:outline-none"
@@ -1041,6 +1043,8 @@ export function EmployeeSchedule() {
                                 )}
                               </button>
                             )}
+                          </div>
+                        </td>
                       </tr>
                     )
                   }
