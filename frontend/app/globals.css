@@ -30,6 +30,29 @@ body {
 .w-84 {
   width: 20rem !important;
 }
+.login {
+    display: flex;
+    justify-content: space-between;
+}
+
+.img_login {
+    width: 100%;
+    height: 100vh;
+}
+
+.img_login img {
+    width: 100%;
+    height: 100%;
+}
+
+.login_2.container {
+    display: grid;
+    align-items: center;
+}
+
+form.form_login {
+    max-width: 300px;
+}
 @media (min-width: 1920px) {
   .w-84 {
     width: 27rem;

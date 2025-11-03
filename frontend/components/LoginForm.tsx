@@ -34,13 +34,13 @@ export default function LoginForm() {
     <div className="img_login">
       <img src="/SCUD_1.svg" alt="SCUD" className="h-100 w-auto mr-20 hidden lg:block" />
             </div>
-      <div className="login_2">
-        <div>
+      <div className="login_2 container">
+        <form className="form_login" onSubmit={handleSubmit}>
+          <div>
           <h2 className="title_login">
             Вход
           </h2>
         </div>
-        <form className="form_login" onSubmit={handleSubmit}>
           <div className="rounded-md shadow-sm -space-y-px">
             <div>
               <label htmlFor="username" className="sr-only">
