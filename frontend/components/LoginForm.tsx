@@ -35,7 +35,32 @@ export default function LoginForm() {
       <img src="/SCUD_1.svg" alt="SCUD" className="h-100 w-auto mr-20 hidden lg:block" />
             </div>
       <div className="login_2 container">
-        <form className="form_login" onSubmit={handleSubmit}>
+      </div>
+    </div>
+
+    <div className="container">
+        <div className="left-section">
+          <div className="decorative-shapes">
+            <div className="shape shape1"></div>
+            <div className="shape shape2"></div>
+            <div className="shape shape3"></div>
+            <div className="shape shape4"></div>
+            <div className="shape shape5"></div>
+            <div className="shape shape6"></div>
+            <div className="shape shape7"></div>
+            <div className="shape shape8"></div>
+          </div>
+          <div className="content">
+            <h1>Welcome to website</h1>
+            <p>
+              Lorem ipsum dolor sit amet, consectetuer adipiscing elit, sed diam nonummy nibh euismod 
+              tincidunt ut laoreet dolore magna aliquam erat volutpat.
+            </p>
+          </div>
+        </div>
+
+        <div className="right-section">
+          <form className="form_login" onSubmit={handleSubmit}>
           <div>
           <h2 className="title_login">
             Вход
@@ -94,7 +119,7 @@ export default function LoginForm() {
             </button>
           </div>
         </form>
+        </div>
       </div>
-    </div>
   )
 }
