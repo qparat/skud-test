@@ -884,7 +884,11 @@ async def get_employee_schedule(date: Optional[str] = Query(None), current_user:
 
             if first_entry:
                 try:
-                    entry_time = datetime.strptime(first_entry, '%H:%M:%S').time()
+                    # Если first_entry уже типа datetime.time, используем напрямую, иначе парсим
+                    if isinstance(first_entry, str):
+                        entry_time = datetime.strptime(first_entry, '%H:%M:%S').time()
+                    else:
+                        entry_time = first_entry
                     # Проверяем исключения
                     if (employee_exception and employee_exception['type'] == 'no_lateness_check'):
                         exception_info = {
