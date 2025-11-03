@@ -870,47 +870,42 @@ async def get_employee_schedule(date: Optional[str] = Query(None), current_user:
             # Первый вход
             first_entry = min(emp_data['entries'])[0] if emp_data['entries'] else None
             entry_door = min(emp_data['entries'])[1] if emp_data['entries'] else None
-            
+
             # Последний выход
             last_exit = max(emp_data['exits'])[0] if emp_data['exits'] else None
             exit_door = max(emp_data['exits'])[1] if emp_data['exits'] else None
-            
+
             # Определяем опоздание с учетом исключений
             is_late = False
             late_minutes = 0
             exception_info = None
-            # Проверяем наличие исключения для этого сотрудника на эту дату
             employee_exception = exceptions_for_date.get(emp_data['id'])
             department_exception = whitelist_map.get(emp_data['department_id'])
 
             if first_entry:
                 try:
                     entry_time = datetime.strptime(first_entry, '%H:%M:%S').time()
-                    if entry_time > work_start_time:
-                        # Если есть исключение типа "no_lateness_check" у сотрудника или отдела, не помечаем как опоздавшего
-                        if (employee_exception and employee_exception['type'] == 'no_lateness_check') or (department_exception and department_exception['type'] == 'no_lateness_check'):
-                            is_late = False
-                            late_minutes = 0
-                            # Приоритет: персональное исключение, иначе от отдела
-                            if employee_exception and employee_exception['type'] == 'no_lateness_check':
-                                exception_info = {
-                                    'has_exception': True,
-                                    'reason': employee_exception['reason'],
-                                    'type': employee_exception['type']
-                                }
-                            else:
-                                exception_info = {
-                                    'has_exception': True,
-                                    'reason': department_exception['reason'],
-                                    'type': department_exception['type']
-                                }
-                        else:
+                    # Проверяем исключения
+                    if (employee_exception and employee_exception['type'] == 'no_lateness_check'):
+                        exception_info = {
+                            'has_exception': True,
+                            'reason': employee_exception['reason'],
+                            'type': employee_exception['type']
+                        }
+                    elif (department_exception and department_exception['type'] == 'no_lateness_check'):
+                        exception_info = {
+                            'has_exception': True,
+                            'reason': department_exception['reason'],
+                            'type': department_exception['type']
+                        }
+                    if not exception_info:
+                        if entry_time > work_start_time:
                             is_late = True
                             entry_datetime = datetime.combine(datetime.today().date(), entry_time)
                             work_start_datetime = datetime.combine(datetime.today().date(), work_start_time)
                             late_minutes = int((entry_datetime - work_start_datetime).total_seconds() / 60)
-                    else:
-                        # Если пришел вовремя, но есть исключение, все равно отмечаем его
+                    # Если пришел вовремя, но есть исключение (любого типа), показываем причину
+                    if entry_time <= work_start_time:
                         if employee_exception:
                             exception_info = {
                                 'has_exception': True,
@@ -923,7 +918,7 @@ async def get_employee_schedule(date: Optional[str] = Query(None), current_user:
                                 'reason': department_exception['reason'],
                                 'type': department_exception['type']
                             }
-                except:
+                except Exception:
                     pass
 
             # Вычисляем рабочие часы
