@@ -1017,8 +1017,7 @@ export function EmployeeSchedule() {
                                   <ChevronUp className="h-4 w-4" />
                                 ) : (
                                   <div className="flex items-center space-x-1">
-                                    <ChevronDown className="h-4 w-4" />
-                                    {/* Счетчики дней без опозданий и с опозданием */}
+                                    {/* Счетчики дней без опозданий, с опозданием и с исключением */}
                                     {(() => {
                                       // Получаем все дни сотрудника из исходных scheduleData.employees
                                       let allDays: DayData[] = [];
@@ -1036,6 +1035,7 @@ export function EmployeeSchedule() {
                                           <span className="bg-green-100 text-green-800 text-xs font-medium px-2 py-0.5 rounded-full">+{okDays}</span>
                                           <span className="bg-red-100 text-red-800 text-xs font-medium px-2 py-0.5 rounded-full ml-1">+{lateDays}</span>
                                           <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-0.5 rounded-full ml-1">+{excDays}</span>
+                                          <ChevronDown className="h-4 w-4 ml-2" />
                                         </>
                                       );
                                     })()}
