@@ -29,16 +29,18 @@ export default function LoginForm() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-end bg-gray-50 py-12 px-4 sm:px-6 lg:px-8 mr-21">
+    <div className="login">
       {/* Картинка слева */}
+    <div className="img_login">
       <img src="/SCUD_1.svg" alt="SCUD" className="h-100 w-auto mr-20 hidden lg:block" />
-      <div className="max-w-md w-full space-y-8">
+            </div>
+      <div className="login_2">
         <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+          <h2 className="title_login">
             Вход
           </h2>
         </div>
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+        <form className="form_login" onSubmit={handleSubmit}>
           <div className="rounded-md shadow-sm -space-y-px">
             <div>
               <label htmlFor="username" className="sr-only">
