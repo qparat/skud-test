@@ -104,7 +104,7 @@ export default function PositionsPage() {
   }
 
   return (
-    <div className="container">
+    <div className="space-y-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Управление должностями</h1>
         <div className="flex gap-2">
