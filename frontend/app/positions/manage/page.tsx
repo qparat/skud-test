@@ -38,7 +38,7 @@ export default function ManageEmployeePositionsPage() {
       const filtered = employees.filter(employee =>
         employee.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         employee.position.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (employee.department && employee.department.toLowerCase().includes(searchTerm.toLowerCase()))
+        (employee.department_name && employee.department_name.toLowerCase().includes(searchTerm.toLowerCase()))
       );
       setFilteredEmployees(filtered);
     } else {
