@@ -1035,7 +1035,7 @@ export function EmployeeSchedule() {
                                           {/* <span className="bg-green-100 text-green-800 text-xs font-medium px-2 py-0.5 rounded-full">+{okDays}</span>
                                           <span className="bg-red-100 text-red-800 text-xs font-medium px-2 py-0.5 rounded-full ml-1">+{lateDays}</span>
                                           <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-0.5 rounded-full ml-1">+{excDays}</span> */}
-                                          <div className="flex items-center text-xs text-gray-500">Элементов: {allDays.length}</div>
+                                          <div className="flex items-center text-xs text-gray-500">Элементов: {found.days.length}</div>
 
                                           <ChevronDown className="h-4 w-4 ml-2" />
                                         </>
