@@ -29,7 +29,16 @@ export default function LoginForm() {
   }
 
   return (
+    <div>
       <div className="login">
+        {/* Картинка слева */}
+        <div className="img_login">
+          <img src="/SCUD_1.svg" alt="SCUD" className="h-100 w-auto mr-20 hidden lg:block" />
+        </div>
+        <div className="login_2 container">
+        </div>
+      </div>
+
       <div className="container">
         <div className="left-section">
           <div className="decorative-shapes">
