@@ -29,7 +29,6 @@ export default function LoginForm() {
   }
 
   return (
-      <div className="login">
       <div className="container">
         <div className="left-section">
           <div className="decorative-shapes">
@@ -115,6 +114,5 @@ export default function LoginForm() {
           </form>
         </div>
       </div>
-    </div>
   )
 }
