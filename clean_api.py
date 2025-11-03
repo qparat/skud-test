@@ -904,6 +904,11 @@ async def get_employee_schedule(date: Optional[str] = Query(None), current_user:
                             entry_datetime = datetime.combine(datetime.today().date(), entry_time)
                             work_start_datetime = datetime.combine(datetime.today().date(), work_start_time)
                             late_minutes = int((entry_datetime - work_start_datetime).total_seconds() / 60)
+                            print(f"[DEBUG] {emp_data['name']} (ID: {emp_data['id']}) пришёл в {first_entry} > 09:00:00 => is_late=True, late_minutes={late_minutes}")
+                        else:
+                            print(f"[DEBUG] {emp_data['name']} (ID: {emp_data['id']}) пришёл в {first_entry} <= 09:00:00 => is_late=False")
+                    else:
+                        print(f"[DEBUG] {emp_data['name']} (ID: {emp_data['id']}) исключение: {exception_info}")
                     # Если пришел вовремя, но есть исключение (любого типа), показываем причину
                     if entry_time <= work_start_time:
                         if employee_exception:
@@ -918,8 +923,8 @@ async def get_employee_schedule(date: Optional[str] = Query(None), current_user:
                                 'reason': department_exception['reason'],
                                 'type': department_exception['type']
                             }
-                except Exception:
-                    pass
+                except Exception as ex:
+                    print(f"[ERROR] Ошибка расчёта опоздания для {emp_data['name']} (ID: {emp_data['id']}): {ex}")
 
             # Вычисляем рабочие часы
             work_hours = None
