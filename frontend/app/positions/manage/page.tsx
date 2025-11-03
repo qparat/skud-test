@@ -8,7 +8,7 @@ interface Employee {
   employee_id: number;
   full_name: string;
   position: string;
-  department?: string;
+  department_name?: string;
   position_id?: number;
 }
 
@@ -56,16 +56,18 @@ export default function ManageEmployeePositionsPage() {
       let allEmployees: Employee[] = [];
       if (employeesData.departments) {
         // Обрабатываем формат {departments: {dept1: [employees], dept2: [employees]}}
-        Object.values(employeesData.departments).forEach((deptEmployees: any) => {
+        Object.entries(employeesData.departments).forEach(([deptName, deptEmployees]: [string, any]) => {
           if (Array.isArray(deptEmployees)) {
-            allEmployees = allEmployees.concat(deptEmployees);
+            // Проставляем department_name для каждого сотрудника
+            allEmployees = allEmployees.concat(
+              deptEmployees.map((emp: any) => ({ ...emp, department_name: deptName }))
+            );
           }
         });
       } else if (Array.isArray(employeesData)) {
         // Обрабатываем простой массив сотрудников
         allEmployees = employeesData;
       }
-      
       setEmployees(allEmployees);
 
       const positionsData = await apiRequest('/positions');
@@ -208,7 +210,7 @@ export default function ManageEmployeePositionsPage() {
                       <span className="text-blue-600">{employee.position}</span>
                     )}
                   </td>
-                  <td className="py-3 px-4 text-gray-600">{employee.department || 'Не назначена'}</td>
+                  <td className="py-3 px-4 text-gray-600">{employee.department_name || 'Не назначена'}</td>
                   <td className="py-3 px-4 text-right">
                     {editingEmployee === employee.employee_id ? (
                       <div className="flex gap-2 justify-end">
