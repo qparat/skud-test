@@ -1021,10 +1021,12 @@ export function EmployeeSchedule() {
                                     {(() => {
                                       // Получаем все дни сотрудника из исходных scheduleData.employees
                                       let allDays: DayData[] = [];
+                                      let totalDays = 0;
                                       if (scheduleData && Array.isArray(scheduleData.employees)) {
                                         const found = (scheduleData.employees as any[]).find(e => e.employee_id === emp.employee_id && Array.isArray(e.days));
                                         if (found && Array.isArray(found.days)) {
                                           allDays = found.days.filter((d: DayData) => d.date !== emp.date);
+                                          totalDays = found.days.length;
                                         }
                                       }
                                       const lateDays = allDays.filter(d => d.is_late && !(d.exception?.has_exception)).length;
@@ -1035,7 +1037,7 @@ export function EmployeeSchedule() {
                                           {/* <span className="bg-green-100 text-green-800 text-xs font-medium px-2 py-0.5 rounded-full">+{okDays}</span>
                                           <span className="bg-red-100 text-red-800 text-xs font-medium px-2 py-0.5 rounded-full ml-1">+{lateDays}</span>
                                           <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-0.5 rounded-full ml-1">+{excDays}</span> */}
-                                          <div className="flex items-center text-xs text-gray-500">Элементов: {found.days.length}</div>
+                                          <div className="flex items-center text-xs text-gray-500">Элементов: {totalDays}</div>
 
                                           <ChevronDown className="h-4 w-4 ml-2" />
                                         </>
