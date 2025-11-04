@@ -709,21 +709,19 @@ export function EmployeeSchedule() {
                 </button>
                 {showFilter && (
                   <div className="absolute top-full left-0 mt-2 z-[9999] bg-white border border-gray-200 rounded-lg shadow-xl p-4 min-w-[200px]">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Отдел</label>
-                    <select
-                      value={selectedDepartment ?? ''}
-                      onChange={e => {
-                        const val = e.target.value
-                        setSelectedDepartment(val ? Number(val) : null)
-                        setShowFilter(false)
-                      }}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      <option value="">Все отделы</option>
-                      {departments.map(dep => (
-                        <option key={dep.id} value={dep.id}>{dep.name}</option>
-                      ))}
-                    </select>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Отдел</label>
+                      <div className="absolute z-10 mt-2 w-72 bg-white border border-gray-300 rounded-md shadow-lg">
+                        <select
+                          className="block w-full px-4 py-2 border border-gray-300 rounded-md text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          value={selectedDepartment ?? ''}
+                          onChange={e => setSelectedDepartment(e.target.value ? Number(e.target.value) : null)}
+                        >
+                          <option value="">Все отделы</option>
+                          {departments.map(dep => (
+                            <option key={dep.id} value={dep.id}>{dep.name}</option>
+                          ))}
+                        </select>
+                      </div>
                   </div>
                 )}
               </div>
