@@ -100,8 +100,9 @@ export function EmployeeSchedule() {
         endpoint = `employee-schedule?date=${date}`
       }
         
-      const data = await apiRequest(endpoint)
-      setScheduleData(data)
+  const data = await apiRequest(endpoint)
+  console.log('scheduleData:', data)
+  setScheduleData(data)
       
       // НЕ сбрасываем сортировку при загрузке новых данных - пользователь должен сохранить свой выбор
       // setSortBy('none')
