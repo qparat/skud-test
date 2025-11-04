@@ -946,25 +946,25 @@ async def get_employee_schedule(date: Optional[str] = Query(None), current_user:
                     entry_datetime = datetime.strptime(first_entry, '%H:%M:%S')
                     exit_datetime = datetime.strptime(last_exit, '%H:%M:%S')
                     work_duration = exit_datetime - entry_datetime
-                    work_hours = work_duration.total_seconds() / 3600
-                except:
+                    work_hours = round(work_duration.total_seconds() / 3600, 2)
+                except Exception as ex:
+                    print(f"[ERROR] Ошибка расчёта work_hours для {emp_data['name']} (ID: {emp_data['id']}): {ex}")
                     work_hours = None
-            
-                employees_schedule.append({
-                    'employee_id': emp_data['id'],
-                    'full_name': emp_data['name'],
-                    'department_id': emp_data['department_id'],
-                    'department_name': dept_names_map.get(emp_data['department_id'], None),
-                    'first_entry': first_entry,
-                    'last_exit': last_exit,
-                    'first_entry_door': entry_door,
-                    'last_exit_door': exit_door,
-                    'is_late': is_late,
-                    'late_minutes': late_minutes,
-                    'work_hours': work_hours,
-                    'exception': exception_info,
-                    'status': get_employee_status(is_late, first_entry, exception_info)
-                })
+            employees_schedule.append({
+                'employee_id': emp_data['id'],
+                'full_name': emp_data['name'],
+                'department_id': emp_data['department_id'],
+                'department_name': dept_names_map.get(emp_data['department_id'], None),
+                'first_entry': first_entry,
+                'last_exit': last_exit,
+                'first_entry_door': entry_door,
+                'last_exit_door': exit_door,
+                'is_late': is_late,
+                'late_minutes': late_minutes,
+                'work_hours': work_hours,
+                'exception': exception_info,
+                'status': get_employee_status(is_late, first_entry, exception_info)
+            })
         
         # Сортируем по имени
         employees_schedule.sort(key=lambda x: x['full_name'])
