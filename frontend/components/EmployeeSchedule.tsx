@@ -934,7 +934,7 @@ export function EmployeeSchedule() {
                             className={`text-left font-medium ${
                               emp.is_late 
                                 ? 'text-red-600 hover:text-red-800' 
-                                : 'text-green-600 hover:text-green-800'
+                                : 'text-blue-600 hover:text-blue-800'
                             }`}
                           >
                             {emp.full_name}
@@ -1003,7 +1003,7 @@ export function EmployeeSchedule() {
                                 className={`text-left font-medium ${
                                   emp.is_late 
                                     ? 'text-red-600 hover:text-red-800' 
-                                    : 'text-green-600 hover:text-green-800'
+                                    : 'text-blue-600 hover:text-blue-800'
                                 }`}
                               >
                                 {emp.full_name}
