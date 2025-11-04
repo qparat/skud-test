@@ -926,7 +926,7 @@ export function EmployeeSchedule() {
                     return (
                       <tr
                         key={emp.employee_id}
-                        className={`hover:bg-gray-50 ${emp.is_late ? 'bg-red-50' : ''}`}
+                        className={`hover:bg-gray-50 ${emp.is_late ? 'bg-gray-200' : ''}`}
                       >
                         <td className="px-6 py-4 whitespace-nowrap">
                           <button
@@ -993,7 +993,7 @@ export function EmployeeSchedule() {
                     return (
                       <tr
                         key={`${emp.employee_id}-${emp.date}`}
-                        className={`hover:bg-gray-50 ${emp.exception?.has_exception ? 'bg-blue-50' : (emp.is_late ? 'bg-red-50' : '')}`}
+                        className={`hover:bg-gray-50 ${emp.exception?.has_exception ? 'bg-grey-200' : (emp.is_late ? 'bg-grey-200' : '')}`}
                       >
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center justify-between">
