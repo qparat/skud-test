@@ -6,7 +6,7 @@ import React, { useState, useEffect } from 'react'
 export default function SvodReportPage() {
   const [allEmployees, setAllEmployees] = useState<{ id: number; name: string; position: string }[]>([]);
   const [employeeExceptions, setEmployeeExceptions] = useState<{ [key: string]: { date: string; comment: string } }>({});
-  const [employees, setEmployees] = useState<{ position: string; name: string; comment: string }[]>([]);
+  const [employees, setEmployees] = useState<{ id: number; position: string; name: string; comment: string }[]>([]);
   const [form, setForm] = useState({ employeeId: '', position: '', name: '', comment: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
