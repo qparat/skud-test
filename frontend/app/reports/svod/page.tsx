@@ -10,11 +10,14 @@ export default function SvodReportPage() {
   const [form, setForm] = useState({ employeeId: '', position: '', name: '', comment: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [selectedDate] = useState(() => {
-    // Можно добавить выбор даты, пока используем сегодня
+  const [selectedDate, setSelectedDate] = useState(() => {
     const d = new Date();
     return d.toISOString().slice(0, 10);
   });
+  // Обработчик выбора даты
+  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSelectedDate(e.target.value);
+  };
 
   // Загрузка сотрудников и исключений
   useEffect(() => {
@@ -64,6 +67,15 @@ export default function SvodReportPage() {
   return (
     <div className="max-w-2xl mx-auto py-10">
       <h1 className="text-2xl font-bold mb-6">Свод ТРК — Добавить сотрудника</h1>
+      <div className="mb-6">
+        <label className="block text-sm font-medium mb-2">Дата отчета</label>
+        <input
+          type="date"
+          value={selectedDate}
+          onChange={handleDateChange}
+          className="px-3 py-2 border rounded-md"
+        />
+      </div>
       <div>
         {loading ? (
           <div className="p-6 text-center text-gray-600">Загрузка данных...</div>
