@@ -1920,11 +1920,8 @@ async def create_employee_exception_range(exception_range: ExceptionRangeCreate)
         
         # Валидация дат
         try:
-            start_date = datetime.strptime(exception_range.start_date, '%Y-%m-%d').date()
-            end_date = datetime.strptime(exception_range.end_date, '%Y-%m-%d').date()
-        except ValueError:
-            raise HTTPException(status_code=400, detail="Неверный формат даты. Используйте YYYY-MM-DD")
-        
+            start_dt = datetime.strptime(start_date, '%Y-%m-%d').date()
+            end_dt = datetime.strptime(end_date, '%Y-%m-%d').date()
         if start_date > end_date:
             raise HTTPException(status_code=400, detail="Начальная дата не может быть позже конечной")
         
