@@ -102,7 +102,7 @@ export default function SvodReportPage() {
                   required
                 >
                   <option value="">Выберите сотрудника</option>
-                  {allEmployees.map(emp => (
+                  {allEmployees.map((emp: { id: number; name: string; position: string }) => (
                     <option key={emp.id} value={emp.id}>{emp.name}</option>
                   ))}
                 </select>
