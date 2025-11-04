@@ -19,9 +19,39 @@ const reports = [
 ]
 
 export default function ReportsPage() {
+  // Пример данных для таблицы "Свод ТРК"
+  const summaryTable = [
+    { position: 'Директор', name: 'Иванов И.И.', comment: 'В отпуске' },
+    { position: 'Заместитель директора', name: 'Петров П.П.', comment: 'В командировке' },
+    { position: 'Менеджер', name: 'Сидоров С.С.', comment: 'На рабочем месте' }
+  ]
+
   return (
-    <div className="max-w-2xl mx-auto py-10">
+    <div className="max-w-3xl mx-auto py-10">
       <h1 className="text-2xl font-bold mb-6">Доступные отчеты</h1>
+      {/* Таблица "Свод ТРК" */}
+      <div className="mb-8">
+        <h2 className="text-xl font-semibold mb-4">Свод ТРК</h2>
+        <table className="min-w-full bg-white rounded-lg shadow overflow-hidden">
+          <thead className="bg-gray-100">
+            <tr>
+              <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">Должность</th>
+              <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">ФИО</th>
+              <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">Комментарий</th>
+            </tr>
+          </thead>
+          <tbody>
+            {summaryTable.map((row, idx) => (
+              <tr key={idx} className="border-b">
+                <td className="px-4 py-2 text-gray-900">{row.position}</td>
+                <td className="px-4 py-2 text-blue-700 font-semibold">{row.name}</td>
+                <td className="px-4 py-2 text-gray-600">{row.comment}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {/* ...existing code... */}
       <div className="space-y-6">
         {reports.map(report => (
           <div key={report.id} className="bg-white rounded-lg shadow p-6 flex items-center justify-between">
