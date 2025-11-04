@@ -269,6 +269,7 @@ export function EmployeeSchedule() {
     setEndDate('')
     setLastLoadedDate('') // Очищаем визуальное выделение
     // Возвращаемся к сегодняшнему дню
+    setSelectedDepartment(null)
     fetchSchedule(today)
   }
 
@@ -1118,9 +1119,9 @@ export function EmployeeSchedule() {
                                       const excDays = allDays.filter(d => d.exception?.has_exception).length;
                                       return (
                                         <>
-                                          {/* <span className="bg-green-100 text-green-800 text-xs font-medium px-2 py-0.5 rounded-full">+{okDays}</span>
-                                          <span className="bg-red-100 text-red-800 text-xs font-medium px-2 py-0.5 rounded-full ml-1">+{lateDays}</span>
-                                          <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-0.5 rounded-full ml-1">+{excDays}</span> */}
+                                          <span className="bg-green-100 text-green-800 text-xs font-medium px-2 py-0.5 rounded-full">Вовремя: {okDays}</span>
+                                          <span className="bg-red-100 text-red-800 text-xs font-medium px-2 py-0.5 rounded-full ml-1">Опозданий: {lateDays}</span>
+                                          <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-0.5 rounded-full ml-1">Исключений: {excDays}</span>
                                           <div className="flex items-center text-sm text-gray-500">Элементов: {totalDays}</div>
 
                                           <ChevronDown className="h-6 w-6 ml-2" />
