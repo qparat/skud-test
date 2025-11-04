@@ -63,9 +63,9 @@ form.form_login {
     max-width: 400px;
     width: 400px;
     padding: 40px;
-    background: #fff;
+    background: #ffffff80;
     border-radius: 6px;
-    box-shadow: 0px 1px 10px -6px #000;
+    box-shadow: 0 1px 10px 0px #ffffff;
 }
 form.form_login input {
     margin: 20px 0;
@@ -76,6 +76,25 @@ button.group.relative.w-full.flex.justify-center.py-2.px-4.mt-2.border.border-tr
     width: auto;
     display: block;
     margin: 0 auto;
+    background: #295290;
+}
+
+h2.title_login {
+    color: #ffff;
+    text-transform: uppercase;
+}
+
+form.form_login input {
+    background: #ffffff4f;
+    border: none;
+}
+
+form.form_login label {
+    color: #fff !important;
+}
+
+form.form_login input::placeholder {
+    color: #fff;
 }
 @media (min-width: 1920px) {
   .w-84 {
