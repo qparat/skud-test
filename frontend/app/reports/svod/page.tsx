@@ -128,5 +128,4 @@ export default function SvodReportPage() {
       </div>
     </div>
   );
-  )
 }
