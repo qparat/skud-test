@@ -1,28 +1,39 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 
 
 export default function SvodReportPage() {
-  // Мок-данные сотрудников
-  const allEmployees = [
-    { id: 1, name: 'Иванов И.И.', position: 'Директор' },
-    { id: 2, name: 'Петров П.П.', position: 'Менеджер' },
-    { id: 3, name: 'Сидоров С.С.', position: 'Заместитель директора' }
-  ];
-
-  // Мок-данные исключений (по дате)
-  const exceptionDate = '2025-11-04';
-  const employeeExceptions: { [key: string]: { date: string; comment: string } } = {
-    1: { date: exceptionDate, comment: 'В отпуске' },
-    3: { date: exceptionDate, comment: 'Больничный' }
-  };
-
-  const [employees, setEmployees] = useState([
-    { position: 'Директор', name: 'Иванов И.И.', comment: 'В отпуске' },
-    { position: 'Менеджер', name: 'Петров П.П.', comment: '' }
-  ]);
+  const [allEmployees, setAllEmployees] = useState<{ id: number; name: string; position: string }[]>([]);
+  const [employeeExceptions, setEmployeeExceptions] = useState<{ [key: string]: { date: string; comment: string } }>({});
+  const [employees, setEmployees] = useState<{ position: string; name: string; comment: string }[]>([]);
   const [form, setForm] = useState({ employeeId: '', position: '', name: '', comment: '' });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedDate] = useState(() => {
+    // Можно добавить выбор даты, пока используем сегодня
+    const d = new Date();
+    return d.toISOString().slice(0, 10);
+  });
+
+  // Загрузка сотрудников и исключений
+  useEffect(() => {
+    setLoading(true);
+    Promise.all([
+      fetch('/api/employees').then(r => r.json()),
+      fetch(`/api/exceptions?date=${selectedDate}`).then(r => r.json())
+    ])
+      .then(([employeesData, exceptionsData]) => {
+        // employeesData: [{ id, name, position }]
+        setAllEmployees(employeesData);
+        // exceptionsData: { [employeeId]: { date, comment } }
+        setEmployeeExceptions(exceptionsData);
+      })
+      .catch((err) => {
+        setError('Ошибка загрузки данных');
+      })
+      .finally(() => setLoading(false));
+  }, [selectedDate]);
 
   // При выборе сотрудника — автозаполнение
   const handleEmployeeSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -54,6 +65,11 @@ export default function SvodReportPage() {
   return (
     <div className="max-w-2xl mx-auto py-10">
       <h1 className="text-2xl font-bold mb-6">Свод ТРК — Добавить сотрудника</h1>
+      {loading ? (
+        <div className="p-6 text-center text-gray-600">Загрузка данных...</div>
+      ) : error ? (
+        <div className="p-6 text-center text-red-600">{error}</div>
+      ) : (
       <form className="mb-8 space-y-4" onSubmit={handleAdd}>
         <div>
           <label className="block text-sm font-medium mb-1">Сотрудник</label>
