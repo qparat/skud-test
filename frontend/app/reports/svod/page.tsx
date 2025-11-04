@@ -27,6 +27,7 @@ export default function SvodReportPage() {
       fetch('/api/employee-exceptions').then(r => r.json())
     ])
       .then(([employeesData, exceptionsData]) => {
+        console.log('API employees response:', employeesData);
         setAllEmployees(Array.isArray(employeesData) ? employeesData : []);
         // Filter exceptions by selectedDate and map by employee_id
         const filtered = (exceptionsData.exceptions || []).filter(
