@@ -1,4 +1,5 @@
 ﻿'use client'
+import * as React from 'react';
 import { useRef } from 'react';
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
@@ -81,7 +82,7 @@ export function EmployeeSchedule() {
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const [expandedEmployees, setExpandedEmployees] = useState<Set<number>>(new Set())
   const [departments, setDepartments] = useState<{ id: number; name: string }[]>([])
-  const [selectedDepartment, setSelectedDepartment] = useState<number | null>(null)
+  const [selectedDepartment, setSelectedDepartment] = useState<number[]>([])
   const [showFilter, setShowFilter] = useState(false)
   
   // Получаем сегодняшнюю дату для ограничения выбора (без проблем с временной зоной)
@@ -270,7 +271,7 @@ export function EmployeeSchedule() {
     setEndDate('')
     setLastLoadedDate('') // Очищаем визуальное выделение
     // Возвращаемся к сегодняшнему дню
-    setSelectedDepartment(null)
+    setSelectedDepartment([])
     fetchSchedule(today)
   }
 
@@ -339,17 +340,17 @@ export function EmployeeSchedule() {
       }
     }
 
-    // Фильтрация по отделу, если выбран
-    if (selectedDepartment !== null && selectedDepartment !== undefined) {
+    // Фильтрация по отделам (мультивыбор)
+    if (selectedDepartment.length > 0) {
       if (isRangeData) {
         filteredEmployees = (filteredEmployees as EmployeeWithDays[]).filter(e => {
           // Если department_id есть на верхнем уровне
           if ((e as any).department_id !== undefined) {
-            return (e as any).department_id === selectedDepartment
+            return selectedDepartment.includes((e as any).department_id)
           }
           // Если department_id есть в days
           if (Array.isArray((e as any).days)) {
-            return (e as any).days.some((d: any) => d.department_id === selectedDepartment)
+            return (e as any).days.some((d: any) => selectedDepartment.includes(d.department_id))
           }
           // Если нет department_id, не исключаем сотрудника
           return true
@@ -357,7 +358,7 @@ export function EmployeeSchedule() {
       } else {
         filteredEmployees = (filteredEmployees as Employee[]).filter(e => {
           if ((e as any).department_id !== undefined) {
-            return (e as any).department_id === selectedDepartment
+            return selectedDepartment.includes((e as any).department_id)
           }
           // Если нет department_id, не исключаем сотрудника
           return true
@@ -716,21 +717,35 @@ export function EmployeeSchedule() {
                 </button>
                 {showFilter && (
                   <div ref={filterRef} className="absolute top-full right-0 mt-2 z-[9999] bg-white border border-gray-200 rounded-lg shadow-xl p-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Отдел</label>
-                    <select
-                      value={selectedDepartment ?? ''}
-                      onChange={e => {
-                        const val = e.target.value
-                        setSelectedDepartment(val ? Number(val) : null)
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Отделы</label>
+                    <div className="max-h-64 overflow-y-auto space-y-2">
+                      {departments.map((dep: { id: number; name: string }) => (
+                        <label key={dep.id} className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            checked={selectedDepartment.includes(dep.id)}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                              if (e.target.checked) {
+                                setSelectedDepartment((prev: number[]) => [...prev, dep.id])
+                              } else {
+                                setSelectedDepartment((prev: number[]) => prev.filter((id: number) => id !== dep.id))
+                              }
+                            }}
+                            className="form-checkbox h-4 w-4 text-blue-600"
+                          />
+                          <span className="text-sm text-gray-700">{dep.name}</span>
+                        </label>
+                      ))}
+                    </div>
+                    <button
+                      onClick={() => {
+                        setSelectedDepartment([])
                         setShowFilter(false)
                       }}
-                      className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="mt-4 px-3 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 text-sm"
                     >
-                      <option value="">Все отделы</option>
-                      {departments.map(dep => (
-                        <option key={dep.id} value={dep.id}>{dep.name}</option>
-                      ))}
-                    </select>
+                      Сбросить фильтр
+                    </button>
                   </div>
                 )}
               </div>
