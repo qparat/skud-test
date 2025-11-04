@@ -13,7 +13,7 @@ export default function SvodReportPage() {
 
   // Мок-данные исключений (по дате)
   const exceptionDate = '2025-11-04';
-  const employeeExceptions = {
+  const employeeExceptions: { [key: string]: { date: string; comment: string } } = {
     1: { date: exceptionDate, comment: 'В отпуске' },
     3: { date: exceptionDate, comment: 'Больничный' }
   };
@@ -29,8 +29,8 @@ export default function SvodReportPage() {
     const id = e.target.value;
     const emp = allEmployees.find(emp => String(emp.id) === id);
     let comment = '';
-    if (emp && employeeExceptions[emp.id]) {
-      comment = employeeExceptions[emp.id].comment;
+    if (emp && employeeExceptions[String(emp.id)]) {
+      comment = employeeExceptions[String(emp.id)].comment;
     }
     setForm({
       employeeId: id,
