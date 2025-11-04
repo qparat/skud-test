@@ -703,8 +703,91 @@ export function EmployeeSchedule() {
               )}
               {/* ...existing calendar popup... */}
               {showCalendar && (
-                // ...existing code...
-                <></>
+                <div className="absolute top-full mt-2 z-[9999] bg-white border border-gray-200 rounded-lg shadow-xl p-4" style={{minWidth: '280px', right: 0}}>
+                  {/* Заголовок календаря */}
+                  <div className="flex items-center justify-between mb-4">
+                    <button
+                      onClick={goToPreviousMonth}
+                      className="p-1 hover:bg-gray-100 rounded"
+                    >
+                      <ChevronDown className="h-4 w-4 rotate-90" />
+                    </button>
+                    <h3 className="text-sm font-medium">
+                      {currentMonth.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' })}
+                    </h3>
+                    <button
+                      onClick={goToNextMonth}
+                      className="p-1 hover:bg-gray-100 rounded"
+                    >
+                      <ChevronUp className="h-4 w-4 rotate-90" />
+                    </button>
+                  </div>
+                  {/* Дни недели */}
+                  <div className="grid grid-cols-7 gap-1 mb-2">
+                    {['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'].map(day => (
+                      <div key={day} className="text-xs text-center text-gray-500 font-medium py-1">
+                        {day}
+                      </div>
+                    ))}
+                  </div>
+                  {/* Дни */}
+                  <div className="grid grid-cols-7 gap-1">
+                    {generateCalendar().map((date, index) => {
+                      const dateStr = formatDate(date)
+                      const isCurrentMonth = date.getMonth() === currentMonth.getMonth()
+                      const isToday = dateStr === today
+                      const isSelected = dateStr === selectedDate
+                      const isLoadedDate = dateStr === lastLoadedDate
+                      const isInRange = startDate && endDate && dateStr >= startDate && dateStr <= endDate
+                      const isStartDate = dateStr === startDate
+                      const isEndDate = dateStr === endDate
+                      const isFuture = dateStr > today
+                      const isDisabled = isFuture
+                      return (
+                        <button
+                          key={index}
+                          onClick={() => !isDisabled && handleDateClick(dateStr)}
+                          disabled={isDisabled}
+                          className={`
+                            w-8 h-8 text-xs rounded-full flex items-center justify-center transition-colors
+                            ${!isCurrentMonth ? 'text-gray-300' : ''}
+                            ${isDisabled ? 'bg-gray-100 text-gray-300 cursor-not-allowed' : ''}
+                            ${isStartDate || isEndDate ? 'bg-green-600 text-white font-bold' : ''}
+                            ${isInRange && !isStartDate && !isEndDate ? 'bg-green-100 text-green-800' : ''}
+                            ${isLoadedDate && !isStartDate && !isEndDate ? 'bg-blue-600 text-white font-bold' : ''}
+                            ${isToday && !isLoadedDate && !isStartDate && !isEndDate && !isInRange ? 'bg-blue-100 text-blue-600 font-bold' : ''}
+                            ${!isLoadedDate && !isInRange && !isToday && !isDisabled && isCurrentMonth && !isStartDate && !isEndDate ? 'hover:bg-gray-100' : ''}
+                          `}
+                        >
+                          {date.getDate()}
+                        </button>
+                      )
+                    })}
+                  </div>
+                  <div className="mt-3 pt-3 border-t">
+                    <p className="text-xs text-gray-600 mb-2">Быстрый выбор периода:</p>
+                    <div className="grid grid-cols-3 gap-2">
+                      <button
+                        onClick={selectWeekPeriod}
+                        className="px-3 py-2 text-xs bg-blue-50 text-blue-700 rounded hover:bg-blue-100 transition-colors"
+                      >
+                        За неделю
+                      </button>
+                      <button
+                        onClick={selectMonthPeriod}
+                        className="px-3 py-2 text-xs bg-green-50 text-green-700 rounded hover:bg-green-100 transition-colors"
+                      >
+                        За месяц
+                      </button>
+                      <button
+                        onClick={selectQuarterPeriod}
+                        className="px-3 py-2 text-xs bg-purple-50 text-purple-700 rounded hover:bg-purple-100 transition-colors"
+                      >
+                        За квартал
+                      </button>
+                    </div>
+                  </div>
+                </div>
               )}
               {scheduleData && scheduleData.employees.length > 0 && (
                 <button
