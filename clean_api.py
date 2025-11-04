@@ -989,6 +989,9 @@ async def get_employee_schedule_range(start_date: str = Query(...), end_date: st
         # Валидация дат
         start_dt = datetime.strptime(start_date, '%Y-%m-%d').date()
         end_dt = datetime.strptime(end_date, '%Y-%m-%d').date()
+            # Получаем имена отделов для всех department_id
+            cursor.execute("SELECT id, name FROM departments")
+            dept_names_map = {row[0]: row[1] for row in cursor.fetchall()}
         if start_dt > end_dt:
             raise HTTPException(status_code=400, detail="Начальная дата не может быть позже конечной")
         if (end_dt - start_dt).days > 365:
@@ -996,6 +999,7 @@ async def get_employee_schedule_range(start_date: str = Query(...), end_date: st
 
         conn = get_db_connection()
         cursor = conn.cursor()
+                department_name = dept_names_map.get(department_id, None)
         cursor.execute("""
             SELECT DISTINCT e.id, e.full_name 
             FROM employees e
@@ -1095,11 +1099,13 @@ dept_names_map = {row[0]: row[1] for row in cursor.fetchall()}
                                     'has_exception': True,
                                     'reason': department_exception['reason'],
                                     'type': department_exception['type']
-                                }
-                    work_hours = None
-                    if first_entry and last_exit:
-                        try:
-                            first_dt = datetime.strptime(first_entry, '%H:%M:%S')
+                    employees_with_days.append({
+                        'employee_id': emp_id,
+                        'full_name': emp_name,
+                        'department_id': department_id,
+                        'department_name': department_name,
+                        'days': employee_days
+                    })
                             last_dt = datetime.strptime(last_exit, '%H:%M:%S')
                             if last_dt > first_dt:
                                 work_duration = last_dt - first_dt
