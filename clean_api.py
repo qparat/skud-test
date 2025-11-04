@@ -943,12 +943,22 @@ async def get_employee_schedule(date: Optional[str] = Query(None), current_user:
             work_hours = None
             if first_entry and last_exit:
                 try:
-                    entry_datetime = datetime.strptime(first_entry, '%H:%M:%S')
-                    exit_datetime = datetime.strptime(last_exit, '%H:%M:%S')
-                    work_duration = exit_datetime - entry_datetime
+                    # Если значения уже типа datetime.time, используем напрямую
+                    if not isinstance(first_entry, str):
+                        entry_time = first_entry
+                    else:
+                        entry_time = datetime.strptime(first_entry, '%H:%M:%S').time()
+                    if not isinstance(last_exit, str):
+                        exit_time = last_exit
+                    else:
+                        exit_time = datetime.strptime(last_exit, '%H:%M:%S').time()
+                    # Преобразуем в datetime для расчёта разницы
+                    entry_dt = datetime.combine(datetime.today().date(), entry_time)
+                    exit_dt = datetime.combine(datetime.today().date(), exit_time)
+                    work_duration = exit_dt - entry_dt
                     work_hours = round(work_duration.total_seconds() / 3600, 2)
                 except Exception as ex:
-                    print(f"[ERROR] Ошибка расчёта work_hours для {emp_data['name']} (ID: {emp_data['id']}): {ex}")
+                    print(f"[ERROR] Ошибка расчёта work_hours для {emp_data['name']} (ID: {emp_data['id']}): {ex} | first_entry={first_entry} last_exit={last_exit}")
                     work_hours = None
             employees_schedule.append({
                 'employee_id': emp_data['id'],
