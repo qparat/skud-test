@@ -949,7 +949,7 @@ export function EmployeeSchedule() {
                             onClick={() => handleEmployeeClick(emp.employee_id)}
                             className={`text-left font-medium ${
                               emp.is_late 
-                                ? 'text-red-600 hover:text-red-800' 
+                                ? 'text-blue-600 hover:text-blue-800' 
                                 : 'text-blue-600 hover:text-blue-800'
                             }`}
                           >
@@ -1018,7 +1018,7 @@ export function EmployeeSchedule() {
                                 onClick={() => handleEmployeeClick(emp.employee_id)}
                                 className={`text-left font-medium ${
                                   emp.is_late 
-                                    ? 'text-red-600 hover:text-red-800' 
+                                    ? 'text-blue-600 hover:text-blue-800' 
                                     : 'text-blue-600 hover:text-blue-800'
                                 }`}
                               >
