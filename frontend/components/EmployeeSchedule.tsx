@@ -1,8 +1,5 @@
 ﻿'use client'
 
-'use client'
-
-import React from 'react'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Calendar, Clock, MapPin, User, Download, ChevronUp, ChevronDown } from 'lucide-react'
@@ -627,25 +624,22 @@ export function EmployeeSchedule() {
                 return { id: Number(id), name }
               })
               .filter((item): item is { id: number; name: string } => Boolean(item))
-            )
           )
         }
       }
     }
-          setDepartments(
-            uniqueDeps
-              .map((str: any): { id: number; name: string } | null => {
-                if (!str) return null;
-                const [id, name] = str.split('|');
-                return { id: Number(id), name };
-              })
-              .filter((item): item is { id: number; name: string } => Boolean(item))
-          );
-        }
-      }
-    }
-    fetchDepartments();
-  }, [scheduleData]);
+    fetchDepartments()
+  }, [scheduleData])
+
+  return (
+    <div className="space-y-6">
+      {/* Employee table */}
+      <div className="bg-white rounded-lg shadow overflow-visible">
+        <div className="px-6 py-4 border-b border-gray-200">
+          <div className="flex items-center justify-between">
+            {scheduleData && scheduleData.employees.length > 0 && (
+              <div className="flex items-center space-x-4">
+                <div className="">
                   <div className="flex items-center">
                     <div className="flex items-center space-x-2">
                       <p className="text-s font-medium text-gray-600">Всего сотрудников</p>
@@ -881,12 +875,11 @@ export function EmployeeSchedule() {
               Нет данных за выбранную дату
             </div>
           ) : (
-            <div>
-              {/* Таблица без ФИО и без красных блоков при опоздании */}
-              <table className="min-w-full divide-y divide-gray-200">
+            {/* Таблица без ФИО и без красных блоков при опоздании */}
+            <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  {scheduleData?.employees.some((emp: any) => 'days' in emp) && (
+                  {scheduleData?.employees.some(emp => 'days' in emp) && (
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Дата
                     </th>
@@ -1039,10 +1032,8 @@ export function EmployeeSchedule() {
                   }
                 })}
               </tbody>
-              </table>
-            </div>
-          )
-        }
+            </table>
+          )}
         </div>
       </div>
     </div>
