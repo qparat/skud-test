@@ -640,7 +640,41 @@ export function EmployeeSchedule() {
             {/* Statistics */}
             {scheduleData && scheduleData.employees.length > 0 && (
               <div className="flex items-center space-x-4">
-                {/* ...existing code... */}
+                <div>
+                  <div className="flex items-center">
+                    <div className="flex items-center space-x-2">
+                      <p className="text-s font-medium text-gray-600">Всего сотрудников</p>
+                      <p className="bg-blue-100 text-blue-800 text-sm font-medium px-2.5 py-0.5 rounded-full">{scheduleData.total_count}</p>
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <div className="flex items-center">
+                    <div className="flex items-center space-x-2">
+                      <p className="text-s font-medium text-gray-600">
+                        Опозданий
+                        {sortBy === 'late-first' && ' (сверху)'}
+                        {sortBy === 'normal-first' && ' (снизу)'}
+                      </p>
+                      <p className="bg-red-100 text-red-800 text-sm font-medium px-2.5 py-0.5 rounded-full">{scheduleData.late_count}</p>
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <div className="flex items-center">
+                    <div className="flex items-center space-x-2">
+                      <p className="text-s font-medium text-gray-600">
+                        {startDate && endDate ? 'Период' : 'Дата'}
+                      </p>
+                      <p className="text-s font-medium text-gray-900">
+                        {startDate && endDate 
+                          ? `${startDate} - ${endDate}`
+                          : selectedDate || scheduleData.date
+                        }
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
             {/* Поиск по ФИО и фильтр по отделу */}
