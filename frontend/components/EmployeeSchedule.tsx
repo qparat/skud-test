@@ -613,12 +613,12 @@ export function EmployeeSchedule() {
             .filter(Boolean)))
           setDepartments(
             uniqueDeps
-              .map((str) => {
+              .map((str): { id: number; name: string } | null => {
                 if (!str) return null
                 const [id, name] = str.split('|')
                 return { id: Number(id), name }
               })
-              .filter(Boolean)
+              .filter((item): item is { id: number; name: string } => Boolean(item))
           )
         }
       }
