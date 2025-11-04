@@ -850,6 +850,15 @@ async def get_employee_schedule(date: Optional[str] = Query(None), current_user:
             else:
                 employees_dict[employee_id]['entries'].append((access_time, door_location))
         
+        dept_names_map = {}
+        dept_rows = execute_query(
+            conn,
+            "SELECT id, name FROM departments",
+            fetch_all=True
+        )
+        for row in dept_rows:
+            dept_names_map[row['id']] = row['name']
+        
         employees_schedule = []
         work_start_time = datetime.strptime('09:00:00', '%H:%M:%S').time()
         
@@ -941,19 +950,21 @@ async def get_employee_schedule(date: Optional[str] = Query(None), current_user:
                 except:
                     work_hours = None
             
-            employees_schedule.append({
-                'employee_id': emp_data['id'],
-                'full_name': emp_data['name'],
-                'first_entry': first_entry,
-                'last_exit': last_exit,
-                'first_entry_door': entry_door,
-                'last_exit_door': exit_door,
-                'is_late': is_late,
-                'late_minutes': late_minutes,
-                'work_hours': work_hours,
-                'exception': exception_info,
-                'status': get_employee_status(is_late, first_entry, exception_info)
-            })
+                employees_schedule.append({
+                    'employee_id': emp_data['id'],
+                    'full_name': emp_data['name'],
+                    'department_id': emp_data['department_id'],
+                    'department_name': dept_names_map.get(emp_data['department_id'], None),
+                    'first_entry': first_entry,
+                    'last_exit': last_exit,
+                    'first_entry_door': entry_door,
+                    'last_exit_door': exit_door,
+                    'is_late': is_late,
+                    'late_minutes': late_minutes,
+                    'work_hours': work_hours,
+                    'exception': exception_info,
+                    'status': get_employee_status(is_late, first_entry, exception_info)
+                })
         
         # Сортируем по имени
         employees_schedule.sort(key=lambda x: x['full_name'])
@@ -1002,6 +1013,8 @@ async def get_employee_schedule_range(start_date: str = Query(...), end_date: st
         # Получаем department_id для всех сотрудников
         cursor.execute("SELECT id, department_id FROM employees")
         emp_dept_map = {row[0]: row[1] for row in cursor.fetchall()}
+        cursor.execute("SELECT id, name FROM departments")
+dept_names_map = {row[0]: row[1] for row in cursor.fetchall()}
         # Получаем все whitelist_departments
         cursor.execute("SELECT department_id, reason, exception_type FROM whitelist_departments")
         whitelist_map = {row[0]: {'reason': row[1], 'type': row[2]} for row in cursor.fetchall()}
@@ -1009,6 +1022,7 @@ async def get_employee_schedule_range(start_date: str = Query(...), end_date: st
         for emp_id, emp_name in employees:
             employee_days = []
             department_id = emp_dept_map.get(emp_id)
+            department_name = dept_names_map.get(department_id, None)
             current_date = start_dt
             while current_date <= end_dt:
                 date_str = current_date.strftime('%Y-%m-%d')
@@ -1111,6 +1125,8 @@ async def get_employee_schedule_range(start_date: str = Query(...), end_date: st
                 employees_with_days.append({
                     'employee_id': emp_id,
                     'full_name': emp_name,
+                    'department_id': department_id,
+                    'department_name': department_name,
                     'days': employee_days
                 })
         conn.close()
