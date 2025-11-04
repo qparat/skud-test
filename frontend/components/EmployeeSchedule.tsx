@@ -1038,7 +1038,7 @@ export function EmployeeSchedule() {
                           </div>
                         </td>
                             <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center justify-between">
+                          <div className="flex items-center justify-end">
                             {hasExpandButton && (
                               <button
                                 onClick={() => toggleEmployeeExpanded(emp.employee_id)}
