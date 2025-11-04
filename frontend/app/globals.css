@@ -43,8 +43,8 @@ body {
 }
 
 .img_login img {
-    width: 75%;
-    height: 75%;
+    width: 100%;
+    height: 100%;
 }
 
 .login_2.container {
@@ -61,7 +61,20 @@ body {
 form.form_login {
     max-width: 400px;
     width: 400px;
-    padding: 20px;
+    padding: 40px;
+    background: #fff;
+    border-radius: 6px;
+    box-shadow: 0px 1px 10px -6px #000;
+}
+form.form_login input {
+    margin: 20px 0;
+    border-radius: 8px;
+}
+
+button.group.relative.w-full.flex.justify-center.py-2.px-4.mt-2.border.border-transparent.text-sm.font-medium.rounded-md.text-white.bg-blue-600.hover\:bg-blue-700.focus\:outline-none.focus\:ring-2.focus\:ring-offset-2.focus\:ring-blue-500.disabled\:opacity-50.disabled\:cursor-not-allowed {
+    width: auto;
+    display: block;
+    margin: 0 auto;
 }
 @media (min-width: 1920px) {
   .w-84 {
