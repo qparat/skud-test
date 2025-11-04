@@ -24,11 +24,19 @@ export default function SvodReportPage() {
     setLoading(true);
     Promise.all([
       fetch('/api/employees').then(r => r.json()),
-      fetch(`/api/exceptions?date=${selectedDate}`).then(r => r.json())
+      fetch('/api/employee-exceptions').then(r => r.json())
     ])
       .then(([employeesData, exceptionsData]) => {
         setAllEmployees(Array.isArray(employeesData) ? employeesData : []);
-        setEmployeeExceptions(exceptionsData || {});
+        // Filter exceptions by selectedDate and map by employee_id
+        const filtered = (exceptionsData.exceptions || []).filter(
+          (ex: any) => ex.exception_date === selectedDate
+        );
+        const mapped: { [key: string]: { date: string; comment: string } } = {};
+        filtered.forEach((ex: any) => {
+          mapped[String(ex.employee_id)] = { date: ex.exception_date, comment: ex.reason };
+        });
+        setEmployeeExceptions(mapped);
         setLoading(false);
       })
       .catch((err) => {
@@ -39,8 +47,8 @@ export default function SvodReportPage() {
 
   // При выборе сотрудника — автозаполнение
   const handleEmployeeSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const id = e.target.value;
-    const emp = allEmployees.find(emp => String(emp.id) === id);
+  const id = e.target.value;
+  const emp = allEmployees.find((emp: { id: number; name: string; position: string }) => String(emp.id) === id);
     let comment = '';
     if (emp && employeeExceptions[String(emp.id)]) {
       comment = employeeExceptions[String(emp.id)].comment;
