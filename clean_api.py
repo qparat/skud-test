@@ -1097,13 +1097,7 @@ async def get_employee_schedule_range(start_date: str = Query(...), end_date: st
                                     'has_exception': True,
                                     'reason': department_exception['reason'],
                                     'type': department_exception['type']
-                    employees_with_days.append({
-                        'employee_id': emp_id,
-                        'full_name': emp_name,
-                        'department_id': department_id,
-                        'department_name': department_name,
-                        'days': employee_days
-                    })
+                                }
                             last_dt = datetime.strptime(last_exit, '%H:%M:%S')
                             if last_dt > first_dt:
                                 work_duration = last_dt - first_dt
