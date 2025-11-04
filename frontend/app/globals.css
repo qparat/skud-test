@@ -38,13 +38,13 @@ body {
 .img_login {
     width: 100%;
     height: 100vh;
-    justify-items: center;
+    justify-items: end;
     align-content: center;
 }
 
 .img_login img {
-    width: 100%;
-    height: 100%;
+    width: 75%;
+    height: 75%;
 }
 
 .login_2.container {
@@ -59,8 +59,9 @@ body {
     font-size: 20px;
 }
 form.form_login {
-    max-width: 350px;
-    width: 350px;
+    max-width: 400px;
+    width: 400px;
+    padding: 20px;
 }
 @media (min-width: 1920px) {
   .w-84 {
