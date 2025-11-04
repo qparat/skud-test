@@ -1058,6 +1058,16 @@ async def get_employee_schedule_range(start_date: str = Query(...), end_date: st
                     """, (emp_id, date_str))
                     exception_data = cursor.fetchone()
                     department_exception = whitelist_map.get(department_id)
+                    work_hours = None
+                    if first_entry and last_exit:
+                        try:
+                            first_dt = datetime.strptime(first_entry, '%H:%M:%S')
+                            last_dt = datetime.strptime(last_exit, '%H:%M:%S')
+                            if last_dt > first_dt:
+                                work_duration = last_dt - first_dt
+                                work_hours = work_duration.total_seconds() / 3600
+                        except Exception:
+                            work_hours = None
                     if first_entry:
                         entry_time = datetime.strptime(first_entry, '%H:%M:%S').time()
                         work_start = datetime.strptime('09:00:00', '%H:%M:%S').time()
@@ -1098,15 +1108,6 @@ async def get_employee_schedule_range(start_date: str = Query(...), end_date: st
                                     'reason': department_exception['reason'],
                                     'type': department_exception['type']
                                 }
-                            if first_entry and last_exit:
-                                try:
-                                    first_dt = datetime.strptime(first_entry, '%H:%M:%S')
-                                    last_dt = datetime.strptime(last_exit, '%H:%M:%S')
-                                    if last_dt > first_dt:
-                                        work_duration = last_dt - first_dt
-                                        work_hours = work_duration.total_seconds() / 3600
-                                except Exception:
-                                    work_hours = None
                     status = get_employee_status(is_late, first_entry, exception_info)
                     # Ensure work_hours is always defined
                     if 'work_hours' not in locals():
