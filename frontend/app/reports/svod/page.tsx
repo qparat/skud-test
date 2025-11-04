@@ -24,8 +24,8 @@ export default function SvodReportPage() {
       fetch(`/api/exceptions?date=${selectedDate}`).then(r => r.json())
     ])
       .then(([employeesData, exceptionsData]) => {
-        setAllEmployees(employeesData);
-        setEmployeeExceptions(exceptionsData);
+        setAllEmployees(Array.isArray(employeesData) ? employeesData : []);
+        setEmployeeExceptions(exceptionsData || {});
         setLoading(false);
       })
       .catch((err) => {
