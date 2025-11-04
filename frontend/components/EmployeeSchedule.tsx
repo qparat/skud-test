@@ -881,8 +881,9 @@ export function EmployeeSchedule() {
               Нет данных за выбранную дату
             </div>
           ) : (
-            {/* Группировка сотрудников по отделам */}
-            {!groupByDepartment ? (
+            <>
+              {/* Группировка сотрудников по отделам */}
+              {!groupByDepartment ? (
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
@@ -1276,8 +1277,8 @@ export function EmployeeSchedule() {
                   </div>
                 )
               })
-            )}
-          )}
+              )}
+            </>
         </div>
       </div>
     </div>
