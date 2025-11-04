@@ -65,6 +65,8 @@ interface ScheduleData {
 }
 
 export function EmployeeSchedule() {
+  import { useRef } from 'react';
+  const filterRef = useRef<HTMLDivElement>(null);
   const router = useRouter()
   const [selectedDate, setSelectedDate] = useState('')
   const [lastLoadedDate, setLastLoadedDate] = useState('') // Для визуального выделения
@@ -128,15 +130,19 @@ export function EmployeeSchedule() {
   // Закрытие календаря при клике вне его
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as Element
+      const target = event.target as Element;
+      // Для календаря
       if (showCalendar && !target.closest('.calendar-container')) {
-        setShowCalendar(false)
+        setShowCalendar(false);
       }
-    }
-
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [showCalendar])
+      // Для фильтра
+      if (showFilter && filterRef.current && !filterRef.current.contains(target)) {
+        setShowFilter(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showCalendar, showFilter]);
 
   // Загрузка при изменении даты пользователем
   useEffect(() => {
@@ -708,7 +714,7 @@ export function EmployeeSchedule() {
                   <ChevronDown className="h-4 w-4 ml-2" />
                 </button>
                 {showFilter && (
-                  <div className="absolute top-full right-0 mt-2 z-[9999] bg-white border border-gray-200 rounded-lg shadow-xl p-4">
+                  <div ref={filterRef} className="absolute top-full right-0 mt-2 z-[9999] bg-white border border-gray-200 rounded-lg shadow-xl p-4">
                     <label className="block text-sm font-medium text-gray-700 mb-2">Отдел</label>
                     <select
                       value={selectedDepartment ?? ''}
