@@ -634,8 +634,8 @@ export function EmployeeSchedule() {
 
   return (
     <div className="space-y-6">
-      {/* Employee table */}
       <div className="bg-white rounded-lg shadow overflow-visible">
+        {/* Employee table */}
         <div className="px-6 py-4 border-b border-gray-200">
           <div className="flex items-center justify-between">
             {/* Statistics */}
