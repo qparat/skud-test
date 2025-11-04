@@ -1081,7 +1081,7 @@ export function EmployeeSchedule() {
                                 title={isExpanded ? 'Свернуть' : `Показать еще ${emp.totalInGroup - 1} дней`}
                               >
                                 {isExpanded ? (
-                                  <ChevronUp className="h-4 w-4" />
+                                  <ChevronUp className="h-6 w-6" />
                                 ) : (
                                   <div className="flex items-center space-x-1">
                                     {/* Счетчики дней без опозданий, с опозданием и с исключением */}
