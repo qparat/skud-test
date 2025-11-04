@@ -875,10 +875,12 @@ export function EmployeeSchedule() {
               Нет данных за выбранную дату
             </div>
           ) : (
-            {/* Таблица без ФИО и без красных блоков при опоздании */}
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    ФИО
+                  </th>
                   {scheduleData?.employees.some(emp => 'days' in emp) && (
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Дата
@@ -913,14 +915,31 @@ export function EmployeeSchedule() {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {getDisplayData().map((employee, index) => {
+                  // Проверяем, есть ли поле date (это означает, что это данные диапазона в плоском формате)
                   const isRangeData = 'date' in employee
+                  const hasExpandButton = isRangeData && employee.isFirstInGroup && employee.totalInGroup > 1
+                  const isExpanded = expandedEmployees.has(employee.employee_id)
+                  
                   if (!isRangeData) {
+                    // Отображение для одной даты
                     const emp = employee as Employee & { isFirstInGroup: boolean; totalInGroup: number }
                     return (
-                      <tr key={emp.employee_id} className="hover:bg-gray-50">
-                        {scheduleData?.employees.some(emp => 'days' in emp) && (
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">-</td>
-                        )}
+                      <tr
+                        key={emp.employee_id}
+                        className={`hover:bg-gray-50 ${emp.is_late ? 'bg-red-50' : ''}`}
+                      >
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <button
+                            onClick={() => handleEmployeeClick(emp.employee_id)}
+                            className={`text-left font-medium ${
+                              emp.is_late 
+                                ? 'text-red-600 hover:text-red-800' 
+                                : 'text-blue-600 hover:text-blue-800'
+                            }`}
+                          >
+                            {emp.full_name}
+                          </button>
+                        </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           <div>
                             {emp.first_entry || '-'}
@@ -952,6 +971,8 @@ export function EmployeeSchedule() {
                               className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                                 emp.exception?.has_exception
                                   ? 'bg-blue-100 text-blue-800'
+                                  : emp.is_late
+                                  ? 'bg-red-100 text-red-800'
                                   : 'bg-green-100 text-green-800'
                               }`}
                             >
@@ -967,9 +988,31 @@ export function EmployeeSchedule() {
                       </tr>
                     )
                   } else {
+                    // Отображение для диапазона дат (плоский формат с группировкой)
                     const emp = employee as Employee & { date: string; isFirstInGroup: boolean; totalInGroup: number; groupIndex: number }
                     return (
-                      <tr key={`${emp.employee_id}-${emp.date}`} className="hover:bg-gray-50">
+                      <tr
+                        key={`${emp.employee_id}-${emp.date}`}
+                        className={`hover:bg-gray-50 ${emp.exception?.has_exception ? 'bg-blue-50' : (emp.is_late ? 'bg-red-50' : '')}`}
+                      >
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center justify-between">
+                            {emp.isFirstInGroup ? (
+                              <button
+                                onClick={() => handleEmployeeClick(emp.employee_id)}
+                                className={`text-left font-medium ${
+                                  emp.is_late 
+                                    ? 'text-red-600 hover:text-red-800' 
+                                    : 'text-blue-600 hover:text-blue-800'
+                                }`}
+                              >
+                                {emp.full_name}
+                              </button>
+                            ) : (
+                              <span className="text-gray-400 text-sm">↳</span>
+                            )}
+                          </div>
+                        </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           <div className="flex flex-col">
                             <span className="font-medium">
@@ -1015,6 +1058,8 @@ export function EmployeeSchedule() {
                               className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                                 emp.exception?.has_exception
                                   ? 'bg-blue-100 text-blue-800'
+                                  : emp.is_late
+                                  ? 'bg-red-100 text-red-800'
                                   : 'bg-green-100 text-green-800'
                               }`}
                             >
@@ -1024,6 +1069,50 @@ export function EmployeeSchedule() {
                               <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-purple-100 text-purple-800">
                                 🛡️ {emp.exception.reason}
                               </span>
+                            )}
+                          </div>
+                        </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center justify-end">
+                            {hasExpandButton && (
+                              <button
+                                onClick={() => toggleEmployeeExpanded(emp.employee_id)}
+                                className="ml-2 p-1 text-gray-400 hover:text-gray-600 focus:outline-none"
+                                title={isExpanded ? 'Свернуть' : `Показать еще ${emp.totalInGroup - 1} дней`}
+                              >
+                                {isExpanded ? (
+                                  <ChevronUp className="h-4 w-4" />
+                                ) : (
+                                  <div className="flex items-center space-x-1">
+                                    {/* Счетчики дней без опозданий, с опозданием и с исключением */}
+                                    {(() => {
+                                      // Получаем все дни сотрудника из исходных scheduleData.employees
+                                      let allDays: DayData[] = [];
+                                      let totalDays = 0;
+                                      if (scheduleData && Array.isArray(scheduleData.employees)) {
+                                        const found = (scheduleData.employees as any[]).find(e => e.employee_id === emp.employee_id && Array.isArray(e.days));
+                                        if (found && Array.isArray(found.days)) {
+                                          allDays = found.days.filter((d: DayData) => d.date !== emp.date);
+                                          totalDays = found.days.length;
+                                        }
+                                      }
+                                      const lateDays = allDays.filter(d => d.is_late && !(d.exception?.has_exception)).length;
+                                      const okDays = allDays.filter(d => !d.is_late && !(d.exception?.has_exception)).length;
+                                      const excDays = allDays.filter(d => d.exception?.has_exception).length;
+                                      return (
+                                        <>
+                                          {/* <span className="bg-green-100 text-green-800 text-xs font-medium px-2 py-0.5 rounded-full">+{okDays}</span>
+                                          <span className="bg-red-100 text-red-800 text-xs font-medium px-2 py-0.5 rounded-full ml-1">+{lateDays}</span>
+                                          <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-0.5 rounded-full ml-1">+{excDays}</span> */}
+                                          <div className="flex items-center text-xs text-gray-500">Элементов: {totalDays}</div>
+
+                                          <ChevronDown className="h-4 w-4 ml-2" />
+                                        </>
+                                      );
+                                    })()}
+                                  </div>
+                                )}
+                              </button>
                             )}
                           </div>
                         </td>
