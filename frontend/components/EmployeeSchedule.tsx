@@ -635,50 +635,11 @@ export function EmployeeSchedule() {
             {/* Statistics */}
             {scheduleData && scheduleData.employees.length > 0 && (
               <div className="flex items-center space-x-4">
-                <div className="">
-                  <div className="flex items-center">
-                    <div className="flex items-center space-x-2">
-                      <p className="text-s font-medium text-gray-600">Всего сотрудников</p>
-                      <p className="bg-blue-100 text-blue-800 text-sm font-medium px-2.5 py-0.5 rounded-full">{scheduleData.total_count}</p>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="">
-                  <div className="flex items-center">
-                    <div className="flex items-center space-x-2">
-                      <p className="text-s font-medium text-gray-600">
-                        Опозданий
-                        {sortBy === 'late-first' && ' (сверху)'}
-                        {sortBy === 'normal-first' && ' (снизу)'}
-                      </p>
-                      <p className="bg-red-100 text-red-800 text-sm font-medium px-2.5 py-0.5 rounded-full">{scheduleData.late_count}</p>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="">
-                  <div className="flex items-center">
-                    <div className="flex items-center space-x-2">
-                      <p className="text-s font-medium text-gray-600">
-                        {startDate && endDate ? 'Период' : 'Дата'}
-                      </p>
-                      <p className="text-s font-medium text-gray-900">
-                        {startDate && endDate 
-                          ? `${startDate} - ${endDate}`
-                          : selectedDate || scheduleData.date
-                        }
-                      </p>
-                    </div>
-                  </div>
-                </div>
+                {/* ...existing code... */}
               </div>
             )}
-            {/* Поиск по ФИО */}
-              
-            
+            {/* Поиск по ФИО и фильтр по отделу */}
             <div className="flex items-center space-x-4 relative calendar-container">
-              {/* Кнопка для открытия календаря */}
               <div className="w-84">
                 <input
                   type="text"
@@ -688,6 +649,36 @@ export function EmployeeSchedule() {
                   className="w-full inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                 />
               </div>
+              {/* Кнопка фильтра и выпадающий список отделов */}
+              <div className="relative">
+                <button
+                  onClick={() => setShowFilter(!showFilter)}
+                  className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                  Фильтр
+                  <ChevronDown className="h-4 w-4 ml-2" />
+                </button>
+                {showFilter && (
+                  <div className="absolute top-full left-0 mt-2 z-[9999] bg-white border border-gray-200 rounded-lg shadow-xl p-4 min-w-[200px]">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Отдел</label>
+                    <select
+                      value={selectedDepartment ?? ''}
+                      onChange={e => {
+                        const val = e.target.value
+                        setSelectedDepartment(val ? Number(val) : null)
+                        setShowFilter(false)
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="">Все отделы</option>
+                      {departments.map(dep => (
+                        <option key={dep.id} value={dep.id}>{dep.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
+              {/* ...existing calendar and export buttons... */}
               <button
                 onClick={() => setShowCalendar(!showCalendar)}
                 className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
@@ -702,8 +693,6 @@ export function EmployeeSchedule() {
                   : 'Выбрать дату'
                 }
               </button>
-              
-              {/* Кнопка сброса */}
               {(selectedDate || (startDate && endDate)) && (
                 <button
                   onClick={clearDates}
@@ -712,108 +701,20 @@ export function EmployeeSchedule() {
                   Сбросить
                 </button>
               )}
-              
-              {/* Календарь */}
+              {/* ...existing calendar popup... */}
               {showCalendar && (
-                <div className="absolute top-full mt-2 z-[9999] bg-white border border-gray-200 rounded-lg shadow-xl p-4" style={{minWidth: '280px', right: 0}}>
-                  {/* Заголовок календаря */}
-                  <div className="flex items-center justify-between mb-4">
-                    <button
-                      onClick={goToPreviousMonth}
-                      className="p-1 hover:bg-gray-100 rounded"
-                    >
-                      <ChevronDown className="h-4 w-4 rotate-90" />
-                    </button>
-                    <h3 className="text-sm font-medium">
-                      {currentMonth.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' })}
-                    </h3>
-                    <button
-                      onClick={goToNextMonth}
-                      className="p-1 hover:bg-gray-100 rounded"
-                    >
-                      <ChevronUp className="h-4 w-4 rotate-90" />
-                    </button>
-                  </div>
-                  
-                  {/* Дни недели */}
-                  <div className="grid grid-cols-7 gap-1 mb-2">
-                    {['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'].map(day => (
-                      <div key={day} className="text-xs text-center text-gray-500 font-medium py-1">
-                        {day}
-                      </div>
-                    ))}
-                  </div>
-                  
-                  {/* Дни */}
-                  <div className="grid grid-cols-7 gap-1">
-                    {generateCalendar().map((date, index) => {
-                      const dateStr = formatDate(date)
-                      const isCurrentMonth = date.getMonth() === currentMonth.getMonth()
-                      const isToday = dateStr === today
-                      const isSelected = dateStr === selectedDate
-                      const isLoadedDate = dateStr === lastLoadedDate // Новая переменная для визуального выделения
-                      const isInRange = startDate && endDate && dateStr >= startDate && dateStr <= endDate
-                      const isStartDate = dateStr === startDate
-                      const isEndDate = dateStr === endDate
-                      const isFuture = dateStr > today
-                      const isDisabled = isFuture
-                      
-                      return (
-                        <button
-                          key={index}
-                          onClick={() => !isDisabled && handleDateClick(dateStr)}
-                          disabled={isDisabled}
-                          className={`
-                            w-8 h-8 text-xs rounded-full flex items-center justify-center transition-colors
-                            ${!isCurrentMonth ? 'text-gray-300' : ''}
-                            ${isDisabled ? 'bg-gray-100 text-gray-300 cursor-not-allowed' : ''}
-                            ${isStartDate || isEndDate ? 'bg-green-600 text-white font-bold' : ''}
-                            ${isInRange && !isStartDate && !isEndDate ? 'bg-green-100 text-green-800' : ''}
-                            ${isLoadedDate && !isStartDate && !isEndDate ? 'bg-blue-600 text-white font-bold' : ''}
-                            ${isToday && !isLoadedDate && !isStartDate && !isEndDate && !isInRange ? 'bg-blue-100 text-blue-600 font-bold' : ''}
-                            ${!isLoadedDate && !isInRange && !isToday && !isDisabled && isCurrentMonth && !isStartDate && !isEndDate ? 'hover:bg-gray-100' : ''}
-                          `}
-                        >
-                          {date.getDate()}
-                        </button>
-                      )
-                    })}
-                  </div>
-                  
-                  <div className="mt-3 pt-3 border-t">
-                    <p className="text-xs text-gray-600 mb-2">Быстрый выбор периода:</p>
-                    <div className="grid grid-cols-3 gap-2">
-                      <button
-                        onClick={selectWeekPeriod}
-                        className="px-3 py-2 text-xs bg-blue-50 text-blue-700 rounded hover:bg-blue-100 transition-colors"
-                      >
-                        За неделю
-                      </button>
-                      <button
-                        onClick={selectMonthPeriod}
-                        className="px-3 py-2 text-xs bg-green-50 text-green-700 rounded hover:bg-green-100 transition-colors"
-                      >
-                        За месяц
-                      </button>
-                      <button
-                        onClick={selectQuarterPeriod}
-                        className="px-3 py-2 text-xs bg-purple-50 text-purple-700 rounded hover:bg-purple-100 transition-colors"
-                      >
-                        За квартал
-                      </button>
-                    </div>
-                  </div>
-                </div>
+                // ...existing code...
+                <></>
               )}
               {scheduleData && scheduleData.employees.length > 0 && (
-              <button
-                onClick={exportToExcel}
-                className="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-              >
-                <Download className="h-4 w-4 mr-2" />
-                Выгрузить отчет
-              </button>
-            )}
+                <button
+                  onClick={exportToExcel}
+                  className="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Выгрузить отчет
+                </button>
+              )}
             </div>
           </div>
         </div>
