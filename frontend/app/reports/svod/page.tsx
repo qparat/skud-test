@@ -70,28 +70,12 @@ export default function SvodReportPage() {
             ))}
           </select>
         </div>
-        <div>
-          <label className="block text-sm font-medium mb-1">Должность</label>
-          <input
-            name="position"
-            value={form.position}
-            onChange={handleChange}
-            className="w-full px-3 py-2 border rounded-md"
-            required
-            readOnly
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium mb-1">ФИО</label>
-          <input
-            name="name"
-            value={form.name}
-            onChange={handleChange}
-            className="w-full px-3 py-2 border rounded-md"
-            required
-            readOnly
-          />
-        </div>
+        {form.employeeId && (
+          <div className="flex space-x-4 items-center">
+            <div className="text-sm text-gray-700"><b>ФИО:</b> {form.name}</div>
+            <div className="text-sm text-gray-700"><b>Должность:</b> {form.position}</div>
+          </div>
+        )}
         <div>
           <label className="block text-sm font-medium mb-1">Комментарий</label>
           <input
