@@ -611,10 +611,15 @@ export function EmployeeSchedule() {
           const uniqueDeps = Array.from(new Set((scheduleData.employees as any[])
             .map(e => e.department_id && e.department_name ? `${e.department_id}|${e.department_name}` : null)
             .filter(Boolean)))
-          setDepartments(uniqueDeps.map((str: string) => {
-            const [id, name] = str.split('|')
-            return { id: Number(id), name }
-          }))
+          setDepartments(
+            uniqueDeps
+              .map((str) => {
+                if (!str) return null
+                const [id, name] = str.split('|')
+                return { id: Number(id), name }
+              })
+              .filter(Boolean)
+          )
         }
       }
     }
