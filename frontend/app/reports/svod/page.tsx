@@ -77,8 +77,16 @@ export default function SvodReportPage() {
 
   const handleAdd = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!form.position || !form.name) return;
-    setEmployees([...employees, { position: form.position, name: form.name, comment: form.comment }]);
+    if (!form.position || !form.name || !form.employeeId) return;
+    setEmployees([
+      ...employees,
+      {
+        id: Number(form.employeeId),
+        position: form.position,
+        name: form.name,
+        comment: form.comment
+      }
+    ]);
     setForm({ employeeId: '', position: '', name: '', comment: '' });
   };
 
@@ -144,11 +152,11 @@ export default function SvodReportPage() {
                 </tr>
               </thead>
               <tbody>
-                {employees.map((row, idx) => (
+                {employees.map((row: { id: number; position: string; name: string; comment: string }, idx: number) => (
                   <tr key={idx} className="border-b">
                     <td className="px-4 py-2 text-gray-900">{row.position}</td>
                     <td className="px-4 py-2 text-blue-700 font-semibold">{row.name}</td>
-                    <td className="px-4 py-2 text-gray-600">{employeeExceptions[String(row.employeeId)]?.comment || row.comment || ''}</td>
+                    <td className="px-4 py-2 text-gray-600">{employeeExceptions[String(row.id)]?.comment || row.comment || ''}</td>
                   </tr>
                 ))}
               </tbody>
