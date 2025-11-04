@@ -332,12 +332,17 @@ export function EmployeeSchedule() {
       }
     }
 
-    if (selectedDepartment !== null) {
+    // Фильтрация по отделу, если выбран
+    if (selectedDepartment !== null && selectedDepartment !== undefined && selectedDepartment !== '') {
       if (isRangeData) {
         filteredEmployees = (filteredEmployees as EmployeeWithDays[]).filter(e => {
-          return e.hasOwnProperty('department_id')
-            ? (e as any).department_id === selectedDepartment
-            : Array.isArray((e as any).days) && (e as any).days.some((d: any) => d.department_id === selectedDepartment)
+          if ('department_id' in e && e.department_id !== undefined) {
+            return (e as any).department_id === selectedDepartment
+          }
+          if (Array.isArray((e as any).days)) {
+            return (e as any).days.some((d: any) => d.department_id === selectedDepartment)
+          }
+          return false
         })
       } else {
         filteredEmployees = (filteredEmployees as Employee[]).filter(e => (e as any).department_id === selectedDepartment)
