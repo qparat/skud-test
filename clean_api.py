@@ -1098,12 +1098,15 @@ async def get_employee_schedule_range(start_date: str = Query(...), end_date: st
                                     'reason': department_exception['reason'],
                                     'type': department_exception['type']
                                 }
-                            last_dt = datetime.strptime(last_exit, '%H:%M:%S')
-                            if last_dt > first_dt:
-                                work_duration = last_dt - first_dt
-                                work_hours = work_duration.total_seconds() / 3600
-                        except Exception:
-                            pass
+                            if first_entry and last_exit:
+                                try:
+                                    first_dt = datetime.strptime(first_entry, '%H:%M:%S')
+                                    last_dt = datetime.strptime(last_exit, '%H:%M:%S')
+                                    if last_dt > first_dt:
+                                        work_duration = last_dt - first_dt
+                                        work_hours = work_duration.total_seconds() / 3600
+                                except Exception:
+                                    work_hours = None
                     status = get_employee_status(is_late, first_entry, exception_info)
                     day_data = {
                         'date': date_str,
@@ -1909,33 +1912,32 @@ async def create_employee_exception_range(exception_range: ExceptionRangeCreate)
     """Создание исключений для сотрудника в диапазоне дат"""
     try:
         from datetime import datetime, timedelta
-        
+
         # Валидация дат
-        try:
-            start_dt = datetime.strptime(start_date, '%Y-%m-%d').date()
-            end_dt = datetime.strptime(end_date, '%Y-%m-%d').date()
-        if start_date > end_date:
+        start_dt = datetime.strptime(exception_range.start_date, '%Y-%m-%d').date()
+        end_dt = datetime.strptime(exception_range.end_date, '%Y-%m-%d').date()
+        if start_dt > end_dt:
             raise HTTPException(status_code=400, detail="Начальная дата не может быть позже конечной")
-        
+
         # Проверяем ограничение на диапазон (максимум 31 день)
-        if (end_date - start_date).days > 31:
+        if (end_dt - start_dt).days > 31:
             raise HTTPException(status_code=400, detail="Максимальный диапазон - 31 день")
-        
+
         conn = get_db_connection()
         cursor = conn.cursor()
-        
+
         # Проверяем существование сотрудника
         cursor.execute("SELECT full_name FROM employees WHERE id = %s", (exception_range.employee_id,))
         employee = cursor.fetchone()
         if not employee:
             raise HTTPException(status_code=404, detail="Сотрудник не найден")
-        
+
         # Создаем исключения для каждого дня в диапазоне
         created_count = 0
         updated_count = 0
-        current_date = start_date
-        
-        while current_date <= end_date:
+        current_date = start_dt
+
+        while current_date <= end_dt:
             try:
                 cursor.execute("""
                     INSERT INTO employee_exceptions (employee_id, exception_date, reason, exception_type)
@@ -1944,7 +1946,7 @@ async def create_employee_exception_range(exception_range: ExceptionRangeCreate)
                       exception_range.reason, exception_range.exception_type))
                 created_count += 1
             except Exception as e:
-                if "UNIQUE constraint failed" in str(e):
+                if "UNIQUE constraint failed" in str(e) or "duplicate key value violates unique constraint" in str(e):
                     # Если исключение уже существует, обновляем его
                     cursor.execute("""
                         UPDATE employee_exceptions 
@@ -1955,14 +1957,13 @@ async def create_employee_exception_range(exception_range: ExceptionRangeCreate)
                     updated_count += 1
                 else:
                     raise e
-            
             current_date += timedelta(days=1)
-        
+
         conn.commit()
         conn.close()
-        
-        total_days = (end_date - start_date).days + 1
-        
+
+        total_days = (end_dt - start_dt).days + 1
+
         return {
             "message": f"Исключения для {employee[0]} созданы с {exception_range.start_date} по {exception_range.end_date}",
             "employee_name": employee[0],
@@ -1972,7 +1973,7 @@ async def create_employee_exception_range(exception_range: ExceptionRangeCreate)
             "start_date": exception_range.start_date,
             "end_date": exception_range.end_date
         }
-        
+
     except HTTPException:
         raise
     except Exception as e:
