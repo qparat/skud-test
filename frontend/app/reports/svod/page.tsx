@@ -2,28 +2,74 @@
 import { useState } from 'react'
 
 
+
 export default function SvodReportPage() {
+  // Мок-данные сотрудников
+  const allEmployees = [
+    { id: 1, name: 'Иванов И.И.', position: 'Директор' },
+    { id: 2, name: 'Петров П.П.', position: 'Менеджер' },
+    { id: 3, name: 'Сидоров С.С.', position: 'Заместитель директора' }
+  ];
+
+  // Мок-данные исключений (по дате)
+  const exceptionDate = '2025-11-04';
+  const employeeExceptions = {
+    1: { date: exceptionDate, comment: 'В отпуске' },
+    3: { date: exceptionDate, comment: 'Больничный' }
+  };
+
   const [employees, setEmployees] = useState([
     { position: 'Директор', name: 'Иванов И.И.', comment: 'В отпуске' },
-    { position: 'Менеджер', name: 'Сидоров С.С.', comment: 'На рабочем месте' }
-  ])
-  const [form, setForm] = useState({ position: '', name: '', comment: '' })
+    { position: 'Менеджер', name: 'Петров П.П.', comment: '' }
+  ]);
+  const [form, setForm] = useState({ employeeId: '', position: '', name: '', comment: '' });
+
+  // При выборе сотрудника — автозаполнение
+  const handleEmployeeSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const id = e.target.value;
+    const emp = allEmployees.find(emp => String(emp.id) === id);
+    let comment = '';
+    if (emp && employeeExceptions[emp.id]) {
+      comment = employeeExceptions[emp.id].comment;
+    }
+    setForm({
+      employeeId: id,
+      position: emp ? emp.position : '',
+      name: emp ? emp.name : '',
+      comment
+    });
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setForm({ ...form, [e.target.name]: e.target.value })
-  }
+    setForm({ ...form, [e.target.name]: e.target.value });
+  };
 
   const handleAdd = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    if (!form.position || !form.name) return
-    setEmployees([...employees, form])
-    setForm({ position: '', name: '', comment: '' })
-  }
+    e.preventDefault();
+    if (!form.position || !form.name) return;
+    setEmployees([...employees, { position: form.position, name: form.name, comment: form.comment }]);
+    setForm({ employeeId: '', position: '', name: '', comment: '' });
+  };
 
   return (
     <div className="max-w-2xl mx-auto py-10">
       <h1 className="text-2xl font-bold mb-6">Свод ТРК — Добавить сотрудника</h1>
       <form className="mb-8 space-y-4" onSubmit={handleAdd}>
+        <div>
+          <label className="block text-sm font-medium mb-1">Сотрудник</label>
+          <select
+            name="employeeId"
+            value={form.employeeId}
+            onChange={handleEmployeeSelect}
+            className="w-full px-3 py-2 border rounded-md"
+            required
+          >
+            <option value="">Выберите сотрудника</option>
+            {allEmployees.map(emp => (
+              <option key={emp.id} value={emp.id}>{emp.name}</option>
+            ))}
+          </select>
+        </div>
         <div>
           <label className="block text-sm font-medium mb-1">Должность</label>
           <input
@@ -32,6 +78,7 @@ export default function SvodReportPage() {
             onChange={handleChange}
             className="w-full px-3 py-2 border rounded-md"
             required
+            readOnly
           />
         </div>
         <div>
@@ -42,6 +89,7 @@ export default function SvodReportPage() {
             onChange={handleChange}
             className="w-full px-3 py-2 border rounded-md"
             required
+            readOnly
           />
         </div>
         <div>
@@ -51,6 +99,7 @@ export default function SvodReportPage() {
             value={form.comment}
             onChange={handleChange}
             className="w-full px-3 py-2 border rounded-md"
+            placeholder="Комментарий или исключение"
           />
         </div>
         <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Добавить</button>
