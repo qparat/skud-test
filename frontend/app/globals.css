@@ -31,6 +31,7 @@ body {
   width: 20rem !important;
 }
 .login {
+  display: flex;
 justify-content: space-between;
     background: url(http://10.0.1.47/30478678.jpg) no-repeat;
     background-position: center;
