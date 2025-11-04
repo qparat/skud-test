@@ -34,15 +34,15 @@ export default function ReportsPage() {
       {/* ...existing code... */}
       <div className="space-y-6">
         {reports.map(report => (
-          <div key={report.id} className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <a
-                  href={`/reports/${report.id}`}
-                  className="text-lg font-semibold text-blue-700 hover:underline focus:outline-none"
-                >
-                  {report.name}
-                </a>
+            <div key={report.id} className="bg-white rounded-lg shadow p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <a
+                    href={report.id === 1 ? "/reports/svod" : `/reports/${report.id}`}
+                    className="text-lg font-semibold text-blue-700 hover:underline focus:outline-none"
+                  >
+                    {report.name}
+                  </a>
                 <div className="text-gray-600 text-sm mb-2">{report.description}</div>
                 <div className="text-xs text-gray-500">{report.ready ? 'Готов к скачиванию' : 'В процессе генерации'}</div>
               </div>
