@@ -28,7 +28,16 @@ export default function SvodReportPage() {
     ])
       .then(([employeesData, exceptionsData]) => {
         console.log('API employees response:', employeesData);
-        setAllEmployees(Array.isArray(employeesData) ? employeesData : []);
+        // Flatten employees from all departments
+        let employeesList: { id: number; name: string; position: string }[] = [];
+        if (employeesData && employeesData.departments) {
+          Object.values(employeesData.departments).forEach((arr: any) => {
+            if (Array.isArray(arr)) {
+              employeesList = employeesList.concat(arr);
+            }
+          });
+        }
+        setAllEmployees(employeesList);
         // Filter exceptions by selectedDate and map by employee_id
         const filtered = (exceptionsData.exceptions || []).filter(
           (ex: any) => ex.exception_date === selectedDate
