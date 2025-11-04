@@ -935,7 +935,7 @@ export function EmployeeSchedule() {
                     return (
                       <tr
                         key={emp.employee_id}
-                        className={`hover:bg-gray-50 ${emp.is_late ? 'bg-gray-200' : ''}`}
+                        className={`hover:bg-gray-50 ${emp.is_late ? 'bg-gray-50' : ''}`}
                       >
                         <td className="px-6 py-4 whitespace-nowrap">
                           <button
