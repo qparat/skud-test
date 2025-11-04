@@ -144,11 +144,11 @@ export default function SvodReportPage() {
                 </tr>
               </thead>
               <tbody>
-                {allEmployees.map((emp: { id: number; name: string; position: string }) => (
-                  <tr key={emp.id} className="border-b">
-                    <td className="px-4 py-2 text-gray-900">{emp.position}</td>
-                    <td className="px-4 py-2 text-blue-700 font-semibold">{emp.name}</td>
-                    <td className="px-4 py-2 text-gray-600">{employeeExceptions[String(emp.id)]?.comment || ''}</td>
+                {employees.map((row, idx) => (
+                  <tr key={idx} className="border-b">
+                    <td className="px-4 py-2 text-gray-900">{row.position}</td>
+                    <td className="px-4 py-2 text-blue-700 font-semibold">{row.name}</td>
+                    <td className="px-4 py-2 text-gray-600">{employeeExceptions[String(row.employeeId)]?.comment || row.comment || ''}</td>
                   </tr>
                 ))}
               </tbody>
