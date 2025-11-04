@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 
 
 
@@ -24,61 +24,62 @@ export default function SvodReportPage() {
       fetch(`/api/exceptions?date=${selectedDate}`).then(r => r.json())
     ])
       .then(([employeesData, exceptionsData]) => {
-        // employeesData: [{ id, name, position }]
         setAllEmployees(employeesData);
-        // exceptionsData: { [employeeId]: { date, comment } }
         setEmployeeExceptions(exceptionsData);
+        setLoading(false);
       })
       .catch((err) => {
         setError('Ошибка загрузки данных');
-      })
-      .finally(() => setLoading(false));
+        setLoading(false);
+      });
   }, [selectedDate]);
 
   // При выборе сотрудника — автозаполнение
   const handleEmployeeSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const id = e.target.value;
     const emp = allEmployees.find(emp => String(emp.id) === id);
-    let comment = '';
-    if (emp && employeeExceptions[String(emp.id)]) {
-      comment = employeeExceptions[String(emp.id)].comment;
-    }
-    setForm({
-      employeeId: id,
-      position: emp ? emp.position : '',
-      name: emp ? emp.name : '',
-      comment
-    });
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  };
-
-  const handleAdd = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (!form.position || !form.name) return;
-    setEmployees([...employees, { position: form.position, name: form.name, comment: form.comment }]);
-    setForm({ employeeId: '', position: '', name: '', comment: '' });
-  };
-
-  return (
-    <div className="max-w-2xl mx-auto py-10">
-      <h1 className="text-2xl font-bold mb-6">Свод ТРК — Добавить сотрудника</h1>
-      {loading ? (
-        <div className="p-6 text-center text-gray-600">Загрузка данных...</div>
-      ) : error ? (
-        <div className="p-6 text-center text-red-600">{error}</div>
-      ) : (
-      <form className="mb-8 space-y-4" onSubmit={handleAdd}>
-        <div>
-          <label className="block text-sm font-medium mb-1">Сотрудник</label>
-          <select
-            name="employeeId"
-            value={form.employeeId}
-            onChange={handleEmployeeSelect}
-            className="w-full px-3 py-2 border rounded-md"
-            required
+      <div>
+        {loading ? (
+          <div className="p-6 text-center text-gray-600">Загрузка данных...</div>
+        ) : error ? (
+          <div className="p-6 text-center text-red-600">{error}</div>
+        ) : (
+          <form className="mb-8 space-y-4" onSubmit={handleAdd}>
+            <div>
+              <label className="block text-sm font-medium mb-1">Сотрудник</label>
+              <select
+                name="employeeId"
+                value={form.employeeId}
+                onChange={handleEmployeeSelect}
+                className="w-full px-3 py-2 border rounded-md"
+                required
+              >
+                <option value="">Выберите сотрудника</option>
+                {allEmployees.map(emp => (
+                  <option key={emp.id} value={emp.id}>{emp.name}</option>
+                ))}
+              </select>
+            </div>
+            {form.employeeId && (
+              <div className="flex space-x-4 items-center">
+                <div className="text-sm text-gray-700"><b>ФИО:</b> {form.name}</div>
+                <div className="text-sm text-gray-700"><b>Должность:</b> {form.position}</div>
+              </div>
+            )}
+            <div>
+              <label className="block text-sm font-medium mb-1">Комментарий</label>
+              <input
+                name="comment"
+                value={form.comment}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border rounded-md"
+                placeholder="Комментарий или исключение"
+              />
+            </div>
+            <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Добавить</button>
+          </form>
+        )}
+      </div>
           >
             <option value="">Выберите сотрудника</option>
             {allEmployees.map(emp => (
