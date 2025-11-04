@@ -11,7 +11,8 @@ import {
   Briefcase,
   Shield,
   Upload,
-  UserCog
+  UserCog,
+  FileChartColumnIncreasing
 } from 'lucide-react'
 
 const navigation = [
