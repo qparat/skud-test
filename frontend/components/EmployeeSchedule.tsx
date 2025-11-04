@@ -1,5 +1,5 @@
 ﻿'use client'
-
+import { useRef } from 'react';
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Calendar, Clock, MapPin, User, Download, ChevronUp, ChevronDown } from 'lucide-react'
@@ -65,7 +65,6 @@ interface ScheduleData {
 }
 
 export function EmployeeSchedule() {
-  import { useRef } from 'react';
   const filterRef = useRef<HTMLDivElement>(null);
   const router = useRouter()
   const [selectedDate, setSelectedDate] = useState('')
