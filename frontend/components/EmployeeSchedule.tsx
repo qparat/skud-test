@@ -333,7 +333,7 @@ export function EmployeeSchedule() {
     }
 
     // Фильтрация по отделу, если выбран
-    if (selectedDepartment !== null && selectedDepartment !== undefined && selectedDepartment !== '') {
+    if (selectedDepartment !== null && selectedDepartment !== undefined) {
       if (isRangeData) {
         filteredEmployees = (filteredEmployees as EmployeeWithDays[]).filter(e => {
           if ('department_id' in e && e.department_id !== undefined) {
