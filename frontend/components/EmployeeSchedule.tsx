@@ -980,7 +980,7 @@ export function EmployeeSchedule() {
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {emp.work_hours ? `${emp.work_hours.toFixed(1)} ч` : '-'}
+                          {emp.work_hours !== null && emp.work_hours !== undefined ? `${emp.work_hours.toFixed(1)} ч` : '-'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center space-x-2">
