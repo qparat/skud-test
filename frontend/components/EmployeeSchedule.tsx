@@ -1094,7 +1094,7 @@ export function EmployeeSchedule() {
                               <button
                                 onClick={() => toggleEmployeeExpanded(emp.employee_id)}
                                 className="ml-2 p-1 text-gray-400 hover:text-gray-600 focus:outline-none"
-                                title={isExpanded ? 'Свернуть' : `Показать еще ${emp.totalInGroup - 1} дней`}
+                                title={isExpanded ? 'Свернуть' : `Показать еще ${emp.totalInGroup} дней`}
                               >
                                 {isExpanded ? (
                                   <ChevronUp className="h-6 w-6" />
