@@ -336,16 +336,25 @@ export function EmployeeSchedule() {
     if (selectedDepartment !== null && selectedDepartment !== undefined) {
       if (isRangeData) {
         filteredEmployees = (filteredEmployees as EmployeeWithDays[]).filter(e => {
-          if ('department_id' in e && e.department_id !== undefined) {
+          // Если department_id есть на верхнем уровне
+          if ((e as any).department_id !== undefined) {
             return (e as any).department_id === selectedDepartment
           }
+          // Если department_id есть в days
           if (Array.isArray((e as any).days)) {
             return (e as any).days.some((d: any) => d.department_id === selectedDepartment)
           }
-          return false
+          // Если нет department_id, не исключаем сотрудника
+          return true
         })
       } else {
-        filteredEmployees = (filteredEmployees as Employee[]).filter(e => (e as any).department_id === selectedDepartment)
+        filteredEmployees = (filteredEmployees as Employee[]).filter(e => {
+          if ((e as any).department_id !== undefined) {
+            return (e as any).department_id === selectedDepartment
+          }
+          // Если нет department_id, не исключаем сотрудника
+          return true
+        })
       }
     }
 
