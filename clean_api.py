@@ -1108,6 +1108,9 @@ async def get_employee_schedule_range(start_date: str = Query(...), end_date: st
                                 except Exception:
                                     work_hours = None
                     status = get_employee_status(is_late, first_entry, exception_info)
+                    # Ensure work_hours is always defined
+                    if 'work_hours' not in locals():
+                        work_hours = None
                     day_data = {
                         'date': date_str,
                         'first_entry': first_entry,
