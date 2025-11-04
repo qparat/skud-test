@@ -4,8 +4,8 @@ import React from 'react'
 const reports = [
   {
     id: 1,
-    name: 'Отчет по посещаемости',
-    description: 'Таблица с данными о посещаемости сотрудников за выбранный период.',
+    name: 'Свод ТРК',
+    description: 'Таблица с данными о нахождении руководителей',
     file: '/reports/attendance_report.xlsx',
     ready: true
   },
