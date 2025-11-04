@@ -989,9 +989,6 @@ async def get_employee_schedule_range(start_date: str = Query(...), end_date: st
         # Валидация дат
         start_dt = datetime.strptime(start_date, '%Y-%m-%d').date()
         end_dt = datetime.strptime(end_date, '%Y-%m-%d').date()
-            # Получаем имена отделов для всех department_id
-            cursor.execute("SELECT id, name FROM departments")
-            dept_names_map = {row[0]: row[1] for row in cursor.fetchall()}
         if start_dt > end_dt:
             raise HTTPException(status_code=400, detail="Начальная дата не может быть позже конечной")
         if (end_dt - start_dt).days > 365:
@@ -999,7 +996,10 @@ async def get_employee_schedule_range(start_date: str = Query(...), end_date: st
 
         conn = get_db_connection()
         cursor = conn.cursor()
-                department_name = dept_names_map.get(department_id, None)
+
+        # Получаем имена отделов для всех department_id
+        cursor.execute("SELECT id, name FROM departments")
+        dept_names_map = {row[0]: row[1] for row in cursor.fetchall()}
         cursor.execute("""
             SELECT DISTINCT e.id, e.full_name 
             FROM employees e
@@ -1017,8 +1017,6 @@ async def get_employee_schedule_range(start_date: str = Query(...), end_date: st
         # Получаем department_id для всех сотрудников
         cursor.execute("SELECT id, department_id FROM employees")
         emp_dept_map = {row[0]: row[1] for row in cursor.fetchall()}
-        cursor.execute("SELECT id, name FROM departments")
-dept_names_map = {row[0]: row[1] for row in cursor.fetchall()}
         # Получаем все whitelist_departments
         cursor.execute("SELECT department_id, reason, exception_type FROM whitelist_departments")
         whitelist_map = {row[0]: {'reason': row[1], 'type': row[2]} for row in cursor.fetchall()}
