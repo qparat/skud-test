@@ -524,7 +524,7 @@ export function EmployeeSchedule() {
 
     if (isRangeData) {
       // Группировка по датам и пустые строки — только для диапазона
-  const grouped = {} as Record<string, (Employee & { date: string })[]>
+      const grouped = {} as Record<string, (Employee & { date: string })[]>
       (sortedData as (Employee & { date: string })[]).forEach((emp: Employee & { date: string }) => {
         if (!grouped[emp.date]) grouped[emp.date] = []
         grouped[emp.date].push(emp)
@@ -550,7 +550,7 @@ export function EmployeeSchedule() {
             'ФИО': emp.full_name,
             'Пришел': emp.first_entry || '-',
             'Ушел': emp.last_exit || '-',
-            'Часы работы': emp.work_hours ? `${emp.work_hours.toFixed(1)} ч` : '-',
+            'Часы работы': emp.work_hours !== null && emp.work_hours !== undefined ? `${emp.work_hours.toFixed(1)} ч` : '-',
             'Статус': emp.status || (emp.is_late ? 'Опоздал' : 'В норме'),
             'Опоздание (мин)': emp.is_late ? emp.late_minutes : 0,
             'Исключение': emp.exception?.has_exception ? emp.exception.reason : '-'
@@ -575,7 +575,7 @@ export function EmployeeSchedule() {
         'ФИО': employee.full_name,
         'Пришел': employee.first_entry || '-',
         'Ушел': employee.last_exit || '-',
-        'Часы работы': employee.work_hours ? `${employee.work_hours.toFixed(1)} ч` : '-',
+        'Часы работы': employee.work_hours !== null && employee.work_hours !== undefined ? `${employee.work_hours.toFixed(1)} ч` : '-',
         'Статус': employee.status || (employee.is_late ? 'Опоздал' : 'В норме'),
         'Опоздание (мин)': employee.is_late ? employee.late_minutes : 0,
         'Исключение': employee.exception?.has_exception ? employee.exception.reason : '-'
