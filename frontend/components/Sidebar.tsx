@@ -12,13 +12,13 @@ import {
   Shield,
   Upload,
   UserCog,
-  FileChartColumnIncreasing
+  File
 } from 'lucide-react'
 
 const navigation = [
   { name: 'Расписание', href: '/', icon: LayoutDashboard },
   { name: 'Список сотрудников', href: '/employees', icon: Users },
-  { name: 'Отчеты', href: '/reports', icon: FileChartColumn, requireRole: 2 },
+  { name: 'Отчеты', href: '/reports', icon: File, requireRole: 2 },
   { name: 'Службы', href: '/departments', icon: Building2, requireRole: 2 },
   { name: 'Должности', href: '/positions', icon: Briefcase, requireRole: 2 },
   { name: 'Исключения', href: '/exceptions', icon: Shield, requireRole: 2 },
