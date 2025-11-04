@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 
+
 export default function SvodReportPage() {
   const [employees, setEmployees] = useState([
     { position: 'Директор', name: 'Иванов И.И.', comment: 'В отпуске' },
@@ -8,11 +9,11 @@ export default function SvodReportPage() {
   ])
   const [form, setForm] = useState({ position: '', name: '', comment: '' })
 
-  const handleChange = (e) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value })
   }
 
-  const handleAdd = (e) => {
+  const handleAdd = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (!form.position || !form.name) return
     setEmployees([...employees, form])
