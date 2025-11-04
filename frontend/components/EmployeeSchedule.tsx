@@ -79,6 +79,9 @@ export function EmployeeSchedule() {
   const [showCalendar, setShowCalendar] = useState(false)
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const [expandedEmployees, setExpandedEmployees] = useState<Set<number>>(new Set())
+  const [departments, setDepartments] = useState<{ id: number; name: string }[]>([])
+  const [selectedDepartment, setSelectedDepartment] = useState<number | null>(null)
+  const [showFilter, setShowFilter] = useState(false)
   
   // Получаем сегодняшнюю дату для ограничения выбора (без проблем с временной зоной)
   const today = formatDate(new Date())
@@ -326,6 +329,18 @@ export function EmployeeSchedule() {
         filteredEmployees = (employees as Employee[]).filter(e =>
           e.full_name.toLowerCase().includes(search)
         )
+      }
+    }
+
+    if (selectedDepartment !== null) {
+      if (isRangeData) {
+        filteredEmployees = (filteredEmployees as EmployeeWithDays[]).filter(e => {
+          return e.hasOwnProperty('department_id')
+            ? (e as any).department_id === selectedDepartment
+            : Array.isArray((e as any).days) && (e as any).days.some((d: any) => d.department_id === selectedDepartment)
+        })
+      } else {
+        filteredEmployees = (filteredEmployees as Employee[]).filter(e => (e as any).department_id === selectedDepartment)
       }
     }
 
@@ -582,6 +597,29 @@ export function EmployeeSchedule() {
     // Скачиваем файл
     XLSX.writeFile(wb, fileName)
   }
+
+  // Загрузка отделов (приоритет - ответ от сервера, если нет - из данных расписания)
+  useEffect(() => {
+    async function fetchDepartments() {
+      try {
+        const resp = await apiRequest('departments')
+        if (Array.isArray(resp)) {
+          setDepartments(resp.map((d: any) => ({ id: d.id, name: d.name })))
+        }
+      } catch (e) {
+        if (scheduleData && Array.isArray(scheduleData.employees)) {
+          const uniqueDeps = Array.from(new Set((scheduleData.employees as any[])
+            .map(e => e.department_id && e.department_name ? `${e.department_id}|${e.department_name}` : null)
+            .filter(Boolean)))
+          setDepartments(uniqueDeps.map((str: string) => {
+            const [id, name] = str.split('|')
+            return { id: Number(id), name }
+          }))
+        }
+      }
+    }
+    fetchDepartments()
+  }, [scheduleData])
 
   return (
     <div className="space-y-6">
