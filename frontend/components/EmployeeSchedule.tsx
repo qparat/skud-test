@@ -708,7 +708,7 @@ export function EmployeeSchedule() {
                   <ChevronDown className="h-4 w-4 ml-2" />
                 </button>
                 {showFilter && (
-                  <div className="absolute top-full left-0 mt-2 z-[9999] bg-white border border-gray-200 rounded-lg shadow-xl p-4 min-w-[200px]">
+                  <div className="absolute top-full right-0 mt-2 z-[9999] bg-white border border-gray-200 rounded-lg shadow-xl p-4">
                     <label className="block text-sm font-medium text-gray-700 mb-2">Отдел</label>
                     <select
                       value={selectedDepartment ?? ''}
@@ -717,7 +717,7 @@ export function EmployeeSchedule() {
                         setSelectedDepartment(val ? Number(val) : null)
                         setShowFilter(false)
                       }}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
                       <option value="">Все отделы</option>
                       {departments.map(dep => (
