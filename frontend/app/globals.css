@@ -33,7 +33,7 @@ body {
 .login {
   display: flex;
 justify-content: space-between;
-    /* background: url(http://10.0.1.47/30478678.jpg) no-repeat; */
+    background: url(http://10.0.1.47/30478678.jpg) no-repeat;
     background-position: center;
 }
 
@@ -69,7 +69,7 @@ form.form_login {
     border-radius: 6px;
     box-shadow: 0 1px 10px 0px #ffffff;
 }
-/* form.form_login input {
+form.form_login input {
     margin: 20px 0;
     border-radius: 8px;
 }
@@ -97,7 +97,7 @@ form.form_login label {
 
 form.form_login input::placeholder {
     color: #fff;
-} */
+}
 @media (min-width: 1920px) {
   .w-84 {
     width: 27rem;
