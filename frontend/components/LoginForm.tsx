@@ -32,7 +32,7 @@ export default function LoginForm() {
     <div className="login">
       {/* Картинка слева */}
     <div className="img_login">
-      <img src="/30478678.jpg" alt="SCUD" className="" />
+      <img src="/komp-uternaa-bezopasnost-s-zamkom-dla-vhoda-i-parola.jpg" alt="SCUD" className="" />
             </div>
       <div className="login_2 container">
         <form className="form_login" onSubmit={handleSubmit}>
