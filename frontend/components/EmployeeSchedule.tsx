@@ -718,12 +718,12 @@ export function EmployeeSchedule() {
                 </button>
                 {showFilter && (
                   <div ref={filterRef} className="absolute top-full right-0 mt-2 z-[9999] bg-white border border-gray-200 rounded-lg shadow-xl p-4" style={{ minWidth: '500px' }}>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Отделы</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Службы</label>
                     <input
                       type="text"
                       value={departmentSearch}
                       onChange={e => setDepartmentSearch(e.target.value)}
-                      placeholder="Поиск по отделу"
+                      placeholder="Поиск по службам"
                       className="w-full mb-2 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                     <div className="max-h-64 overflow-y-auto space-y-2">
