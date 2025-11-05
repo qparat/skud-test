@@ -19,7 +19,76 @@ interface Employee {
   first_entry: string | null
   last_exit: string | null
   first_entry_door: string | null
-    type: string
+  last_exit_door: string | null
+  is_late: boolean
+  late_minutes: number
+  work_hours: number | null
+  status: string
+  exception?: {
+    has_exception: boolean
+    reason: string
+    return (
+      <div className="space-y-6">
+        <div className="bg-white rounded-lg shadow overflow-visible">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <div className="flex items-center justify-between">
+              {/* ...existing header code... */}
+            </div>
+          </div>
+          <div className="overflow-x-auto overflow-y-visible">
+            {loading && (
+              <div className="p-6 text-center">
+                <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                <p className="mt-2 text-gray-600">Загрузка данных...</p>
+              </div>
+            )}
+            {!loading && error && (
+              <div className="p-6 text-center text-red-600">
+                <p>Ошибка: {error}</p>
+                <button
+                  onClick={() => {
+                    if (startDate && endDate) {
+                      fetchSchedule(undefined, startDate, endDate)
+                    } else if (selectedDate) {
+                      fetchSchedule(selectedDate)
+                    }
+                  }}
+                  className="mt-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                >
+                  Повторить
+                </button>
+              </div>
+            )}
+            {!loading && !error && !scheduleData && (
+              <div className="p-6 text-center text-gray-600">
+                <Calendar className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Загрузка данных...</h3>
+                <p>Пожалуйста, подождите</p>
+              </div>
+            )}
+            {!loading && !error && scheduleData?.employees.length === 0 && (
+              <div className="p-6 text-center text-gray-600">
+                Нет данных за выбранную дату
+              </div>
+            )}
+            {!loading && !error && scheduleData?.employees.length > 0 && (
+              <>
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    {/* ...existing code... */}
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {paginatedData.map((employee, index) => {
+                      // ...existing code for rendering rows...
+                    })}
+                  </tbody>
+                </table>
+                {totalItems > PAGE_SIZE && (
+                  <div className="px-6 py-3 flex items-center justify-between bg-white border-t">
+                    {/* ...existing code... */}
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>
