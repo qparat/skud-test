@@ -27,113 +27,73 @@ interface Employee {
   exception?: {
     has_exception: boolean
     reason: string
-    type: string
-  } | null
-}
-
-interface DayData {
-  date: string
-  first_entry: string | null
-  last_exit: string | null
-  first_entry_door: string | null
-  last_exit_door: string | null
-  is_late: boolean
-  late_minutes: number
-  work_hours: number | null
-  status: string
-  exception?: {
-    has_exception: boolean
-    reason: string
-    type: string
-  } | null
-}
-
-interface EmployeeWithDays {
-  employee_id: number
-  full_name: string
-  days: DayData[]
-}
-
-interface ScheduleData {
-  date: string
-  start_date?: string
-  end_date?: string
-  employees: Employee[] | EmployeeWithDays[]
-  total_count: number
-  late_count: number
-}
-
-export function EmployeeSchedule() {
-  const filterRef = useRef<HTMLDivElement>(null);
-  const router = useRouter()
-  const [selectedDate, setSelectedDate] = useState('')
-  const [lastLoadedDate, setLastLoadedDate] = useState('') // Для визуального выделения
-  const [startDate, setStartDate] = useState('')
-  const [endDate, setEndDate] = useState('')
-  const [scheduleData, setScheduleData] = useState<ScheduleData | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [initialized, setInitialized] = useState(false)
-  const [sortBy, setSortBy] = useState<'none' | 'late-first' | 'normal-first'>('none')
-  const [searchQuery, setSearchQuery] = useState('')
-  const [showCalendar, setShowCalendar] = useState(false)
-  const [currentMonth, setCurrentMonth] = useState(new Date())
-  const [expandedEmployees, setExpandedEmployees] = useState<Set<number>>(new Set())
-  const [departments, setDepartments] = useState<{ id: number; name: string }[]>([])
-  const [selectedDepartment, setSelectedDepartment] = useState<number[]>([])
-  const [showFilter, setShowFilter] = useState(false)
-  const [departmentSearch, setDepartmentSearch] = useState('')
-  const PAGE_SIZE = 50
-  const [currentPage, setCurrentPage] = useState<number>(1)
-  
-  // Получаем сегодняшнюю дату для ограничения выбора (без проблем с временной зоной)
-  const today = formatDate(new Date())
-
-  const fetchSchedule = async (date?: string, start?: string, end?: string) => {
-    setLoading(true)
-    setError(null)
-    
-    try {
-      let endpoint = 'employee-schedule'
-      
-      if (start && end) {
-        endpoint = `employee-schedule-range?start_date=${start}&end_date=${end}`
-      } else if (date) {
-        endpoint = `employee-schedule?date=${date}`
-      }
-        
-  const data = await apiRequest(endpoint)
-  console.log('scheduleData:', data)
-  setScheduleData(data)
-      
-      // НЕ сбрасываем сортировку при загрузке новых данных - пользователь должен сохранить свой выбор
-      // setSortBy('none')
-      
-      // Сбрасываем состояние развернутых сотрудников при загрузке новых данных
-      setExpandedEmployees(new Set())
-      
-      // При первоначальной загрузке НЕ устанавливаем дату автоматически
-      // Пользователь должен сам выбрать дату в календаре
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Ошибка загрузки данных')
-      console.error('Ошибка загрузки расписания:', err)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // Первоначальная загрузка данных за сегодняшний день
-  useEffect(() => {
-    // Загружаем данные за сегодняшний день, но НЕ устанавливаем выбранную дату в календаре
-    fetchSchedule(today)
-    setInitialized(true)
-  }, [])
-
-  // Закрытие календаря при клике вне его
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as Element;
-      // Для календаря
+    return (
+      <div className="space-y-6">
+        <div className="bg-white rounded-lg shadow overflow-visible">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <div className="flex items-center justify-between">
+              {/* ...existing header code... */}
+            </div>
+          </div>
+          <div className="overflow-x-auto overflow-y-visible">
+            {loading && (
+              <div className="p-6 text-center">
+                <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                <p className="mt-2 text-gray-600">Загрузка данных...</p>
+              </div>
+            )}
+            {!loading && error && (
+              <div className="p-6 text-center text-red-600">
+                <p>Ошибка: {error}</p>
+                <button
+                  onClick={() => {
+                    if (startDate && endDate) {
+                      fetchSchedule(undefined, startDate, endDate)
+                    } else if (selectedDate) {
+                      fetchSchedule(selectedDate)
+                    }
+                  }}
+                  className="mt-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                >
+                  Повторить
+                </button>
+              </div>
+            )}
+            {!loading && !error && !scheduleData && (
+              <div className="p-6 text-center text-gray-600">
+                <Calendar className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Загрузка данных...</h3>
+                <p>Пожалуйста, подождите</p>
+              </div>
+            )}
+            {!loading && !error && scheduleData?.employees.length === 0 && (
+              <div className="p-6 text-center text-gray-600">
+                Нет данных за выбранную дату
+              </div>
+            )}
+            {!loading && !error && scheduleData?.employees.length > 0 && (
+              <>
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    {/* ...existing code... */}
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {paginatedData.map((employee, index) => {
+                      // ...existing code for rendering rows...
+                    })}
+                  </tbody>
+                </table>
+                {totalItems > PAGE_SIZE && (
+                  <div className="px-6 py-3 flex items-center justify-between bg-white border-t">
+                    {/* ...existing code... */}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    )
       if (showCalendar && !target.closest('.calendar-container')) {
         setShowCalendar(false);
       }
