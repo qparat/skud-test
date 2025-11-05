@@ -19,16 +19,15 @@ interface Employee {
   first_entry: string | null
   last_exit: string | null
   first_entry_door: string | null
-  last_exit_door: string | null
-  is_late: boolean
-  late_minutes: number
-  work_hours: number | null
-  status: string
-  exception?: {
-    has_exception: boolean
-    reason: string
     type: string
-  } | null
+            )}
+          </div>
+        </div>
+      </div>
+    )
+      if (showCalendar && !target.closest('.calendar-container')) {
+        setShowCalendar(false);
+      }
       // Для фильтра
       if (showFilter && filterRef.current && !filterRef.current.contains(target)) {
         setShowFilter(false);
