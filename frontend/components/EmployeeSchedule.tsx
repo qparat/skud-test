@@ -66,7 +66,6 @@ interface ScheduleData {
 }
 
 export function EmployeeSchedule() {
-  const [departmentSearch, setDepartmentSearch] = useState('')
   const filterRef = useRef<HTMLDivElement>(null);
   const router = useRouter()
   const [selectedDate, setSelectedDate] = useState('')
@@ -85,6 +84,11 @@ export function EmployeeSchedule() {
   const [departments, setDepartments] = useState<{ id: number; name: string }[]>([])
   const [selectedDepartment, setSelectedDepartment] = useState<number[]>([])
   const [showFilter, setShowFilter] = useState(false)
+  const [departmentSearch, setDepartmentSearch] = useState('')
+  const PAGE_SIZE = 50
+  const [currentPage, setCurrentPage] = useState<number>(1)
+  const PAGE_SIZE = 50
+  const [currentPage, setCurrentPage] = useState(1)
   
   // Получаем сегодняшнюю дату для ограничения выбора (без проблем с временной зоной)
   const today = formatDate(new Date())
@@ -649,6 +653,36 @@ export function EmployeeSchedule() {
     fetchDepartments()
   }, [scheduleData])
 
+  // Сбрасываем текущую страницу при изменении фильтров/поиска/дат/сортировки
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchQuery, selectedDepartment, sortBy, scheduleData])
+
+  // Подготовка данных для пагинации
+  const fullDisplayData = getDisplayData()
+  const totalItems = fullDisplayData.length
+  const totalPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE))
+  // Защита currentPage от выхода за пределы
+  useEffect(() => {
+    if (currentPage > totalPages) setCurrentPage(totalPages)
+  }, [currentPage, totalPages])
+  const paginatedData = fullDisplayData.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
+
+  // Сбрасываем страницу при изменении фильтров/данных
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchQuery, departmentSearch, JSON.stringify(selectedDepartment), sortBy, scheduleData?.date, scheduleData?.start_date, scheduleData?.end_date])
+
+  // Вычисляем пагинацию
+  const displayData = getDisplayData()
+  const totalItems = displayData.length
+  const totalPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE))
+  const startIndex = (currentPage - 1) * PAGE_SIZE
+  const paginatedData = displayData.slice(startIndex, startIndex + PAGE_SIZE)
+
+  const goPrev = () => setCurrentPage((p: number) => Math.max(1, p - 1))
+  const goNext = () => setCurrentPage((p: number) => Math.min(totalPages, p + 1))
+
   return (
     <div className="space-y-6">
       {/* Employee table */}
@@ -958,7 +992,7 @@ export function EmployeeSchedule() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {getDisplayData().map((employee, index) => {
+                {paginatedData.map((employee, index) => {
                   // Проверяем, есть ли поле date (это означает, что это данные диапазона в плоском формате)
                   const isRangeData = 'date' in employee
                   const hasExpandButton = isRangeData && employee.isFirstInGroup && employee.totalInGroup > 1
@@ -1167,6 +1201,30 @@ export function EmployeeSchedule() {
                 })}
               </tbody>
             </table>
+            {totalItems > PAGE_SIZE && (
+              <div className="px-6 py-3 flex items-center justify-between bg-white border-t">
+                <div className="text-sm text-gray-600">
+                  Показано {Math.min(startIndex + 1, totalItems)}–{Math.min(startIndex + paginatedData.length, totalItems)} из {totalItems}
+                </div>
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={goPrev}
+                    disabled={currentPage === 1}
+                    className={`px-3 py-1 border rounded text-sm ${currentPage === 1 ? 'text-gray-400 bg-gray-100' : 'bg-white hover:bg-gray-50'}`}
+                  >
+                    Пред.
+                  </button>
+                  <span className="text-sm text-gray-700">Стр. {currentPage} / {totalPages}</span>
+                  <button
+                    onClick={goNext}
+                    disabled={currentPage === totalPages}
+                    className={`px-3 py-1 border rounded text-sm ${currentPage === totalPages ? 'text-gray-400 bg-gray-100' : 'bg-white hover:bg-gray-50'}`}
+                  >
+                    След.
+                  </button>
+                </div>
+              </div>
+            )}
           )}
         </div>
       </div>
