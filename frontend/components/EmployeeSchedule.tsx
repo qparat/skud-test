@@ -66,6 +66,7 @@ interface ScheduleData {
 }
 
 export function EmployeeSchedule() {
+  const [departmentSearch, setDepartmentSearch] = useState('')
   const filterRef = useRef<HTMLDivElement>(null);
   const router = useRouter()
   const [selectedDate, setSelectedDate] = useState('')
@@ -716,10 +717,19 @@ export function EmployeeSchedule() {
                   <ChevronDown className="h-4 w-4 ml-2" />
                 </button>
                 {showFilter && (
-                  <div ref={filterRef} className="absolute top-full right-0 mt-2 z-[9999] bg-white border border-gray-200 rounded-lg shadow-xl p-4">
+                  <div ref={filterRef} className="absolute top-full right-0 mt-2 z-[9999] bg-white border border-gray-200 rounded-lg shadow-xl p-4" style={{ minWidth: '340px' }}>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Отделы</label>
+                    <input
+                      type="text"
+                      value={departmentSearch}
+                      onChange={e => setDepartmentSearch(e.target.value)}
+                      placeholder="Поиск по отделу"
+                      className="w-full mb-2 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
                     <div className="max-h-64 overflow-y-auto space-y-2">
-                      {departments.map((dep: { id: number; name: string }) => (
+                      {departments
+                        .filter(dep => dep.name.toLowerCase().includes(departmentSearch.trim().toLowerCase()))
+                        .map((dep: { id: number; name: string }) => (
                         <label key={dep.id} className="flex items-center space-x-2">
                           <input
                             type="checkbox"
@@ -741,6 +751,7 @@ export function EmployeeSchedule() {
                       onClick={() => {
                         setSelectedDepartment([])
                         setShowFilter(false)
+                        setDepartmentSearch('')
                       }}
                       className="mt-4 px-3 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 text-sm"
                     >
