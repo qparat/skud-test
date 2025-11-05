@@ -13,7 +13,6 @@ const formatDate = (date: Date) => {
   const day = String(date.getDate()).padStart(2, '0')
   return `${year}-${month}-${day}`
 }
-
 interface Employee {
   employee_id: number
   full_name: string
@@ -1049,6 +1048,7 @@ export function EmployeeSchedule() {
                             )}
                           </div>
                         </td>
+                        <td className="px-6 py-4 whitespace-nowrap"></td>
                       </tr>
                     )
                   } else {
