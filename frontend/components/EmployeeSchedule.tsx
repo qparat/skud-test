@@ -87,6 +87,8 @@ export function EmployeeSchedule() {
   const [departmentSearch, setDepartmentSearch] = useState('')
   const PAGE_SIZE = 50
   const [currentPage, setCurrentPage] = useState<number>(1)
+  const PAGE_SIZE = 50
+  const [currentPage, setCurrentPage] = useState(1)
   
   // Получаем сегодняшнюю дату для ограничения выбора (без проблем с временной зоной)
   const today = formatDate(new Date())
@@ -665,7 +667,18 @@ export function EmployeeSchedule() {
     if (currentPage > totalPages) setCurrentPage(totalPages)
   }, [currentPage, totalPages])
   const paginatedData = fullDisplayData.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
+
+  // Сбрасываем страницу при изменении фильтров/данных
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchQuery, departmentSearch, JSON.stringify(selectedDepartment), sortBy, scheduleData?.date, scheduleData?.start_date, scheduleData?.end_date])
+
+  // Вычисляем пагинацию
+  const displayData = getDisplayData()
+  const totalItems = displayData.length
+  const totalPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE))
   const startIndex = (currentPage - 1) * PAGE_SIZE
+  const paginatedData = displayData.slice(startIndex, startIndex + PAGE_SIZE)
 
   const goPrev = () => setCurrentPage((p: number) => Math.max(1, p - 1))
   const goNext = () => setCurrentPage((p: number) => Math.min(totalPages, p + 1))
