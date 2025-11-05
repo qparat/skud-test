@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { Calendar, Clock, MapPin, User, Download, ChevronUp, ChevronDown } from 'lucide-react'
 import * as XLSX from 'xlsx'
 import { apiRequest } from '@/lib/api'
+
 // Функция для правильного получения даты в формате YYYY-MM-DD без проблем с временной зоной
 const formatDate = (date: Date) => {
   const year = date.getFullYear()
