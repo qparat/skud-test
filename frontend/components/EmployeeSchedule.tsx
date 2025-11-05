@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation'
 import { Calendar, Clock, MapPin, User, Download, ChevronUp, ChevronDown } from 'lucide-react'
 import * as XLSX from 'xlsx'
 import { apiRequest } from '@/lib/api'
-
 // Функция для правильного получения даты в формате YYYY-MM-DD без проблем с временной зоной
 const formatDate = (date: Date) => {
   const year = date.getFullYear()
@@ -14,7 +13,6 @@ const formatDate = (date: Date) => {
   const day = String(date.getDate()).padStart(2, '0')
   return `${year}-${month}-${day}`
 }
-
 interface Employee {
   employee_id: number
   full_name: string
@@ -66,7 +64,6 @@ interface ScheduleData {
 }
 
 export function EmployeeSchedule() {
-  const [departmentSearch, setDepartmentSearch] = useState('')
   const filterRef = useRef<HTMLDivElement>(null);
   const router = useRouter()
   const [selectedDate, setSelectedDate] = useState('')
@@ -85,6 +82,9 @@ export function EmployeeSchedule() {
   const [departments, setDepartments] = useState<{ id: number; name: string }[]>([])
   const [selectedDepartment, setSelectedDepartment] = useState<number[]>([])
   const [showFilter, setShowFilter] = useState(false)
+  const [departmentSearch, setDepartmentSearch] = useState('')
+  const PAGE_SIZE = 50
+  const [currentPage, setCurrentPage] = useState<number>(1)
   
   // Получаем сегодняшнюю дату для ограничения выбора (без проблем с временной зоной)
   const today = formatDate(new Date())
@@ -165,75 +165,8 @@ export function EmployeeSchedule() {
   // Функция для переключения развернутого состояния сотрудника
   const toggleEmployeeExpanded = (employeeId: number) => {
     setExpandedEmployees(prev => {
-      const newSet = new Set(prev)
-      if (newSet.has(employeeId)) {
-        newSet.delete(employeeId)
-      } else {
-        newSet.add(employeeId)
-      }
-      return newSet
-    })
-  }
-
-  // Функции для быстрого выбора периодов
-  const selectWeekPeriod = () => {
-    const today = new Date()
-    const weekStart = new Date(today)
-    weekStart.setDate(today.getDate() - 7)
-    
-    const startStr = formatDate(weekStart)
-    const endStr = formatDate(today)
-    
-    setStartDate(startStr)
-    setEndDate(endStr)
-    setSelectedDate('')
-    setShowCalendar(false)
-  }
-
-  const selectMonthPeriod = () => {
-    const today = new Date()
-    const monthStart = new Date(today)
-    monthStart.setDate(today.getDate() - 30)
-    
-    const startStr = formatDate(monthStart)
-    const endStr = formatDate(today)
-    
-    setStartDate(startStr)
-    setEndDate(endStr)
-    setSelectedDate('')
-    setShowCalendar(false)
-  }
-
-  const selectQuarterPeriod = () => {
-    const today = new Date()
-    const quarterStart = new Date(today)
-    quarterStart.setDate(today.getDate() - 90)
-    
-    const startStr = formatDate(quarterStart)
-    const endStr = formatDate(today)
-    
-    setStartDate(startStr)
-    setEndDate(endStr)
-    setSelectedDate('')
-    setShowCalendar(false)
-  }
-
-  // Обработка клика по дате в календаре
-  const handleDateClick = (dateStr: string) => {
-    if (dateStr > today) return // Нельзя выбирать будущие даты
-    
-    // Проверяем текущее состояние
-    const hasSelectedDate = selectedDate !== ''
-    const hasRange = startDate !== '' && endDate !== ''
-    
-    if (!hasSelectedDate && !hasRange) {
-      // Ничего не выбрано - выбираем дату и сразу выделяем визуально
-      setSelectedDate(dateStr)
-      setStartDate('')
-      setEndDate('')
-      setLastLoadedDate(dateStr) // Сразу выделяем дату визуально
-      // НЕ ЗАГРУЖАЕМ данные, только выделяем дату
-      // НЕ закрываем календарь, чтобы пользователь мог кликнуть повторно
+      late_minutes: number
+      work_hours: number | null
     } else if (hasSelectedDate && !hasRange) {
       if (dateStr === selectedDate) {
         // Клик по той же уже выбранной дате - загружаем данные для этой даты
@@ -649,6 +582,25 @@ export function EmployeeSchedule() {
     fetchDepartments()
   }, [scheduleData])
 
+  // Сбрасываем текущую страницу при изменении фильтров/поиска/дат/сортировки
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchQuery, selectedDepartment, sortBy, scheduleData])
+
+  // Подготовка данных для пагинации
+  const fullDisplayData = getDisplayData()
+  const totalItems = fullDisplayData.length
+  const totalPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE))
+  // Защита currentPage от выхода за пределы
+  useEffect(() => {
+    if (currentPage > totalPages) setCurrentPage(totalPages)
+  }, [currentPage, totalPages])
+  const paginatedData = fullDisplayData.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
+  const startIndex = (currentPage - 1) * PAGE_SIZE
+
+  const goPrev = () => setCurrentPage((p: number) => Math.max(1, p - 1))
+  const goNext = () => setCurrentPage((p: number) => Math.min(totalPages, p + 1))
+
   return (
     <div className="space-y-6">
       {/* Employee table */}
@@ -958,7 +910,7 @@ export function EmployeeSchedule() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {getDisplayData().map((employee, index) => {
+                {paginatedData.map((employee, index) => {
                   // Проверяем, есть ли поле date (это означает, что это данные диапазона в плоском формате)
                   const isRangeData = 'date' in employee
                   const hasExpandButton = isRangeData && employee.isFirstInGroup && employee.totalInGroup > 1
@@ -1029,6 +981,7 @@ export function EmployeeSchedule() {
                             )}
                           </div>
                         </td>
+                        <td className="px-6 py-4 whitespace-nowrap"></td>
                       </tr>
                     )
                   } else {
@@ -1167,6 +1120,30 @@ export function EmployeeSchedule() {
                 })}
               </tbody>
             </table>
+            {totalItems > PAGE_SIZE && (
+              <div className="px-6 py-3 flex items-center justify-between bg-white border-t">
+                <div className="text-sm text-gray-600">
+                  Показано {Math.min(startIndex + 1, totalItems)}–{Math.min(startIndex + paginatedData.length, totalItems)} из {totalItems}
+                </div>
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={goPrev}
+                    disabled={currentPage === 1}
+                    className={`px-3 py-1 border rounded text-sm ${currentPage === 1 ? 'text-gray-400 bg-gray-100' : 'bg-white hover:bg-gray-50'}`}
+                  >
+                    Пред.
+                  </button>
+                  <span className="text-sm text-gray-700">Стр. {currentPage} / {totalPages}</span>
+                  <button
+                    onClick={goNext}
+                    disabled={currentPage === totalPages}
+                    className={`px-3 py-1 border rounded text-sm ${currentPage === totalPages ? 'text-gray-400 bg-gray-100' : 'bg-white hover:bg-gray-50'}`}
+                  >
+                    След.
+                  </button>
+                </div>
+              </div>
+            )}
           )}
         </div>
       </div>
