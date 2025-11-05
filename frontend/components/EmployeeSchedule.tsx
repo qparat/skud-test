@@ -66,6 +66,26 @@ interface ScheduleData {
 }
 
 export function EmployeeSchedule() {
+  // ...existing useState и переменные...
+
+  // ...все useState, useEffect, функции...
+
+  // ...все useState, useEffect, функции...
+
+  // ...все useState, useEffect, функции...
+
+  // --- Пагинация сотрудников ---
+  const PAGE_SIZE = 50;
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  useEffect(() => { setCurrentPage(1); }, [searchQuery, selectedDepartment, sortBy, scheduleData, startDate, endDate]);
+  const displayData = getDisplayData();
+  const totalItems = displayData.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE));
+  useEffect(() => { if (currentPage > totalPages) setCurrentPage(totalPages); }, [currentPage, totalPages]);
+  const paginatedData = displayData.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  const startIndex = (currentPage - 1) * PAGE_SIZE;
+  const goPrev = () => setCurrentPage((p: number) => Math.max(1, p - 1));
+  const goNext = () => setCurrentPage((p: number) => Math.min(totalPages, p + 1));
   const [departmentSearch, setDepartmentSearch] = useState('')
   const filterRef = useRef<HTMLDivElement>(null);
   const router = useRouter()
@@ -165,7 +185,7 @@ export function EmployeeSchedule() {
   // Функция для переключения развернутого состояния сотрудника
   const toggleEmployeeExpanded = (employeeId: number) => {
     setExpandedEmployees(prev => {
-      const newSet = new Set(prev)
+  const newSet = new Set(prev as Set<number>);
       if (newSet.has(employeeId)) {
         newSet.delete(employeeId)
       } else {
@@ -302,11 +322,11 @@ export function EmployeeSchedule() {
 
   // Навигация по месяцам
   const goToPreviousMonth = () => {
-    setCurrentMonth(prev => new Date(prev.getFullYear(), prev.getMonth() - 1))
+  setCurrentMonth((prev: Date) => new Date(prev.getFullYear(), prev.getMonth() - 1))
   }
 
   const goToNextMonth = () => {
-    setCurrentMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + 1))
+  setCurrentMonth((prev: Date) => new Date(prev.getFullYear(), prev.getMonth() + 1))
   }
 
   const handleStatusSort = () => {
@@ -958,7 +978,31 @@ export function EmployeeSchedule() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {getDisplayData().map((employee, index) => {
+                {paginatedData.map((employee, index) => {
+        {totalItems > PAGE_SIZE && (
+          <div className="px-6 py-3 flex items-center justify-between bg-white border-t">
+            <div className="text-sm text-gray-600">
+              Показано {Math.min(startIndex + 1, totalItems)}–{Math.min(startIndex + paginatedData.length, totalItems)} из {totalItems}
+            </div>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={goPrev}
+                disabled={currentPage === 1}
+                className={`px-3 py-1 border rounded text-sm ${currentPage === 1 ? 'text-gray-400 bg-gray-100' : 'bg-white hover:bg-gray-50'}`}
+              >
+                Пред.
+              </button>
+              <span className="text-sm text-gray-700">Стр. {currentPage} / {totalPages}</span>
+              <button
+                onClick={goNext}
+                disabled={currentPage === totalPages}
+                className={`px-3 py-1 border rounded text-sm ${currentPage === totalPages ? 'text-gray-400 bg-gray-100' : 'bg-white hover:bg-gray-50'}`}
+              >
+                След.
+              </button>
+            </div>
+          </div>
+        )}
                   // Проверяем, есть ли поле date (это означает, что это данные диапазона в плоском формате)
                   const isRangeData = 'date' in employee
                   const hasExpandButton = isRangeData && employee.isFirstInGroup && employee.totalInGroup > 1
