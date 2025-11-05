@@ -23,73 +23,73 @@ interface Employee {
   is_late: boolean
   late_minutes: number
   work_hours: number | null
-  status: string
-  exception?: {
-    has_exception: boolean
-    reason: string
-    type: string
-  } | null
-      // Для фильтра
-      if (showFilter && filterRef.current && !filterRef.current.contains(target)) {
-        setShowFilter(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [showCalendar, showFilter]);
-
-  // Загрузка при изменении даты пользователем
-  useEffect(() => {
-    if (initialized) {
-      if (startDate && endDate) {
-        // Загружаем данные для диапазона дат
-        fetchSchedule(undefined, startDate, endDate)
-      }
-      // НЕ загружаем данные автоматически при выборе одной даты
-      // Данные загрузятся только при повторном клике по той же дате
-    }
-  }, [startDate, endDate, initialized]) // Убираем selectedDate из зависимостей
-
-  const handleEmployeeClick = (employeeId: number) => {
-    router.push(`/employees/${employeeId}`)
-  }
-
-  // Функция для переключения развернутого состояния сотрудника
-  const toggleEmployeeExpanded = (employeeId: number) => {
-    setExpandedEmployees(prev => {
-      const newSet = new Set(prev)
-      if (newSet.has(employeeId)) {
-        newSet.delete(employeeId)
-      } else {
-        newSet.add(employeeId)
-      }
-      return newSet
-    })
-  }
-
-  // Функции для быстрого выбора периодов
-  const selectWeekPeriod = () => {
-    const today = new Date()
-    const weekStart = new Date(today)
-    weekStart.setDate(today.getDate() - 7)
-    
-    const startStr = formatDate(weekStart)
-    const endStr = formatDate(today)
-    
-    setStartDate(startStr)
-    setEndDate(endStr)
-    setSelectedDate('')
-    setShowCalendar(false)
-  }
-
-  const selectMonthPeriod = () => {
-    const today = new Date()
-    const monthStart = new Date(today)
-    monthStart.setDate(today.getDate() - 30)
-    
-    const startStr = formatDate(monthStart)
-    const endStr = formatDate(today)
-    
+    return (
+      <div className="space-y-6">
+        <div className="bg-white rounded-lg shadow overflow-visible">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <div className="flex items-center justify-between">
+              {/* ...existing header code... */}
+            </div>
+          </div>
+          <div className="overflow-x-auto overflow-y-visible">
+            {loading && (
+              <div className="p-6 text-center">
+                <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                <p className="mt-2 text-gray-600">Загрузка данных...</p>
+              </div>
+            )}
+            {!loading && error && (
+              <div className="p-6 text-center text-red-600">
+                <p>Ошибка: {error}</p>
+                <button
+                  onClick={() => {
+                    if (startDate && endDate) {
+                      fetchSchedule(undefined, startDate, endDate)
+                    } else if (selectedDate) {
+                      fetchSchedule(selectedDate)
+                    }
+                  }}
+                  className="mt-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                >
+                  Повторить
+                </button>
+              </div>
+            )}
+            {!loading && !error && !scheduleData && (
+              <div className="p-6 text-center text-gray-600">
+                <Calendar className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Загрузка данных...</h3>
+                <p>Пожалуйста, подождите</p>
+              </div>
+            )}
+            {!loading && !error && scheduleData?.employees.length === 0 && (
+              <div className="p-6 text-center text-gray-600">
+                Нет данных за выбранную дату
+              </div>
+            )}
+            {!loading && !error && scheduleData?.employees.length > 0 && (
+              <React.Fragment>
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    {/* ...existing code... */}
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {paginatedData.map((employee, index) => (
+                      // ...existing code for rendering rows...
+                    ))}
+                  </tbody>
+                </table>
+                {totalItems > PAGE_SIZE && (
+                  <div className="px-6 py-3 flex items-center justify-between bg-white border-t">
+                    {/* ...existing code... */}
+                  </div>
+                )}
+              </React.Fragment>
+            )}
+          </div>
+        </div>
+      </div>
+    );
     setStartDate(startStr)
     setEndDate(endStr)
     setSelectedDate('')
