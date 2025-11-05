@@ -37,7 +37,7 @@ export function LayoutWrapper({ children }: LayoutWrapperProps) {
   // Если это публичная страница, показываем без layout
   if (isPublicPage) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className={`min-h-screen ${pathname === '/login' ? 'bg-white' : 'bg-gray-50'}`}>
         {children}
       </div>
     )
