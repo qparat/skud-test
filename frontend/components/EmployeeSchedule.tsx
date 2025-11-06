@@ -136,9 +136,11 @@ export function EmployeeSchedule() {
 
   // Первоначальная загрузка данных за сегодняшний день
   useEffect(() => {
-    // Загружаем данные за сегодняшний день, но НЕ устанавливаем выбранную дату в календаре
-    fetchSchedule(today)
-    setInitialized(true)
+    if (!initialized) {
+      // Загружаем данные за сегодняшний день, но НЕ устанавливаем выбранную дату в календаре
+      fetchSchedule(today)
+      setInitialized(true)
+    }
   }, [])
 
   // Закрытие календаря при клике вне его
@@ -158,7 +160,7 @@ export function EmployeeSchedule() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showCalendar, showFilter]);
 
-  // Загрузка при изменении даты пользователем
+  // Загрузка при изменении даты пользователем или страницы
   useEffect(() => {
     if (initialized) {
       if (startDate && endDate) {
@@ -168,7 +170,7 @@ export function EmployeeSchedule() {
       // НЕ загружаем данные автоматически при выборе одной даты
       // Данные загрузятся только при повторном клике по той же дате
     }
-  }, [startDate, endDate, initialized]) // Убираем selectedDate из зависимостей
+  }, [startDate, endDate, currentPage, initialized]) // Добавляем currentPage в зависимости
 
   const handleEmployeeClick = (employeeId: number) => {
     router.push(`/employees/${employeeId}`)
@@ -300,15 +302,7 @@ export function EmployeeSchedule() {
   const handlePageChange = (newPage: number) => {
     if (newPage >= 1 && newPage <= totalPages) {
       setCurrentPage(newPage)
-      
-      // Refetch data with new page
-      if (startDate && endDate) {
-        fetchSchedule(undefined, startDate, endDate)
-      } else if (selectedDate) {
-        fetchSchedule(selectedDate)
-      } else {
-        fetchSchedule(today)
-      }
+      // Данные будут загружены через useEffect, который следит за изменением currentPage
     }
   }
 
