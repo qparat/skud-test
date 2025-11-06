@@ -1,8 +1,8 @@
 ﻿'use client'
 
-import { useState, useEffect } from 'react'
-import { Plus, Edit3, Trash2, Calendar, User, AlertCircle, ChevronUp, ChevronDown } from 'lucide-react'
-import { apiRequest } from '@/lib/api'
+import React, { useState, useEffect, ChangeEvent, FormEvent } from 'react';
+import { Plus, Edit3, Trash2, Calendar, User, AlertCircle, ChevronUp, ChevronDown } from 'lucide-react';
+import { apiRequest } from '@/lib/api';
 
 // Функция для правильного получения даты в формате YYYY-MM-DD без проблем с временной зоной
 const formatDate = (date: Date) => {
@@ -29,41 +29,48 @@ interface Exception {
 
 export default function ExceptionsPage() {
   // Фильтры для поиска
-  const [searchName, setSearchName] = useState('');
-  const [searchReason, setSearchReason] = useState('');
-  const [searchDate, setSearchDate] = useState('');
-  const [showDateCalendar, setShowDateCalendar] = useState(false);
-  const [dateCalendarMonth, setDateCalendarMonth] = useState(new Date());
-  const [exceptions, setExceptions] = useState<Exception[]>([])
-  const [employees, setEmployees] = useState<Employee[]>([])
-  const [loading, setLoading] = useState(true)
-  const [showAddForm, setShowAddForm] = useState(false)
-  const [editingException, setEditingException] = useState<Exception | null>(null)
-  const [isDateRange, setIsDateRange] = useState(false)
+  const [searchName, setSearchName] = useState<string>('');
+  const [searchReason, setSearchReason] = useState<string>('');
+  const [searchDate, setSearchDate] = useState<string>('');
+  const [showDateCalendar, setShowDateCalendar] = useState<boolean>(false);
+  const [dateCalendarMonth, setDateCalendarMonth] = useState<Date>(new Date());
+  const [exceptions, setExceptions] = useState<Exception[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [showAddForm, setShowAddForm] = useState<boolean>(false);
+  const [editingException, setEditingException] = useState<Exception | null>(null);
+  const [isDateRange, setIsDateRange] = useState<boolean>(false);
   
   // Состояния для поиска сотрудника
-  const [employeeSearch, setEmployeeSearch] = useState('')
-  const [showEmployeeDropdown, setShowEmployeeDropdown] = useState(false)
-  const [selectedEmployeeId, setSelectedEmployeeId] = useState<number | null>(null)
+  const [employeeSearch, setEmployeeSearch] = useState<string>('');
+  const [showEmployeeDropdown, setShowEmployeeDropdown] = useState<boolean>(false);
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<number | null>(null);
   
   // Состояния для календаря
-  const [showCalendar, setShowCalendar] = useState(false)
-  const [currentMonth, setCurrentMonth] = useState(new Date())
-  const [selectedDate, setSelectedDate] = useState('')
-  const [startDate, setStartDate] = useState('')
-  const [endDate, setEndDate] = useState('')
+  const [showCalendar, setShowCalendar] = useState<boolean>(false);
+  const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
+  const [selectedDate, setSelectedDate] = useState<string>('');
+  const [startDate, setStartDate] = useState<string>('');
+  const [endDate, setEndDate] = useState<string>('');
   
   // Получаем сегодняшнюю дату для ограничения выбора
   const today = formatDate(new Date())
   
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    employee_id: string;
+    exception_date: string;
+    start_date: string;
+    end_date: string;
+    reason: string;
+    exception_type: string;
+  }>({
     employee_id: '',
     exception_date: '',
     start_date: '',
     end_date: '',
     reason: '',
     exception_type: 'no_lateness_check'
-  })
+  });
 
   useEffect(() => {
     fetchExceptions()
@@ -97,10 +104,10 @@ export default function ExceptionsPage() {
   }
 
   const handleEmployeeSelect = (employee: Employee) => {
-    setSelectedEmployeeId(employee.id)
-    setEmployeeSearch(employee.full_name)
-    setShowEmployeeDropdown(false)
-    setFormData(prev => ({ ...prev, employee_id: employee.id.toString() }))
+  setSelectedEmployeeId(employee.id)
+  setEmployeeSearch(employee.full_name)
+  setShowEmployeeDropdown(false)
+  setFormData((prev: typeof formData) => ({ ...prev, employee_id: employee.id.toString() }))
   }
 
   // Обработка клика по дате в календаре
@@ -111,11 +118,11 @@ export default function ExceptionsPage() {
 
     if (!hasSelectedDate && !hasRange) {
       // Первый клик — просто выделяем дату, не выбираем
-      setSelectedDate(dateStr);
-      setStartDate('');
-      setEndDate('');
-      setFormData(prev => ({ ...prev, exception_date: '', start_date: '', end_date: '' }));
-      setIsDateRange(false);
+  setSelectedDate(dateStr);
+  setStartDate('');
+  setEndDate('');
+  setFormData((prev: typeof formData) => ({ ...prev, exception_date: '', start_date: '', end_date: '' }));
+  setIsDateRange(false);
       // НЕ закрываем календарь, чтобы можно было кликнуть второй раз
       return;
     }
@@ -123,7 +130,7 @@ export default function ExceptionsPage() {
     if (hasSelectedDate && !hasRange) {
       if (dateStr === selectedDate) {
         // Второй клик по той же дате — выбираем один день
-        setFormData(prev => ({ ...prev, exception_date: dateStr, start_date: '', end_date: '' }));
+  setFormData((prev: typeof formData) => ({ ...prev, exception_date: dateStr, start_date: '', end_date: '' }));
         setIsDateRange(false);
         setShowCalendar(false);
         setSelectedDate('');
@@ -134,9 +141,9 @@ export default function ExceptionsPage() {
         // Второй клик по другой дате — диапазон
         const start = dateStr < selectedDate ? dateStr : selectedDate;
         const end = dateStr < selectedDate ? selectedDate : dateStr;
-        setStartDate(start);
-        setEndDate(end);
-        setFormData(prev => ({ ...prev, exception_date: '', start_date: start, end_date: end }));
+  setStartDate(start);
+  setEndDate(end);
+  setFormData((prev: typeof formData) => ({ ...prev, exception_date: '', start_date: start, end_date: end }));
         setIsDateRange(true);
         setShowCalendar(false);
         setSelectedDate('');
@@ -145,21 +152,21 @@ export default function ExceptionsPage() {
     }
 
     // Если уже выбран диапазон или что-то выбрано — сбрасываем и выделяем новую дату
-    setSelectedDate(dateStr);
-    setStartDate('');
-    setEndDate('');
-    setFormData(prev => ({ ...prev, exception_date: '', start_date: '', end_date: '' }));
-    setIsDateRange(false);
+  setSelectedDate(dateStr);
+  setStartDate('');
+  setEndDate('');
+  setFormData((prev: typeof formData) => ({ ...prev, exception_date: '', start_date: '', end_date: '' }));
+  setIsDateRange(false);
     // НЕ закрываем календарь, чтобы можно было кликнуть второй раз
   }
 
   // Сброс выбора дат
   const clearDates = () => {
-    setSelectedDate('')
-    setStartDate('')
-    setEndDate('')
-    setFormData(prev => ({ ...prev, exception_date: '', start_date: '', end_date: '' }))
-    setIsDateRange(false)
+  setSelectedDate('')
+  setStartDate('')
+  setEndDate('')
+  setFormData((prev: typeof formData) => ({ ...prev, exception_date: '', start_date: '', end_date: '' }))
+  setIsDateRange(false)
   }
 
   // Генерация календаря
@@ -188,11 +195,11 @@ export default function ExceptionsPage() {
 
   // Навигация по месяцам
   const goToPreviousMonth = () => {
-    setCurrentMonth(prev => new Date(prev.getFullYear(), prev.getMonth() - 1))
+  setCurrentMonth((prev: Date) => new Date(prev.getFullYear(), prev.getMonth() - 1))
   }
 
   const goToNextMonth = () => {
-    setCurrentMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + 1))
+  setCurrentMonth((prev: Date) => new Date(prev.getFullYear(), prev.getMonth() + 1))
   }
 
   const fetchExceptions = async () => {
@@ -299,6 +306,14 @@ export default function ExceptionsPage() {
     setShowCalendar(false)
   }
 
+  // Фильтрация исключений
+  const filteredExceptions = exceptions.filter((exception: Exception) => {
+    const nameMatch = searchName.trim() === '' || exception.full_name.toLowerCase().includes(searchName.trim().toLowerCase());
+    const reasonMatch = searchReason.trim() === '' || exception.reason.toLowerCase().includes(searchReason.trim().toLowerCase());
+    const dateMatch = searchDate.trim() === '' || exception.exception_date === searchDate.trim();
+    return nameMatch && reasonMatch && dateMatch;
+  });
+
   if (loading) {
     return (
       <div className="p-8">
@@ -329,14 +344,14 @@ export default function ExceptionsPage() {
         <input
           type="text"
           value={searchName}
-          onChange={e => setSearchName(e.target.value)}
+          onChange={(e: ChangeEvent<HTMLInputElement>) => setSearchName(e.target.value)}
           placeholder="Поиск по ФИО"
           className="w-full md:w-56 px-3 py-2 border border-gray-300 rounded-md text-sm"
         />
         <input
           type="text"
           value={searchReason}
-          onChange={e => setSearchReason(e.target.value)}
+          onChange={(e: ChangeEvent<HTMLInputElement>) => setSearchReason(e.target.value)}
           placeholder="Поиск по причине"
           className="w-full md:w-56 px-3 py-2 border border-gray-300 rounded-md text-sm"
         />
@@ -425,7 +440,7 @@ export default function ExceptionsPage() {
             {editingException ? 'Редактировать исключение' : 'Новое исключение'}
           </h2>
 
-          <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <form onSubmit={(e: FormEvent<HTMLFormElement>) => handleSubmit(e)} className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="employee-search-container relative">
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Сотрудник
@@ -433,11 +448,11 @@ export default function ExceptionsPage() {
               <input
                 type="text"
                 value={employeeSearch}
-                onChange={(e) => {
-                  setEmployeeSearch(e.target.value)
-                  setShowEmployeeDropdown(true)
-                  setSelectedEmployeeId(null)
-                  setFormData({...formData, employee_id: ''})
+                onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                  setEmployeeSearch(e.target.value);
+                  setShowEmployeeDropdown(true);
+                  setSelectedEmployeeId(null);
+                  setFormData({...formData, employee_id: ''});
                 }}
                 onFocus={() => setShowEmployeeDropdown(true)}
                 placeholder="Поиск сотрудника..."
@@ -573,7 +588,7 @@ export default function ExceptionsPage() {
               <input
                 type="text"
                 value={formData.reason}
-                onChange={(e) => setFormData({...formData, reason: e.target.value})}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => setFormData({...formData, reason: e.target.value})}
                 className="w-full p-2 border border-gray-300 rounded-lg"
                 placeholder="Например: командировка, больничный, отпуск"
                 required
@@ -606,8 +621,8 @@ export default function ExceptionsPage() {
           </h2>
         </div>
 
-  {/* Фильтрация исключений */}
-  {filteredExceptions.length === 0 ? (
+        {/* Фильтрация исключений */}
+        {filteredExceptions.length === 0 ? (
           <div className="p-8 text-center text-gray-500">
             <AlertCircle className="h-12 w-12 mx-auto mb-4 text-gray-400" />
             <p>Исключений пока нет</p>
@@ -663,13 +678,6 @@ export default function ExceptionsPage() {
             </table>
           </div>
         )}
-  // Фильтрация исключений
-  const filteredExceptions = exceptions.filter((exception) => {
-    const nameMatch = searchName.trim() === '' || exception.full_name.toLowerCase().includes(searchName.trim().toLowerCase());
-    const reasonMatch = searchReason.trim() === '' || exception.reason.toLowerCase().includes(searchReason.trim().toLowerCase());
-    const dateMatch = searchDate.trim() === '' || exception.exception_date === searchDate.trim();
-    return nameMatch && reasonMatch && dateMatch;
-  });
       </div>
     </div>
   )
