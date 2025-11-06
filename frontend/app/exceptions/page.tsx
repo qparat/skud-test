@@ -156,11 +156,11 @@ export default function ExceptionsPage() {
     setLastLoadedDate(endStr);
   };
 
-  const selectWeekPeriod = () => {
+  const selectQuarterPeriod = () => {
     const todayDate = new Date();
-    const weekStart = new Date(todayDate);
-    weekStart.setDate(todayDate.getDate() - 7);
-    const startStr = formatDate(weekStart);
+    const quarterStart = new Date(todayDate);
+    quarterStart.setDate(todayDate.getDate() - 90);
+    const startStr = formatDate(quarterStart);
     const endStr = formatDate(todayDate);
     setStartDate(startStr);
     setEndDate(endStr);
@@ -169,23 +169,418 @@ export default function ExceptionsPage() {
     setLastLoadedDate(endStr);
   };
 
-  // Remove duplicate selectMonthPeriod and selectQuarterPeriod declarations
-      // ...existing code...
-      // Restore correct JSX structure
-      return (
-        <div className="">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              Исключения для сотрудников
-            </h1>
-            <p className="text-gray-600">
-              Управление исключениями по датам (отсутствие проверки опозданий)
-            </p>
-          </div>
-          {/* ...rest of the JSX code for filters, add form, table, and pagination... */}
-        </div>
-      );
+  // Сброс выбора дат и возврат к сегодняшнему дню
+  const clearDates = () => {
+    setSelectedDate('');
+    setStartDate('');
+    setEndDate('');
+    setFormData((prev: typeof formData) => ({ ...prev, exception_date: '', start_date: '', end_date: '' }));
+    setIsDateRange(false);
+    setLastLoadedDate(today);
+  };
+
+  const fetchExceptions = async () => {
+    try {
+      const data = await apiRequest('employee-exceptions')
+      setExceptions(Array.isArray(data.exceptions) ? data.exceptions : [])
+    } catch (error) {
+      console.error('Ошибка при загрузке исключений:', error)
+      setExceptions([]) // Устанавливаем пустой массив при ошибке
     }
+  }
+
+  const fetchEmployees = async () => {
+    try {
+      const data = await apiRequest('employees/simple')
+      setEmployees(Array.isArray(data) ? data : [])
+    } catch (error) {
+      console.error('Ошибка при загрузке сотрудников:', error)
+      setEmployees([]) // Устанавливаем пустой массив при ошибке
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    try {
+      if (editingException) {
+        await apiRequest(`employee-exceptions/${editingException.id}`, {
+          method: 'PUT',
+          body: JSON.stringify({
+            reason: formData.reason,
+            exception_type: formData.exception_type
+          })
+        })
+      } else {
+        const payload = isDateRange ? {
+          employee_id: parseInt(formData.employee_id),
+          start_date: formData.start_date,
+          end_date: formData.end_date,
+          reason: formData.reason,
+          exception_type: formData.exception_type
+        } : {
+          employee_id: parseInt(formData.employee_id),
+          exception_date: formData.exception_date,
+          reason: formData.reason,
+          exception_type: formData.exception_type
+        }
+
+        const endpoint = isDateRange ? 'employee-exceptions/range' : 'employee-exceptions'
+        await apiRequest(endpoint, {
+          method: 'POST',
+          body: JSON.stringify(payload)
+        })
+      }
+
+      resetForm()
+      fetchExceptions()
+      alert(editingException ? 'Исключение обновлено!' : 'Исключение создано!')
+    } catch (error) {
+      console.error('Ошибка при сохранении:', error)
+      alert('Ошибка при сохранении исключения')
+    }
+  }
+
+  const handleDelete = async (id: number) => {
+    if (!confirm('Вы уверены, что хотите удалить это исключение?')) return
+
+    try {
+      await apiRequest(`employee-exceptions/${id}`, {
+        method: 'DELETE'
+      })
+      fetchExceptions()
+      alert('Исключение удалено!')
+    } catch (error) {
+      console.error('Ошибка при удалении:', error)
+      alert('Ошибка при удалении исключения')
+    }
+  }
+
+  const resetForm = () => {
+    setFormData({
+      employee_id: '',
+      exception_date: '',
+      start_date: '',
+      end_date: '',
+      reason: '',
+      exception_type: 'no_lateness_check'
+    })
+    setEditingException(null)
+    setIsDateRange(false)
+    setShowAddForm(false)
+    
+    // Сбрасываем состояния поиска сотрудника
+    setEmployeeSearch('')
+    setShowEmployeeDropdown(false)
+    setSelectedEmployeeId(null)
+    
+    // Обработка клика по дате в календаре
+    const handleDateClick = (dateStr: string) => {
+      const hasSelectedDate = selectedDate !== '';
+      const hasRange = startDate !== '' && endDate !== '';
+
+      if (!hasSelectedDate && !hasRange) {
+        // Первый клик — просто выделяем дату, не выбираем
+        setSelectedDate(dateStr);
+        setStartDate('');
+        setEndDate('');
+        setFormData((prev) => ({ ...prev, exception_date: '', start_date: '', end_date: '' }));
+        setIsDateRange(false);
+        // НЕ закрываем календарь, чтобы можно было кликнуть второй раз
+        return;
+      }
+
+      if (hasSelectedDate && !hasRange) {
+        if (dateStr === selectedDate) {
+          // Второй клик по той же дате — выбираем один день
+          setFormData((prev) => ({ ...prev, exception_date: dateStr, start_date: '', end_date: '' }));
+          setIsDateRange(false);
+          setShowCalendar(false);
+          setSelectedDate('');
+          setStartDate('');
+          setEndDate('');
+          return;
+        } else {
+          // Второй клик по другой дате — диапазон
+          setStartDate(selectedDate);
+          setEndDate(dateStr);
+          setFormData((prev) => ({ ...prev, exception_date: '', start_date: selectedDate, end_date: dateStr }));
+          setIsDateRange(true);
+          setShowCalendar(false);
+          setSelectedDate('');
+          return;
+        }
+      }
+
+      // Если уже выбран диапазон, сбрасываем
+      setSelectedDate('');
+      setStartDate('');
+      setEndDate('');
+      setFormData((prev) => ({ ...prev, exception_date: '', start_date: '', end_date: '' }));
+      setIsDateRange(false);
+    };
+            onClick={() => setShowDateCalendar(!showDateCalendar)}
+            className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md bg-white text-sm text-gray-700 hover:bg-gray-50"
+          >
+            <Calendar className="h-4 w-4 mr-2" />
+            {searchDate ? searchDate : 'Поиск по дате'}
+          </button>
+          {searchDate && (
+            <button
+              type="button"
+              onClick={() => setSearchDate('')}
+              className="absolute right-2 top-2 text-sm text-red-600 hover:text-red-800"
+            >✕</button>
+          )}
+          {showDateCalendar && (
+            <div className="absolute top-full mt-2 z-[9999] bg-white border border-gray-200 rounded-lg shadow-xl p-4" style={{minWidth: '280px', right: 0}}>
+              <div className="flex items-center justify-between mb-4">
+                <button
+                  type="button"
+                  onClick={() => setDateCalendarMonth(prev => new Date(prev.getFullYear(), prev.getMonth() - 1))}
+                  className="p-1 hover:bg-gray-100 rounded"
+                >
+                  <ChevronUp className="h-4 w-4 rotate-270" />
+                </button>
+                <h3 className="text-sm font-medium">
+                  {dateCalendarMonth.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' })}
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setDateCalendarMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + 1))}
+                  className="p-1 hover:bg-gray-100 rounded"
+                >
+                  <ChevronDown className="h-4 w-4 rotate-90" />
+                </button>
+              </div>
+              <div className="grid grid-cols-7 gap-1 mb-2">
+                {['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'].map(day => (
+                  <div key={day} className="text-xs text-center text-gray-500 font-medium py-1">{day}</div>
+                ))}
+              </div>
+              <div className="grid grid-cols-7 gap-1">
+                {(() => {
+                  // Календарь для поиска по дате
+                  const year = dateCalendarMonth.getFullYear();
+                  const month = dateCalendarMonth.getMonth();
+                  const firstDay = new Date(year, month, 1);
+                  let dayOfWeek = firstDay.getDay();
+                  dayOfWeek = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+                  const startDate = new Date(firstDay);
+                  startDate.setDate(startDate.getDate() - dayOfWeek);
+                  const days = [];
+                  const currentDate = new Date(startDate);
+                  for (let i = 0; i < 42; i++) {
+                    days.push(new Date(currentDate));
+                    currentDate.setDate(currentDate.getDate() + 1);
+                  }
+                  return days.map((date, index) => {
+                    const dateStr = formatDate(date);
+                    const isCurrentMonth = date.getMonth() === dateCalendarMonth.getMonth();
+                    return (
+                      <button
+                        key={index}
+                        type="button"
+                        onClick={() => { setSearchDate(dateStr); setShowDateCalendar(false); }}
+                        className={`w-8 h-8 text-xs rounded-full flex items-center justify-center ${!isCurrentMonth ? 'text-gray-300' : ''} ${searchDate === dateStr ? 'bg-blue-600 text-white font-bold' : 'hover:bg-gray-100'}`}
+                      >
+                        {date.getDate()}
+                      </button>
+                    );
+                  });
+                })()}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {showAddForm && (
+        <div className="mb-8 bg-gray-50 p-6 rounded-lg">
+          <h2 className="text-xl font-semibold mb-4">
+            {editingException ? 'Редактировать исключение' : 'Новое исключение'}
+          </h2>
+
+          <form onSubmit={(e: FormEvent<HTMLFormElement>) => handleSubmit(e)} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="employee-search-container relative">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Сотрудник
+              </label>
+              <input
+                type="text"
+                value={employeeSearch}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                  setEmployeeSearch(e.target.value);
+                  setShowEmployeeDropdown(true);
+                  setSelectedEmployeeId(null);
+                  setFormData({...formData, employee_id: ''});
+                }}
+                onFocus={() => setShowEmployeeDropdown(true)}
+                placeholder="Поиск сотрудника..."
+                className="w-full p-2 border border-gray-300 rounded-lg"
+                required
+              />
+              {showEmployeeDropdown && getFilteredEmployees().length > 0 && (
+                <div className="absolute z-10 w-full bg-white border border-gray-300 rounded-md mt-1 max-h-48 overflow-y-auto shadow-lg">
+                  {getFilteredEmployees().map((employee) => (
+                    <div
+                      key={employee.id}
+                      onClick={() => handleEmployeeSelect(employee)}
+                      className="px-3 py-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0"
+                    >
+                      {employee.full_name}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="calendar-container relative">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Дата исключения
+              </label>
+              
+              {/* Кнопка для открытия календаря */}
+              <button
+                type="button"
+                onClick={() => setShowCalendar(!showCalendar)}
+                className="w-full inline-flex items-center justify-between px-3 py-2 border border-gray-300 rounded-lg shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                <div className="flex items-center">
+                  <Calendar className="h-4 w-4 mr-2" />
+                  {startDate && endDate 
+                    ? `${startDate} - ${endDate} (диапазон)`
+                    : selectedDate 
+                    ? selectedDate
+                    : 'Выбрать дату'
+                  }
+                </div>
+              </button>
+              
+              {/* Кнопка сброса */}
+              {(selectedDate || (startDate && endDate)) && (
+                <button
+                  type="button"
+                  onClick={clearDates}
+                  className="absolute right-2 top-8 text-sm text-red-600 hover:text-red-800"
+                >
+                  ✕
+                </button>
+              )}
+              
+              {/* Календарь */}
+              {showCalendar && (
+                <div className="absolute top-full mt-2 z-[9999] bg-white border border-gray-200 rounded-lg shadow-xl p-4" style={{minWidth: '320px', right: 0}}>
+                  {/* Заголовок календаря и быстрые кнопки */}
+                  <div className="flex items-center justify-between mb-4">
+                    <button
+                      type="button"
+                      onClick={goToPreviousMonth}
+                      className="p-1 hover:bg-gray-100 rounded"
+                    >
+                      <ChevronUp className="h-4 w-4 rotate-270" />
+                    </button>
+                    <h3 className="text-sm font-medium">
+                      {currentMonth.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' })}
+                    </h3>
+                    <button
+                      type="button"
+                      onClick={goToNextMonth}
+                      className="p-1 hover:bg-gray-100 rounded"
+                    >
+                      <ChevronDown className="h-4 w-4 rotate-90" />
+                    </button>
+                  </div>
+                  <div className="flex gap-2 mb-2">
+                    <button type="button" onClick={selectWeekPeriod} className="px-2 py-1 text-xs bg-gray-100 rounded hover:bg-blue-100">Неделя</button>
+                    <button type="button" onClick={selectMonthPeriod} className="px-2 py-1 text-xs bg-gray-100 rounded hover:bg-blue-100">Месяц</button>
+                    <button type="button" onClick={selectQuarterPeriod} className="px-2 py-1 text-xs bg-gray-100 rounded hover:bg-blue-100">Квартал</button>
+                    <button type="button" onClick={clearDates} className="px-2 py-1 text-xs bg-gray-100 rounded hover:bg-red-100 text-red-600">Сегодня</button>
+                  </div>
+                  {/* Дни недели */}
+                  <div className="grid grid-cols-7 gap-1 mb-2">
+                    {['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'].map(day => (
+                      <div key={day} className="text-xs text-center text-gray-500 font-medium py-1">{day}</div>
+                    ))}
+                  </div>
+                  {/* Дни */}
+                  <div className="grid grid-cols-7 gap-1">
+                    {generateCalendar().map((date, index) => {
+                      const dateStr = formatDate(date);
+                      const isCurrentMonth = date.getMonth() === currentMonth.getMonth();
+                      const isToday = dateStr === today;
+                      const isSelected = dateStr === selectedDate;
+                      const isInRange = startDate && endDate && dateStr >= startDate && dateStr <= endDate;
+                      const isStartDate = dateStr === startDate;
+                      const isEndDate = dateStr === endDate;
+                      const isLastLoaded = dateStr === lastLoadedDate;
+                      return (
+                        <button
+                          key={index}
+                          type="button"
+                          onClick={() => handleDateClick(dateStr)}
+                          className={`w-8 h-8 text-xs rounded-full flex items-center justify-center
+                            ${!isCurrentMonth ? 'text-gray-300' : ''}
+                            ${isToday ? 'bg-blue-100 text-blue-600 font-bold' : ''}
+                            ${isSelected ? 'bg-blue-600 text-white' : ''}
+                            ${isStartDate || isEndDate ? 'bg-green-600 text-white' : ''}
+                            ${isInRange && !isStartDate && !isEndDate ? 'bg-green-100 text-green-800' : ''}
+                            ${isLastLoaded ? 'ring-2 ring-blue-500' : ''}
+                            ${!isSelected && !isInRange && !isToday && isCurrentMonth ? 'hover:bg-gray-100' : ''}`}
+                        >
+                          {date.getDate()}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div className="mt-3 pt-3 border-t text-xs text-gray-500">
+                    <p>• Один клик = выделение даты</p>
+                    <p>• Два клика = диапазон дат</p>
+                    <p>• Быстрые кнопки: неделя, месяц, квартал, сегодня</p>
+                    <p>• Синяя рамка — последняя загруженная дата</p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Причина исключения
+              </label>
+              <input
+                type="text"
+                value={formData.reason}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => setFormData({...formData, reason: e.target.value})}
+                className="w-full p-2 border border-gray-300 rounded-lg"
+                placeholder="Например: командировка, больничный, отпуск"
+                required
+              />
+            </div>
+
+            <div className="md:col-span-2 flex gap-2">
+              <button
+                type="submit"
+                className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
+              >
+                {editingException ? 'Обновить' : 'Создать'}
+              </button>
+              <button
+                type="button"
+                onClick={resetForm}
+                className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600"
+              >
+                Отмена
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      <div className="bg-white rounded-lg shadow">
+        <div className="px-6 py-4 border-b border-gray-200">
+          <h2 className="text-lg font-semibold text-gray-900">
             Активные исключения ({exceptions.length})
           </h2>
         </div>
