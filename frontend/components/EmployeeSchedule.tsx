@@ -317,17 +317,8 @@ export function EmployeeSchedule() {
   const renderPagination = () => {
     if (!scheduleData) return null;
     
-    // Для правильного расчета пагинации нужно знать реальное количество элементов
-    let actualTotalCount = scheduleData.total_count;
-    
-    // Если это диапазон дат, считаем уникальных сотрудников
-    if (scheduleData.employees.length > 0 && 'days' in scheduleData.employees[0]) {
-      // Для диапазона дат - количество уникальных сотрудников
-      const uniqueEmployees = new Set(
-        (scheduleData.employees as EmployeeWithDays[]).map(emp => emp.employee_id)
-      );
-      actualTotalCount = uniqueEmployees.size;
-    }
+    // Используем total_count из API (серверная пагинация)
+    const actualTotalCount = scheduleData.total_count;
     
     if (actualTotalCount <= itemsPerPage) return null;
 
