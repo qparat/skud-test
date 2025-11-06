@@ -28,6 +28,13 @@ interface Exception {
 }
 
 export default function ExceptionsPage() {
+  // ...existing code...
+
+  // Пагинация
+  const PAGE_SIZE = 50;
+  const [page, setPage] = useState<number>(1);
+  const totalPages = Math.ceil(filteredExceptions.length / PAGE_SIZE);
+  const paginatedExceptions = filteredExceptions.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
   // Для визуального выделения последней выбранной даты
   const [lastLoadedDate, setLastLoadedDate] = useState<string>('');
   // Фильтры для поиска
@@ -352,12 +359,12 @@ export default function ExceptionsPage() {
   }
 
   // Фильтрация исключений
-  const filteredExceptions = exceptions.filter((exception: Exception) => {
-    const nameMatch = searchName.trim() === '' || exception.full_name.toLowerCase().includes(searchName.trim().toLowerCase());
-    const reasonMatch = searchReason.trim() === '' || exception.reason.toLowerCase().includes(searchReason.trim().toLowerCase());
-    const dateMatch = searchDate.trim() === '' || exception.exception_date === searchDate.trim();
-    return nameMatch && reasonMatch && dateMatch;
-  });
+  // ...existing code...
+
+  // Сброс страницы при изменении фильтра
+  useEffect(() => {
+    setPage(1);
+  }, [searchName, searchReason, searchDate, exceptions]);
 
   if (loading) {
     return (
@@ -674,55 +681,77 @@ export default function ExceptionsPage() {
             <p>Исключений пока нет</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Сотрудник</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Дата</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Причина</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Действия</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {filteredExceptions.map((exception) => (
-                  <tr key={exception.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <User className="h-4 w-4 text-gray-400 mr-2" />
-                        <span className="text-sm font-medium text-gray-900">
-                          {exception.full_name}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <Calendar className="h-4 w-4 text-gray-400 mr-2" />
-                        <span className="text-sm text-gray-900">
-                          {new Date(exception.exception_date).toLocaleDateString('ru-RU')}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="text-sm text-gray-900">
-                        {exception.reason}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex space-x-2">
-                        <button
-                          onClick={() => handleDelete(exception.id)}
-                          className="text-red-600 hover:text-red-900"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </td>
+          <>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Сотрудник</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Дата</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Причина</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Действия</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {paginatedExceptions.map((exception) => (
+                    <tr key={exception.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <User className="h-4 w-4 text-gray-400 mr-2" />
+                          <span className="text-sm font-medium text-gray-900">
+                            {exception.full_name}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <Calendar className="h-4 w-4 text-gray-400 mr-2" />
+                          <span className="text-sm text-gray-900">
+                            {new Date(exception.exception_date).toLocaleDateString('ru-RU')}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className="text-sm text-gray-900">
+                          {exception.reason}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => handleDelete(exception.id)}
+                            className="text-red-600 hover:text-red-900"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {/* Пагинация */}
+            {totalPages > 1 && (
+              <div className="flex justify-center items-center gap-2 py-4">
+                <button
+                  className="px-3 py-1 rounded bg-gray-100 hover:bg-gray-200"
+                  disabled={page === 1}
+                  onClick={() => setPage(page - 1)}
+                >
+                  Назад
+                </button>
+                <span className="text-sm">Страница {page} из {totalPages}</span>
+                <button
+                  className="px-3 py-1 rounded bg-gray-100 hover:bg-gray-200"
+                  disabled={page === totalPages}
+                  onClick={() => setPage(page + 1)}
+                >
+                  Вперёд
+                </button>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
