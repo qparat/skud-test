@@ -25,40 +25,6 @@ interface CreateUserForm {
 }
 
 export default function UsersPage() {
-  // Состояния для смены пароля
-  const [showPasswordModal, setShowPasswordModal] = useState(false);
-  const [passwordUserId, setPasswordUserId] = useState<number | null>(null);
-  const [newPassword, setNewPassword] = useState('');
-  const [passwordLoading, setPasswordLoading] = useState(false);
-
-  // Проверка, можно ли менять пароль конкретному пользователю
-  const canChangePassword = (targetRole: number) => {
-    if (!currentUser) return false;
-    if (currentUser.role === 0) return true; // root — всем
-    if (currentUser.role === 2 && targetRole === 3) return true; // супер-админ — только юзерам
-    return false;
-  };
-
-  // Запрос на смену пароля
-  const handleChangePassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newPassword || !passwordUserId) return;
-    setPasswordLoading(true);
-    try {
-      await apiRequest(`/users/${passwordUserId}/change-password`, {
-        method: 'POST',
-        body: JSON.stringify({ password: newPassword })
-      });
-      setShowPasswordModal(false);
-      setNewPassword('');
-      setPasswordUserId(null);
-      alert('Пароль успешно изменён!');
-    } catch (err: any) {
-      alert(err.message || 'Ошибка смены пароля');
-    } finally {
-      setPasswordLoading(false);
-    }
-  };
   const [users, setUsers] = useState<UserData[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -456,55 +422,6 @@ export default function UsersPage() {
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
-                          )}
-                          {canChangePassword(user.role) && (
-                            <button
-                              onClick={() => {
-                                setShowPasswordModal(true);
-                                setPasswordUserId(user.id);
-                              }}
-                              className="text-yellow-600 hover:text-yellow-800"
-                            >
-                              Сменить пароль
-                            </button>
-                {/* Модальное окно смены пароля */}
-                {showPasswordModal && passwordUserId === user.id && (
-                  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
-                    <div className="bg-white rounded-lg p-6 shadow-lg w-full max-w-sm">
-                      <h3 className="text-lg font-semibold mb-4">Сменить пароль для {user.full_name}</h3>
-                      <form onSubmit={handleChangePassword}>
-                        <input
-                          type="password"
-                          value={newPassword}
-                          onChange={e => setNewPassword(e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded mb-4"
-                          placeholder="Новый пароль"
-                          required
-                        />
-                        <div className="flex gap-2">
-                          <button
-                            type="submit"
-                            disabled={passwordLoading}
-                            className="px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700 disabled:opacity-50"
-                          >
-                            {passwordLoading ? 'Сохранение...' : 'Сохранить'}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setShowPasswordModal(false);
-                              setNewPassword('');
-                              setPasswordUserId(null);
-                            }}
-                            className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400"
-                          >
-                            Отмена
-                          </button>
-                        </div>
-                      </form>
-                    </div>
-                  </div>
-                )}
                           )}
                         </>
                       )}
