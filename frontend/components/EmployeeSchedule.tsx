@@ -315,12 +315,27 @@ export function EmployeeSchedule() {
   }
 
   const renderPagination = () => {
-    if (!scheduleData || scheduleData.total_count <= itemsPerPage) return null;
+    if (!scheduleData) return null;
+    
+    // Для правильного расчета пагинации нужно знать реальное количество элементов
+    let actualTotalCount = scheduleData.total_count;
+    
+    // Если это диапазон дат, считаем уникальных сотрудников
+    if (scheduleData.employees.length > 0 && 'days' in scheduleData.employees[0]) {
+      // Для диапазона дат - количество уникальных сотрудников
+      const uniqueEmployees = new Set(
+        (scheduleData.employees as EmployeeWithDays[]).map(emp => emp.employee_id)
+      );
+      actualTotalCount = uniqueEmployees.size;
+    }
+    
+    if (actualTotalCount <= itemsPerPage) return null;
 
     const pageNumbers = [];
     const maxVisiblePages = 5;
+    const calculatedTotalPages = Math.ceil(actualTotalCount / itemsPerPage);
     let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
-    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+    let endPage = Math.min(calculatedTotalPages, startPage + maxVisiblePages - 1);
 
     // Adjust start if we're near the end
     if (endPage - startPage + 1 < maxVisiblePages) {
@@ -361,9 +376,9 @@ export function EmployeeSchedule() {
 
         <button
           onClick={() => handlePageChange(currentPage + 1)}
-          disabled={currentPage === totalPages}
+          disabled={currentPage === calculatedTotalPages}
           className={`px-3 py-1 rounded-md ${
-            currentPage === totalPages
+            currentPage === calculatedTotalPages
               ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
               : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'
           }`}
@@ -545,7 +560,11 @@ export function EmployeeSchedule() {
     // Для одной даты возвращаем как есть
     const isRangeData = sortedData.length > 0 && 'date' in sortedData[0]
     if (!isRangeData) {
-      return sortedData.map(emp => ({ ...emp, isFirstInGroup: true, totalInGroup: 1 }))
+      // Применяем клиентскую пагинацию для одной даты
+      const startIndex = (currentPage - 1) * itemsPerPage
+      const endIndex = startIndex + itemsPerPage
+      const paginatedData = sortedData.slice(startIndex, endIndex)
+      return paginatedData.map(emp => ({ ...emp, isFirstInGroup: true, totalInGroup: 1 }))
     }
 
     // Для диапазона дат группируем по employee_id
@@ -581,7 +600,12 @@ export function EmployeeSchedule() {
       return aFirst.full_name.localeCompare(bFirst.full_name)
     })
     
-    sortedGroupEntries.forEach(([employeeId, employeeDays]) => {
+    // Применяем пагинацию к группам (сотрудникам), а не к дням
+    const startIndex = (currentPage - 1) * itemsPerPage
+    const endIndex = startIndex + itemsPerPage
+    const paginatedGroups = sortedGroupEntries.slice(startIndex, endIndex)
+    
+    paginatedGroups.forEach(([employeeId, employeeDays]) => {
       const empId = parseInt(employeeId)
       const isExpanded = expandedEmployees.has(empId)
       
