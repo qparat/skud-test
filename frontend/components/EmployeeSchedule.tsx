@@ -85,6 +85,9 @@ export function EmployeeSchedule() {
   const [departments, setDepartments] = useState<{ id: number; name: string }[]>([])
   const [selectedDepartment, setSelectedDepartment] = useState<number[]>([])
   const [showFilter, setShowFilter] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(50)
+  const [totalPages, setTotalPages] = useState(1)
   
   // Получаем сегодняшнюю дату для ограничения выбора (без проблем с временной зоной)
   const today = formatDate(new Date())
@@ -96,15 +99,24 @@ export function EmployeeSchedule() {
     try {
       let endpoint = 'employee-schedule'
       
+      // Build the base endpoint with pagination parameters
+      const pageParams = `page=${currentPage}&per_page=${itemsPerPage}`
+      
       if (start && end) {
-        endpoint = `employee-schedule-range?start_date=${start}&end_date=${end}`
+        endpoint = `employee-schedule-range?start_date=${start}&end_date=${end}&${pageParams}`
       } else if (date) {
-        endpoint = `employee-schedule?date=${date}`
+        endpoint = `employee-schedule?date=${date}&${pageParams}`
+      } else {
+        endpoint = `${endpoint}?${pageParams}`
       }
         
-  const data = await apiRequest(endpoint)
-  console.log('scheduleData:', data)
-  setScheduleData(data)
+      const data = await apiRequest(endpoint)
+      console.log('scheduleData:', data)
+      setScheduleData(data)
+      
+      // Calculate total pages based on total count
+      const totalPages = Math.ceil(data.total_count / itemsPerPage)
+      setTotalPages(totalPages)
       
       // НЕ сбрасываем сортировку при загрузке новых данных - пользователь должен сохранить свой выбор
       // setSortBy('none')
@@ -188,6 +200,7 @@ export function EmployeeSchedule() {
     setEndDate(endStr)
     setSelectedDate('')
     setShowCalendar(false)
+    setCurrentPage(1) // Reset page when selecting week period
   }
 
   const selectMonthPeriod = () => {
@@ -202,6 +215,7 @@ export function EmployeeSchedule() {
     setEndDate(endStr)
     setSelectedDate('')
     setShowCalendar(false)
+    setCurrentPage(1) // Reset page when selecting month period
   }
 
   const selectQuarterPeriod = () => {
@@ -216,11 +230,15 @@ export function EmployeeSchedule() {
     setEndDate(endStr)
     setSelectedDate('')
     setShowCalendar(false)
+    setCurrentPage(1) // Reset page when selecting quarter period
   }
 
   // Обработка клика по дате в календаре
   const handleDateClick = (dateStr: string) => {
     if (dateStr > today) return // Нельзя выбирать будущие даты
+    
+    // Reset page when changing dates
+    setCurrentPage(1)
     
     // Проверяем текущее состояние
     const hasSelectedDate = selectedDate !== ''
@@ -273,10 +291,87 @@ export function EmployeeSchedule() {
     setLastLoadedDate('') // Очищаем визуальное выделение
     // Возвращаемся к сегодняшнему дню
     setSelectedDepartment([])
+    setCurrentPage(1) // Reset page when clearing dates
     fetchSchedule(today)
   }
 
   // Генерация календаря
+  // Pagination handlers
+  const handlePageChange = (newPage: number) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      setCurrentPage(newPage)
+      
+      // Refetch data with new page
+      if (startDate && endDate) {
+        fetchSchedule(undefined, startDate, endDate)
+      } else if (selectedDate) {
+        fetchSchedule(selectedDate)
+      } else {
+        fetchSchedule(today)
+      }
+    }
+  }
+
+  const renderPagination = () => {
+    if (!scheduleData || scheduleData.total_count <= itemsPerPage) return null;
+
+    const pageNumbers = [];
+    const maxVisiblePages = 5;
+    let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+
+    // Adjust start if we're near the end
+    if (endPage - startPage + 1 < maxVisiblePages) {
+      startPage = Math.max(1, endPage - maxVisiblePages + 1);
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+      pageNumbers.push(i);
+    }
+
+    return (
+      <div className="flex items-center justify-center space-x-2 mt-4 mb-6">
+        <button
+          onClick={() => handlePageChange(currentPage - 1)}
+          disabled={currentPage === 1}
+          className={`px-3 py-1 rounded-md ${
+            currentPage === 1
+              ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+              : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'
+          }`}
+        >
+          Назад
+        </button>
+
+        {pageNumbers.map((number) => (
+          <button
+            key={number}
+            onClick={() => handlePageChange(number)}
+            className={`px-3 py-1 rounded-md ${
+              currentPage === number
+                ? 'bg-blue-600 text-white'
+                : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'
+            }`}
+          >
+            {number}
+          </button>
+        ))}
+
+        <button
+          onClick={() => handlePageChange(currentPage + 1)}
+          disabled={currentPage === totalPages}
+          className={`px-3 py-1 rounded-md ${
+            currentPage === totalPages
+              ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+              : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'
+          }`}
+        >
+          Вперед
+        </button>
+      </div>
+    );
+  };
+
   const generateCalendar = () => {
     const year = currentMonth.getFullYear();
     const month = currentMonth.getMonth();
@@ -1168,6 +1263,8 @@ export function EmployeeSchedule() {
               </tbody>
             </table>
           )}
+          {/* Pagination */}
+          {renderPagination()}
         </div>
       </div>
     </div>
