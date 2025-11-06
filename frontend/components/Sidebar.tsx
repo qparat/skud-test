@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/components/AuthProvider'
+import { useState } from 'react'
 import {
   LayoutDashboard,
   Users,
@@ -12,7 +13,9 @@ import {
   Shield,
   Upload,
   UserCog,
-  File
+  File,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react'
 
 const navigation = [
@@ -29,6 +32,7 @@ const navigation = [
 export function Sidebar() {
   const pathname = usePathname()
   const { hasRole, hasAnyRole } = useAuth()
+  const [isCollapsed, setIsCollapsed] = useState(false)
 
   // Фильтруем навигацию по ролям
   const filteredNavigation = navigation.filter(item => {
@@ -42,11 +46,24 @@ export function Sidebar() {
   })
 
   return (
-    <div className="hidden md:flex md:w-111 md:flex-col">
-      <div className="flex flex-col flex-grow pt-5 pb-4 overflow-y-auto bg-white border-r">
+    <div className={`hidden md:flex md:flex-col transition-all duration-300 ${isCollapsed ? 'md:w-16' : 'md:w-64'}`}>
+      <div className="flex flex-col flex-grow pt-5 pb-4 overflow-y-auto bg-white border-r relative">
+        {/* Кнопка сворачивания */}
+        <button
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          className="absolute -right-3 top-8 bg-white border border-gray-300 rounded-full p-1 hover:bg-gray-50 z-10 shadow-sm"
+          title={isCollapsed ? 'Развернуть' : 'Свернуть'}
+        >
+          {isCollapsed ? (
+            <ChevronRight className="h-4 w-4 text-gray-600" />
+          ) : (
+            <ChevronLeft className="h-4 w-4 text-gray-600" />
+          )}
+        </button>
+
         <div className="flex items-center flex-shrink-0 px-4">
           <img src="/SCUD_2.svg" alt="SCUD" className="h-8 w-auto mr-2" />
-          <h1 className="text-xl font-bold text-gray-900">СКУД Система</h1>
+          {!isCollapsed && <h1 className="text-xl font-bold text-gray-900">СКУД Система</h1>}
         </div>
         <div className="mt-5 flex-grow flex flex-col">
           <nav className="flex-1 px-2 space-y-1">
@@ -62,15 +79,17 @@ export function Sidebar() {
                       : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                     }
                     group flex items-center px-2 py-2 text-sm font-medium rounded-md
+                    ${isCollapsed ? 'justify-center' : ''}
                   `}
+                  title={isCollapsed ? item.name : ''}
                 >
                   <item.icon
                     className={`
                       ${isActive ? 'text-blue-500' : 'text-gray-400 group-hover:text-gray-500'}
-                      mr-3 flex-shrink-0 h-5 w-5
+                      ${isCollapsed ? '' : 'mr-3'} flex-shrink-0 h-5 w-5
                     `}
                   />
-                  {item.name}
+                  {!isCollapsed && item.name}
                 </Link>
               )
             })}
