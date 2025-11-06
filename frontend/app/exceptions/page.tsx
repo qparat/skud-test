@@ -92,36 +92,46 @@ export default function ExceptionsPage() {
         setSelectedDate('');
         setStartDate('');
         setEndDate('');
-        return;
-      // ...existing useState declarations...
+        // TypeScript interfaces must be at the top of the file
+        interface Employee {
+          id: number;
+          full_name: string;
+        }
 
-      // Получаем сегодняшнюю дату для ограничения выбора
-      const today = formatDate(new Date())
+        interface Exception {
+          id: number;
+          employee_id: number;
+          full_name: string; // добавлено для совместимости с backend
+          exception_date: string;
+          reason: string;
+          exception_type: string;
+          created_at?: string;
+        }
 
-      const [formData, setFormData] = useState<ExceptionFormData>({
-        employee_id: '',
-        exception_date: '',
-        start_date: '',
-        end_date: '',
-        reason: '',
-        exception_type: 'no_lateness_check'
-      });
+        interface ExceptionFormData {
+          employee_id: string;
+          exception_date: string;
+          start_date: string;
+          end_date: string;
+          reason: string;
+          exception_type: string;
+        }
 
-      // Пагинация и фильтрация
-      const PAGE_SIZE = 50;
-      const [page, setPage] = useState<number>(1);
-      const filteredExceptions = exceptions.filter((exception: Exception) => {
-        const nameMatch = searchName.trim() === '' || exception.full_name.toLowerCase().includes(searchName.trim().toLowerCase());
-        const reasonMatch = searchReason.trim() === '' || exception.reason.toLowerCase().includes(searchReason.trim().toLowerCase());
-        const dateMatch = searchDate.trim() === '' || exception.exception_date === searchDate.trim();
-        return nameMatch && reasonMatch && dateMatch;
-      });
-      const totalPages = Math.ceil(filteredExceptions.length / PAGE_SIZE);
-      const paginatedExceptions = filteredExceptions.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+        'use client'
 
-  // Быстрый выбор периода
-  const selectWeekPeriod = () => {
-    const todayDate = new Date();
+        import React, { useState, useEffect, ChangeEvent, FormEvent } from 'react';
+        import { Plus, Edit3, Trash2, Calendar, User, AlertCircle, ChevronUp, ChevronDown } from 'lucide-react';
+        import { apiRequest } from '@/lib/api';
+
+        // Функция для правильного получения даты в формате YYYY-MM-DD без проблем с временной зоной
+        const formatDate = (date: Date) => {
+          const year = date.getFullYear();
+          const month = String(date.getMonth() + 1).padStart(2, '0');
+          const day = String(date.getDate()).padStart(2, '0');
+          return `${year}-${month}-${day}`;
+        };
+
+        export default function ExceptionsPage() {
     const weekStart = new Date(todayDate);
     weekStart.setDate(todayDate.getDate() - 7);
     const startStr = formatDate(weekStart);
