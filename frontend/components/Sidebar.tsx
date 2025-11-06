@@ -42,7 +42,7 @@ export function Sidebar() {
   })
 
   return (
-    <div className="hidden md:flex md:w-64 md:flex-col">
+    <div className="hidden md:flex md:w-111 md:flex-col">
       <div className="flex flex-col flex-grow pt-5 pb-4 overflow-y-auto bg-white border-r">
         <div className="flex items-center flex-shrink-0 px-4">
           <img src="/SCUD_2.svg" alt="SCUD" className="h-8 w-auto mr-2" />
