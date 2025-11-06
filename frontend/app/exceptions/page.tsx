@@ -146,63 +146,38 @@ export default function ExceptionsPage() {
         setStartDate('');
         setEndDate('');
         return;
-      } else {
-        // Второй клик по другой дате — диапазон
-        const start = dateStr < selectedDate ? dateStr : selectedDate;
-        const end = dateStr < selectedDate ? selectedDate : dateStr;
-  setStartDate(start);
-  setEndDate(end);
-  setFormData((prev: typeof formData) => ({ ...prev, exception_date: '', start_date: start, end_date: end }));
-        setIsDateRange(true);
-        setShowCalendar(false);
-        setSelectedDate('');
-        return;
-      }
-    }
+      // ...existing useState declarations...
 
-    // Если уже выбран диапазон или что-то выбрано — сбрасываем и выделяем новую дату
-  setSelectedDate(dateStr);
-  setStartDate('');
-  setEndDate('');
-  setFormData((prev: typeof formData) => ({ ...prev, exception_date: '', start_date: '', end_date: '' }));
-  setIsDateRange(false);
-    // НЕ закрываем календарь, чтобы можно было кликнуть второй раз
-  }
+      // Получаем сегодняшнюю дату для ограничения выбора
+      const today = formatDate(new Date())
 
-  // ...existing code...
+      const [formData, setFormData] = useState<{
+        employee_id: string;
+        exception_date: string;
+        start_date: string;
+        end_date: string;
+        reason: string;
+        exception_type: string;
+      }>({
+        employee_id: '',
+        exception_date: '',
+        start_date: '',
+        end_date: '',
+        reason: '',
+        exception_type: 'no_lateness_check'
+      });
 
-  // Генерация календаря
-  const generateCalendar = () => {
-    const year = currentMonth.getFullYear();
-    const month = currentMonth.getMonth();
-
-    const firstDay = new Date(year, month, 1);
-    // Определяем день недели для первого дня месяца (0 - воскресенье, 1 - понедельник, ...)
-    let dayOfWeek = firstDay.getDay();
-    // Для понедельника как первого дня недели: если воскресенье (0), то 6, иначе dayOfWeek - 1
-    dayOfWeek = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-    const startDate = new Date(firstDay);
-    startDate.setDate(startDate.getDate() - dayOfWeek); // Начинаем с понедельника
-
-    const days = [];
-    const currentDate = new Date(startDate);
-
-    for (let i = 0; i < 42; i++) { // 6 недель по 7 дней
-      days.push(new Date(currentDate));
-      currentDate.setDate(currentDate.getDate() + 1);
-    }
-
-    return days;
-  }
-
-  // Навигация по месяцам
-  const goToPreviousMonth = () => {
-    setCurrentMonth((prev: Date) => new Date(prev.getFullYear(), prev.getMonth() - 1));
-  };
-
-  const goToNextMonth = () => {
-    setCurrentMonth((prev: Date) => new Date(prev.getFullYear(), prev.getMonth() + 1));
-  };
+      // Пагинация и фильтрация
+      const PAGE_SIZE = 50;
+      const [page, setPage] = useState<number>(1);
+      const filteredExceptions = exceptions.filter((exception: Exception) => {
+        const nameMatch = searchName.trim() === '' || exception.full_name.toLowerCase().includes(searchName.trim().toLowerCase());
+        const reasonMatch = searchReason.trim() === '' || exception.reason.toLowerCase().includes(searchReason.trim().toLowerCase());
+        const dateMatch = searchDate.trim() === '' || exception.exception_date === searchDate.trim();
+        return nameMatch && reasonMatch && dateMatch;
+      });
+      const totalPages = Math.ceil(filteredExceptions.length / PAGE_SIZE);
+      const paginatedExceptions = filteredExceptions.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   // Быстрый выбор периода
   const selectWeekPeriod = () => {
