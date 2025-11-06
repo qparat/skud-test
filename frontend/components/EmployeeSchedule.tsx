@@ -560,11 +560,8 @@ export function EmployeeSchedule() {
     // Для одной даты возвращаем как есть
     const isRangeData = sortedData.length > 0 && 'date' in sortedData[0]
     if (!isRangeData) {
-      // Применяем клиентскую пагинацию для одной даты
-      const startIndex = (currentPage - 1) * itemsPerPage
-      const endIndex = startIndex + itemsPerPage
-      const paginatedData = sortedData.slice(startIndex, endIndex)
-      return paginatedData.map(emp => ({ ...emp, isFirstInGroup: true, totalInGroup: 1 }))
+      // Серверная пагинация уже применена - просто возвращаем данные
+      return sortedData.map(emp => ({ ...emp, isFirstInGroup: true, totalInGroup: 1 }))
     }
 
     // Для диапазона дат группируем по employee_id
@@ -600,12 +597,10 @@ export function EmployeeSchedule() {
       return aFirst.full_name.localeCompare(bFirst.full_name)
     })
     
-    // Применяем пагинацию к группам (сотрудникам), а не к дням
-    const startIndex = (currentPage - 1) * itemsPerPage
-    const endIndex = startIndex + itemsPerPage
-    const paginatedGroups = sortedGroupEntries.slice(startIndex, endIndex)
+    // Серверная пагинация уже применена - обрабатываем все полученные группы
+    const allGroups = sortedGroupEntries
     
-    paginatedGroups.forEach(([employeeId, employeeDays]) => {
+    allGroups.forEach(([employeeId, employeeDays]) => {
       const empId = parseInt(employeeId)
       const isExpanded = expandedEmployees.has(empId)
       

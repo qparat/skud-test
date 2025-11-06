@@ -788,7 +788,12 @@ async def logout(credentials: HTTPAuthorizationCredentials = Depends(security)):
     print("✅ Таблица исключений сотрудников инициализирована")
 
 @app.get("/employee-schedule")
-async def get_employee_schedule(date: Optional[str] = Query(None), current_user: dict = Depends(get_current_user)):
+async def get_employee_schedule(
+    date: Optional[str] = Query(None), 
+    page: int = Query(1, ge=1, description="Номер страницы"),
+    per_page: int = Query(50, ge=1, le=100, description="Количество записей на странице"),
+    current_user: dict = Depends(get_current_user)
+):
     """Расписание всех сотрудников за день с временем прихода/ухода"""
     try:
         if date is None:
@@ -979,20 +984,35 @@ async def get_employee_schedule(date: Optional[str] = Query(None), current_user:
         # Сортируем по имени
         employees_schedule.sort(key=lambda x: x['full_name'])
         
+        # Применяем пагинацию
+        total_count = len(employees_schedule)
+        start_idx = (page - 1) * per_page
+        end_idx = start_idx + per_page
+        paginated_employees = employees_schedule[start_idx:end_idx]
+        
         conn.close()
         
         return {
             'date': date,
-            'employees': employees_schedule,
-            'total_count': len(employees_schedule),
-            'late_count': sum(1 for emp in employees_schedule if emp['is_late'])
+            'employees': paginated_employees,
+            'total_count': total_count,
+            'late_count': sum(1 for e in employees_schedule if e['is_late']),
+            'page': page,
+            'per_page': per_page,
+            'total_pages': (total_count + per_page - 1) // per_page
         }
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка получения расписания: {str(e)}")
 
 @app.get("/employee-schedule-range")
-async def get_employee_schedule_range(start_date: str = Query(...), end_date: str = Query(...), current_user: dict = Depends(get_current_user)):
+async def get_employee_schedule_range(
+    start_date: str = Query(...), 
+    end_date: str = Query(...),
+    page: int = Query(1, ge=1, description="Номер страницы"),
+    per_page: int = Query(50, ge=1, le=100, description="Количество записей на странице"),
+    current_user: dict = Depends(get_current_user)
+):
     """Расписание всех сотрудников за диапазон дат с детализацией по дням"""
     from datetime import datetime, timedelta
     try:
@@ -1144,13 +1164,32 @@ async def get_employee_schedule_range(start_date: str = Query(...), end_date: st
                     'department_name': department_name,
                     'days': employee_days
                 })
+        # Сортируем по имени
+        employees_with_days.sort(key=lambda x: x['full_name'])
+        
+        # Применяем пагинацию (по сотрудникам, а не по дням)
+        total_count = len(employees_with_days)
+        start_idx = (page - 1) * per_page
+        end_idx = start_idx + per_page
+        paginated_employees = employees_with_days[start_idx:end_idx]
+        
+        # Считаем общее количество опозданий
+        late_count = 0
+        for emp in employees_with_days:
+            for day in emp['days']:
+                if day['is_late']:
+                    late_count += 1
+        
         conn.close()
         return {
             'start_date': start_date,
             'end_date': end_date,
-            'employees': employees_with_days,
-            'total_count': len(employees_with_days),
-            'late_count': total_late_count
+            'employees': paginated_employees,
+            'total_count': total_count,
+            'late_count': late_count,
+            'page': page,
+            'per_page': per_page,
+            'total_pages': (total_count + per_page - 1) // per_page
         }
     except HTTPException:
         raise
