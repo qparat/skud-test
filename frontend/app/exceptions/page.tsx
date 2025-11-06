@@ -28,6 +28,12 @@ interface Exception {
 }
 
 export default function ExceptionsPage() {
+  // Фильтры для поиска
+  const [searchName, setSearchName] = useState('');
+  const [searchReason, setSearchReason] = useState('');
+  const [searchDate, setSearchDate] = useState('');
+  const [showDateCalendar, setShowDateCalendar] = useState(false);
+  const [dateCalendarMonth, setDateCalendarMonth] = useState(new Date());
   const [exceptions, setExceptions] = useState<Exception[]>([])
   const [employees, setEmployees] = useState<Employee[]>([])
   const [loading, setLoading] = useState(true)
@@ -312,7 +318,7 @@ export default function ExceptionsPage() {
         </p>
       </div>
 
-      <div className="mb-6">
+      <div className="mb-6 flex flex-col md:flex-row md:items-center md:gap-4 gap-2">
         <button
           onClick={() => setShowAddForm(true)}
           className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2"
@@ -320,6 +326,97 @@ export default function ExceptionsPage() {
           <Plus className="h-4 w-4" />
           Добавить исключение
         </button>
+        <input
+          type="text"
+          value={searchName}
+          onChange={e => setSearchName(e.target.value)}
+          placeholder="Поиск по ФИО"
+          className="w-full md:w-56 px-3 py-2 border border-gray-300 rounded-md text-sm"
+        />
+        <input
+          type="text"
+          value={searchReason}
+          onChange={e => setSearchReason(e.target.value)}
+          placeholder="Поиск по причине"
+          className="w-full md:w-56 px-3 py-2 border border-gray-300 rounded-md text-sm"
+        />
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setShowDateCalendar(!showDateCalendar)}
+            className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md bg-white text-sm text-gray-700 hover:bg-gray-50"
+          >
+            <Calendar className="h-4 w-4 mr-2" />
+            {searchDate ? searchDate : 'Поиск по дате'}
+          </button>
+          {searchDate && (
+            <button
+              type="button"
+              onClick={() => setSearchDate('')}
+              className="absolute right-2 top-2 text-sm text-red-600 hover:text-red-800"
+            >✕</button>
+          )}
+          {showDateCalendar && (
+            <div className="absolute top-full mt-2 z-[9999] bg-white border border-gray-200 rounded-lg shadow-xl p-4" style={{minWidth: '280px', right: 0}}>
+              <div className="flex items-center justify-between mb-4">
+                <button
+                  type="button"
+                  onClick={() => setDateCalendarMonth(prev => new Date(prev.getFullYear(), prev.getMonth() - 1))}
+                  className="p-1 hover:bg-gray-100 rounded"
+                >
+                  <ChevronUp className="h-4 w-4 rotate-270" />
+                </button>
+                <h3 className="text-sm font-medium">
+                  {dateCalendarMonth.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' })}
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setDateCalendarMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + 1))}
+                  className="p-1 hover:bg-gray-100 rounded"
+                >
+                  <ChevronDown className="h-4 w-4 rotate-90" />
+                </button>
+              </div>
+              <div className="grid grid-cols-7 gap-1 mb-2">
+                {['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'].map(day => (
+                  <div key={day} className="text-xs text-center text-gray-500 font-medium py-1">{day}</div>
+                ))}
+              </div>
+              <div className="grid grid-cols-7 gap-1">
+                {(() => {
+                  // Календарь для поиска по дате
+                  const year = dateCalendarMonth.getFullYear();
+                  const month = dateCalendarMonth.getMonth();
+                  const firstDay = new Date(year, month, 1);
+                  let dayOfWeek = firstDay.getDay();
+                  dayOfWeek = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+                  const startDate = new Date(firstDay);
+                  startDate.setDate(startDate.getDate() - dayOfWeek);
+                  const days = [];
+                  const currentDate = new Date(startDate);
+                  for (let i = 0; i < 42; i++) {
+                    days.push(new Date(currentDate));
+                    currentDate.setDate(currentDate.getDate() + 1);
+                  }
+                  return days.map((date, index) => {
+                    const dateStr = formatDate(date);
+                    const isCurrentMonth = date.getMonth() === dateCalendarMonth.getMonth();
+                    return (
+                      <button
+                        key={index}
+                        type="button"
+                        onClick={() => { setSearchDate(dateStr); setShowDateCalendar(false); }}
+                        className={`w-8 h-8 text-xs rounded-full flex items-center justify-center ${!isCurrentMonth ? 'text-gray-300' : ''} ${searchDate === dateStr ? 'bg-blue-600 text-white font-bold' : 'hover:bg-gray-100'}`}
+                      >
+                        {date.getDate()}
+                      </button>
+                    );
+                  });
+                })()}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       {showAddForm && (
@@ -509,7 +606,8 @@ export default function ExceptionsPage() {
           </h2>
         </div>
 
-        {exceptions.length === 0 ? (
+  {/* Фильтрация исключений */}
+  {filteredExceptions.length === 0 ? (
           <div className="p-8 text-center text-gray-500">
             <AlertCircle className="h-12 w-12 mx-auto mb-4 text-gray-400" />
             <p>Исключений пока нет</p>
@@ -519,22 +617,14 @@ export default function ExceptionsPage() {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Сотрудник
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Дата
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Причина
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Действия
-                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Сотрудник</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Дата</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Причина</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Действия</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {Array.isArray(exceptions) && exceptions.map((exception) => (
+                {filteredExceptions.map((exception) => (
                   <tr key={exception.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
@@ -573,6 +663,13 @@ export default function ExceptionsPage() {
             </table>
           </div>
         )}
+  // Фильтрация исключений
+  const filteredExceptions = exceptions.filter((exception) => {
+    const nameMatch = searchName.trim() === '' || exception.full_name.toLowerCase().includes(searchName.trim().toLowerCase());
+    const reasonMatch = searchReason.trim() === '' || exception.reason.toLowerCase().includes(searchReason.trim().toLowerCase());
+    const dateMatch = searchDate.trim() === '' || exception.exception_date === searchDate.trim();
+    return nameMatch && reasonMatch && dateMatch;
+  });
       </div>
     </div>
   )
