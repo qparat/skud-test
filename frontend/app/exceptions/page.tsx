@@ -28,6 +28,8 @@ interface Exception {
 }
 
 export default function ExceptionsPage() {
+  // Для визуального выделения последней выбранной даты
+  const [lastLoadedDate, setLastLoadedDate] = useState<string>('');
   // Фильтры для поиска
   const [searchName, setSearchName] = useState<string>('');
   const [searchReason, setSearchReason] = useState<string>('');
@@ -160,14 +162,7 @@ export default function ExceptionsPage() {
     // НЕ закрываем календарь, чтобы можно было кликнуть второй раз
   }
 
-  // Сброс выбора дат
-  const clearDates = () => {
-  setSelectedDate('')
-  setStartDate('')
-  setEndDate('')
-  setFormData((prev: typeof formData) => ({ ...prev, exception_date: '', start_date: '', end_date: '' }))
-  setIsDateRange(false)
-  }
+  // ...existing code...
 
   // Генерация календаря
   const generateCalendar = () => {
@@ -195,12 +190,62 @@ export default function ExceptionsPage() {
 
   // Навигация по месяцам
   const goToPreviousMonth = () => {
-  setCurrentMonth((prev: Date) => new Date(prev.getFullYear(), prev.getMonth() - 1))
-  }
+    setCurrentMonth((prev: Date) => new Date(prev.getFullYear(), prev.getMonth() - 1));
+  };
 
   const goToNextMonth = () => {
-  setCurrentMonth((prev: Date) => new Date(prev.getFullYear(), prev.getMonth() + 1))
-  }
+    setCurrentMonth((prev: Date) => new Date(prev.getFullYear(), prev.getMonth() + 1));
+  };
+
+  // Быстрый выбор периода
+  const selectWeekPeriod = () => {
+    const todayDate = new Date();
+    const weekStart = new Date(todayDate);
+    weekStart.setDate(todayDate.getDate() - 7);
+    const startStr = formatDate(weekStart);
+    const endStr = formatDate(todayDate);
+    setStartDate(startStr);
+    setEndDate(endStr);
+    setSelectedDate('');
+    setShowCalendar(false);
+    setLastLoadedDate(endStr);
+  };
+
+  const selectMonthPeriod = () => {
+    const todayDate = new Date();
+    const monthStart = new Date(todayDate);
+    monthStart.setDate(todayDate.getDate() - 30);
+    const startStr = formatDate(monthStart);
+    const endStr = formatDate(todayDate);
+    setStartDate(startStr);
+    setEndDate(endStr);
+    setSelectedDate('');
+    setShowCalendar(false);
+    setLastLoadedDate(endStr);
+  };
+
+  const selectQuarterPeriod = () => {
+    const todayDate = new Date();
+    const quarterStart = new Date(todayDate);
+    quarterStart.setDate(todayDate.getDate() - 90);
+    const startStr = formatDate(quarterStart);
+    const endStr = formatDate(todayDate);
+    setStartDate(startStr);
+    setEndDate(endStr);
+    setSelectedDate('');
+    setShowCalendar(false);
+    setLastLoadedDate(endStr);
+  };
+
+  // Сброс выбора дат и возврат к сегодняшнему дню
+  const clearDates = () => {
+    setSelectedDate('');
+    setStartDate('');
+    setEndDate('');
+    setFormData((prev: typeof formData) => ({ ...prev, exception_date: '', start_date: '', end_date: '' }));
+    setIsDateRange(false);
+    setLastLoadedDate(today);
+  };
 
   const fetchExceptions = async () => {
     try {
@@ -509,8 +554,8 @@ export default function ExceptionsPage() {
               
               {/* Календарь */}
               {showCalendar && (
-                <div className="absolute top-full mt-2 z-[9999] bg-white border border-gray-200 rounded-lg shadow-xl p-4" style={{minWidth: '280px', right: 0}}>
-                  {/* Заголовок календаря */}
+                <div className="absolute top-full mt-2 z-[9999] bg-white border border-gray-200 rounded-lg shadow-xl p-4" style={{minWidth: '320px', right: 0}}>
+                  {/* Заголовок календаря и быстрые кнопки */}
                   <div className="flex items-center justify-between mb-4">
                     <button
                       type="button"
@@ -530,52 +575,53 @@ export default function ExceptionsPage() {
                       <ChevronDown className="h-4 w-4 rotate-90" />
                     </button>
                   </div>
-                  
+                  <div className="flex gap-2 mb-2">
+                    <button type="button" onClick={selectWeekPeriod} className="px-2 py-1 text-xs bg-gray-100 rounded hover:bg-blue-100">Неделя</button>
+                    <button type="button" onClick={selectMonthPeriod} className="px-2 py-1 text-xs bg-gray-100 rounded hover:bg-blue-100">Месяц</button>
+                    <button type="button" onClick={selectQuarterPeriod} className="px-2 py-1 text-xs bg-gray-100 rounded hover:bg-blue-100">Квартал</button>
+                    <button type="button" onClick={clearDates} className="px-2 py-1 text-xs bg-gray-100 rounded hover:bg-red-100 text-red-600">Сегодня</button>
+                  </div>
                   {/* Дни недели */}
                   <div className="grid grid-cols-7 gap-1 mb-2">
                     {['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'].map(day => (
-                      <div key={day} className="text-xs text-center text-gray-500 font-medium py-1">
-                        {day}
-                      </div>
+                      <div key={day} className="text-xs text-center text-gray-500 font-medium py-1">{day}</div>
                     ))}
                   </div>
-                  
                   {/* Дни */}
                   <div className="grid grid-cols-7 gap-1">
                     {generateCalendar().map((date, index) => {
-                      const dateStr = formatDate(date)
-                      const isCurrentMonth = date.getMonth() === currentMonth.getMonth()
-                      const isToday = dateStr === today
-                      const isSelected = dateStr === selectedDate
-                      const isInRange = startDate && endDate && dateStr >= startDate && dateStr <= endDate
-                      const isStartDate = dateStr === startDate
-                      const isEndDate = dateStr === endDate
-                      
+                      const dateStr = formatDate(date);
+                      const isCurrentMonth = date.getMonth() === currentMonth.getMonth();
+                      const isToday = dateStr === today;
+                      const isSelected = dateStr === selectedDate;
+                      const isInRange = startDate && endDate && dateStr >= startDate && dateStr <= endDate;
+                      const isStartDate = dateStr === startDate;
+                      const isEndDate = dateStr === endDate;
+                      const isLastLoaded = dateStr === lastLoadedDate;
                       return (
                         <button
                           key={index}
                           type="button"
                           onClick={() => handleDateClick(dateStr)}
-                          className={`
-                            w-8 h-8 text-xs rounded-full flex items-center justify-center
+                          className={`w-8 h-8 text-xs rounded-full flex items-center justify-center
                             ${!isCurrentMonth ? 'text-gray-300' : ''}
                             ${isToday ? 'bg-blue-100 text-blue-600 font-bold' : ''}
                             ${isSelected ? 'bg-blue-600 text-white' : ''}
                             ${isStartDate || isEndDate ? 'bg-green-600 text-white' : ''}
                             ${isInRange && !isStartDate && !isEndDate ? 'bg-green-100 text-green-800' : ''}
-                            ${!isSelected && !isInRange && !isToday && isCurrentMonth ? 'hover:bg-gray-100' : ''}
-                          `}
+                            ${isLastLoaded ? 'ring-2 ring-blue-500' : ''}
+                            ${!isSelected && !isInRange && !isToday && isCurrentMonth ? 'hover:bg-gray-100' : ''}`}
                         >
                           {date.getDate()}
                         </button>
-                      )
+                      );
                     })}
                   </div>
-                  
                   <div className="mt-3 pt-3 border-t text-xs text-gray-500">
-                    <p>• Один клик = одна дата</p>
+                    <p>• Один клик = выделение даты</p>
                     <p>• Два клика = диапазон дат</p>
-                    <p>• Диапазон создаст исключения на все дни</p>
+                    <p>• Быстрые кнопки: неделя, месяц, квартал, сегодня</p>
+                    <p>• Синяя рамка — последняя загруженная дата</p>
                   </div>
                 </div>
               )}
