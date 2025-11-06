@@ -73,16 +73,15 @@ export default function ExceptionsPage() {
   const [endDate, setEndDate] = useState<string>('');
   
   // Получаем сегодняшнюю дату для ограничения выбора
-  const today = formatDate(new Date());
-
-  const [formData, setFormData] = useState<ExceptionFormData>({
-    employee_id: '',
-    exception_date: '',
-    start_date: '',
-    end_date: '',
-    reason: '',
-    exception_type: 'no_lateness_check'
-  });
+  const today = formatDate(new Date())
+  
+  const [formData, setFormData] = useState<{
+    employee_id: string;
+    exception_date: string;
+    start_date: string;
+    end_date: string;
+    reason: string;
+    // ...existing code...
 
     if (hasSelectedDate && !hasRange) {
       if (dateStr === selectedDate) {
