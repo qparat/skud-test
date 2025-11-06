@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { User as UserIcon, UserPlus, Edit3, Trash2, Shield, Mail, Calendar } from 'lucide-react'
 import { apiRequest } from '@/lib/api'
 import { useAuth } from '@/components/AuthProvider'
@@ -30,6 +30,8 @@ export default function UsersPage() {
   const [error, setError] = useState('')
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [editingUser, setEditingUser] = useState<UserData | null>(null)
+  const [changingPasswordUser, setChangingPasswordUser] = useState<UserData | null>(null)
+  const [newPassword, setNewPassword] = useState('')
   const [createForm, setCreateForm] = useState<CreateUserForm>({
     username: '',
     password: '',
@@ -158,6 +160,37 @@ export default function UsersPage() {
 
   const canDeleteUser = () => {
     return currentUser?.role === 0 // Только root может удалять
+  }
+
+  const canChangePassword = (targetUser: UserData) => {
+    if (!currentUser) return false
+    // Root может менять пароли всех пользователей
+    if (currentUser.role === 0) return true
+    // Super-admin может менять пароли только обычных пользователей
+    if (currentUser.role === 2 && targetUser.role > 2) return true
+    return false
+  }
+
+  const handlePasswordChange = async (userId: number) => {
+    if (!newPassword) {
+      setError('Пароль не может быть пустым')
+      return
+    }
+    
+    try {
+      setLoading(true)
+      await apiRequest(`/users/${userId}/change-password`, {
+        method: 'POST',
+        body: JSON.stringify({ password: newPassword })
+      })
+      
+      setChangingPasswordUser(null)
+      setNewPassword('')
+    } catch (err: any) {
+      setError(err.message || 'Ошибка смены пароля')
+    } finally {
+      setLoading(false)
+    }
   }
 
   if (loading && users.length === 0) {
@@ -297,6 +330,46 @@ export default function UsersPage() {
         </div>
       )}
 
+      {/* Модальное окно смены пароля */}
+      {changingPasswordUser && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <h3 className="text-xl font-semibold mb-4">
+              Смена пароля для {changingPasswordUser.username}
+            </h3>
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Новый пароль
+              </label>
+              <input
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div className="flex justify-end space-x-2">
+              <button
+                onClick={() => handlePasswordChange(changingPasswordUser.id)}
+                disabled={loading || !newPassword}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+              >
+                {loading ? 'Сохранение...' : 'Сохранить'}
+              </button>
+              <button
+                onClick={() => {
+                  setChangingPasswordUser(null)
+                  setNewPassword('')
+                }}
+                className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400"
+              >
+                Отмена
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Список пользователей */}
       <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-200">
@@ -407,10 +480,20 @@ export default function UsersPage() {
                         </>
                       ) : (
                         <>
+                          {canChangePassword(user) && (
+                            <button
+                              onClick={() => setChangingPasswordUser(user)}
+                              className="text-yellow-600 hover:text-yellow-800"
+                              title="Изменить пароль"
+                            >
+                              <Shield className="w-4 h-4" />
+                            </button>
+                          )}
                           {canEditRole(user.role) && (
                             <button
                               onClick={() => setEditingUser(user)}
                               className="text-blue-600 hover:text-blue-800"
+                              title="Редактировать"
                             >
                               <Edit3 className="w-4 h-4" />
                             </button>
@@ -419,6 +502,7 @@ export default function UsersPage() {
                             <button
                               onClick={() => handleDeleteUser(user.id)}
                               className="text-red-600 hover:text-red-800"
+                              title="Удалить"
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
