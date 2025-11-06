@@ -88,6 +88,7 @@ export function EmployeeSchedule() {
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(50)
   const [totalPages, setTotalPages] = useState(1)
+  const [currentViewDate, setCurrentViewDate] = useState('') // Для отслеживания текущей просматриваемой даты
   
   // Получаем сегодняшнюю дату для ограничения выбора (без проблем с временной зоной)
   const today = formatDate(new Date())
@@ -109,6 +110,8 @@ export function EmployeeSchedule() {
       } else {
         endpoint = `${endpoint}?${pageParams}`
       }
+      
+      console.log('Fetching schedule:', { endpoint, currentPage, itemsPerPage, date, start, end })
         
       const data = await apiRequest(endpoint)
       console.log('scheduleData:', data)
@@ -138,6 +141,7 @@ export function EmployeeSchedule() {
   useEffect(() => {
     if (!initialized) {
       // Загружаем данные за сегодняшний день, но НЕ устанавливаем выбранную дату в календаре
+      setCurrentViewDate(today)
       fetchSchedule(today)
       setInitialized(true)
     }
@@ -166,11 +170,12 @@ export function EmployeeSchedule() {
       if (startDate && endDate) {
         // Загружаем данные для диапазона дат
         fetchSchedule(undefined, startDate, endDate)
+      } else if (currentViewDate) {
+        // Загружаем данные для одной даты при изменении страницы
+        fetchSchedule(currentViewDate)
       }
-      // НЕ загружаем данные автоматически при выборе одной даты
-      // Данные загрузятся только при повторном клике по той же дате
     }
-  }, [startDate, endDate, currentPage, initialized]) // Добавляем currentPage в зависимости
+  }, [startDate, endDate, currentPage, initialized, currentViewDate]) // Добавляем currentViewDate в зависимости
 
   const handleEmployeeClick = (employeeId: number) => {
     router.push(`/employees/${employeeId}`)
@@ -257,6 +262,7 @@ export function EmployeeSchedule() {
     } else if (hasSelectedDate && !hasRange) {
       if (dateStr === selectedDate) {
         // Клик по той же уже выбранной дате - загружаем данные для этой даты
+        setCurrentViewDate(selectedDate)
         fetchSchedule(selectedDate)
         setLastLoadedDate(selectedDate) // Сохраняем для визуального выделения
         setSelectedDate('') // Очищаем выбранную дату после загрузки
@@ -270,6 +276,7 @@ export function EmployeeSchedule() {
         setStartDate(start)
         setEndDate(end)
         setSelectedDate('')
+        setCurrentViewDate('') // Очищаем при выборе диапазона
         setLastLoadedDate(dateStr) // Выделяем последнюю выбранную дату
         setShowCalendar(false) // Закрываем календарь после создания диапазона
         // Данные загрузятся автоматически через useEffect
@@ -294,6 +301,7 @@ export function EmployeeSchedule() {
     // Возвращаемся к сегодняшнему дню
     setSelectedDepartment([])
     setCurrentPage(1) // Reset page when clearing dates
+    setCurrentViewDate(today)
     fetchSchedule(today)
   }
 
