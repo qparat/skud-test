@@ -12,29 +12,19 @@ const formatDate = (date: Date) => {
   return `${year}-${month}-${day}`
 }
 
-
 interface Employee {
-  id: number;
-  full_name: string;
+  id: number
+  full_name: string
 }
 
 interface Exception {
-  id: number;
-  employee_id: number;
-  full_name: string; // добавлено для совместимости с backend
-  exception_date: string;
-  reason: string;
-  exception_type: string;
-  created_at?: string;
-}
-
-interface ExceptionFormData {
-  employee_id: string;
-  exception_date: string;
-  start_date: string;
-  end_date: string;
-  reason: string;
-  exception_type: string;
+  id: number
+  employee_id: number
+  full_name: string // добавлено для совместимости с backend
+  exception_date: string
+  reason: string
+  exception_type: string
+  created_at?: string
 }
 
 export default function ExceptionsPage() {
@@ -81,7 +71,70 @@ export default function ExceptionsPage() {
     start_date: string;
     end_date: string;
     reason: string;
-    // ...existing code...
+    exception_type: string;
+  }>({
+    employee_id: '',
+    exception_date: '',
+    start_date: '',
+    end_date: '',
+    reason: '',
+    exception_type: 'no_lateness_check'
+  });
+
+  useEffect(() => {
+    fetchExceptions()
+    fetchEmployees()
+  }, [])
+
+  // Закрытие календаря и выпадающего списка сотрудников при клике вне их
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element
+      if (showCalendar && !target.closest('.calendar-container')) {
+        setShowCalendar(false)
+      }
+      if (showEmployeeDropdown && !target.closest('.employee-search-container')) {
+        setShowEmployeeDropdown(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [showCalendar, showEmployeeDropdown])
+
+  // Функции для поиска сотрудника
+  const getFilteredEmployees = () => {
+    if (!employeeSearch.trim()) {
+      return employees
+    }
+    return employees.filter((employee: Employee) =>
+      employee.full_name.toLowerCase().includes(employeeSearch.toLowerCase())
+    )
+  }
+
+  const handleEmployeeSelect = (employee: Employee) => {
+  setSelectedEmployeeId(employee.id)
+  setEmployeeSearch(employee.full_name)
+  setShowEmployeeDropdown(false)
+  setFormData((prev: typeof formData) => ({ ...prev, employee_id: employee.id.toString() }))
+  }
+
+  // Обработка клика по дате в календаре
+  const handleDateClick = (dateStr: string) => {
+    // Новый алгоритм: первый клик — выделение, второй по той же — выбор дня, второй по другой — диапазон
+    const hasSelectedDate = selectedDate !== '';
+    const hasRange = startDate !== '' && endDate !== '';
+
+    if (!hasSelectedDate && !hasRange) {
+      // Первый клик — просто выделяем дату, не выбираем
+  setSelectedDate(dateStr);
+  setStartDate('');
+  setEndDate('');
+  setFormData((prev: typeof formData) => ({ ...prev, exception_date: '', start_date: '', end_date: '' }));
+  setIsDateRange(false);
+      // НЕ закрываем календарь, чтобы можно было кликнуть второй раз
+      return;
+    }
 
     if (hasSelectedDate && !hasRange) {
       if (dateStr === selectedDate) {
@@ -98,7 +151,14 @@ export default function ExceptionsPage() {
       // Получаем сегодняшнюю дату для ограничения выбора
       const today = formatDate(new Date())
 
-      const [formData, setFormData] = useState<ExceptionFormData>({
+      const [formData, setFormData] = useState<{
+        employee_id: string;
+        exception_date: string;
+        start_date: string;
+        end_date: string;
+        reason: string;
+        exception_type: string;
+      }>({
         employee_id: '',
         exception_date: '',
         start_date: '',
@@ -266,51 +326,65 @@ export default function ExceptionsPage() {
     setShowEmployeeDropdown(false)
     setSelectedEmployeeId(null)
     
-    // Обработка клика по дате в календаре
-    const handleDateClick = (dateStr: string) => {
-      const hasSelectedDate = selectedDate !== '';
-      const hasRange = startDate !== '' && endDate !== '';
+    // Сбрасываем состояния календаря
+    setSelectedDate('')
+    setStartDate('')
+    setEndDate('')
+    setShowCalendar(false)
+  }
 
-      if (!hasSelectedDate && !hasRange) {
-        // Первый клик — просто выделяем дату, не выбираем
-        setSelectedDate(dateStr);
-        setStartDate('');
-        setEndDate('');
-        setFormData((prev) => ({ ...prev, exception_date: '', start_date: '', end_date: '' }));
-        setIsDateRange(false);
-        // НЕ закрываем календарь, чтобы можно было кликнуть второй раз
-        return;
-      }
+  // Фильтрация исключений
+  // ...existing code...
 
-      if (hasSelectedDate && !hasRange) {
-        if (dateStr === selectedDate) {
-          // Второй клик по той же дате — выбираем один день
-          setFormData((prev) => ({ ...prev, exception_date: dateStr, start_date: '', end_date: '' }));
-          setIsDateRange(false);
-          setShowCalendar(false);
-          setSelectedDate('');
-          setStartDate('');
-          setEndDate('');
-          return;
-        } else {
-          // Второй клик по другой дате — диапазон
-          setStartDate(selectedDate);
-          setEndDate(dateStr);
-          setFormData((prev) => ({ ...prev, exception_date: '', start_date: selectedDate, end_date: dateStr }));
-          setIsDateRange(true);
-          setShowCalendar(false);
-          setSelectedDate('');
-          return;
-        }
-      }
+  // Сброс страницы при изменении фильтра
+  useEffect(() => {
+    setPage(1);
+  }, [searchName, searchReason, searchDate, exceptions]);
 
-      // Если уже выбран диапазон, сбрасываем
-      setSelectedDate('');
-      setStartDate('');
-      setEndDate('');
-      setFormData((prev) => ({ ...prev, exception_date: '', start_date: '', end_date: '' }));
-      setIsDateRange(false);
-    };
+  if (loading) {
+    return (
+      <div className="p-8">
+        <div className="text-center">Загрузка...</div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">
+          Исключения для сотрудников
+        </h1>
+        <p className="text-gray-600">
+          Управление исключениями по датам (отсутствие проверки опозданий)
+        </p>
+      </div>
+
+      <div className="mb-6 flex flex-col md:flex-row md:items-center md:gap-4 gap-2">
+        <button
+          onClick={() => setShowAddForm(true)}
+          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2"
+        >
+          <Plus className="h-4 w-4" />
+          Добавить исключение
+        </button>
+        <input
+          type="text"
+          value={searchName}
+          onChange={(e: ChangeEvent<HTMLInputElement>) => setSearchName(e.target.value)}
+          placeholder="Поиск по ФИО"
+          className="w-full md:w-56 px-3 py-2 border border-gray-300 rounded-md text-sm"
+        />
+        <input
+          type="text"
+          value={searchReason}
+          onChange={(e: ChangeEvent<HTMLInputElement>) => setSearchReason(e.target.value)}
+          placeholder="Поиск по причине"
+          className="w-full md:w-56 px-3 py-2 border border-gray-300 rounded-md text-sm"
+        />
+        <div className="relative">
+          <button
+            type="button"
             onClick={() => setShowDateCalendar(!showDateCalendar)}
             className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md bg-white text-sm text-gray-700 hover:bg-gray-50"
           >
