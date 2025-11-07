@@ -28,6 +28,7 @@ export default function ManageEmployeePositionsPage() {
   const [editingEmployee, setEditingEmployee] = useState<number | null>(null);
   const [selectedPositionId, setSelectedPositionId] = useState<number | null>(null);
   const [updating, setUpdating] = useState(false);
+  const [showPositionDropdown, setShowPositionDropdown] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -45,6 +46,20 @@ export default function ManageEmployeePositionsPage() {
       setFilteredEmployees(employees);
     }
   }, [employees, searchTerm]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest('.position-search-container')) {
+        setShowPositionDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   const fetchData = async () => {
     try {
@@ -107,12 +122,14 @@ export default function ManageEmployeePositionsPage() {
     setEditingEmployee(employee.employee_id);
     setSelectedPositionId(employee.position_id || null);
     setPositionSearch('');
+    setShowPositionDropdown(false);
   };
 
   const cancelEditing = () => {
     setEditingEmployee(null);
     setSelectedPositionId(null);
     setPositionSearch('');
+    setShowPositionDropdown(false);
   };
 
   const filteredPositions = positionSearch.trim()
@@ -185,26 +202,36 @@ export default function ManageEmployeePositionsPage() {
                   <td className="py-3 px-4 font-medium">{employee.full_name}</td>
                   <td className="py-3 px-4">
                     {editingEmployee === employee.employee_id ? (
-                      <div>
+                      <div className="position-search-container relative">
                         <input
                           type="text"
                           placeholder="Поиск по должности..."
                           value={positionSearch}
-                          onChange={e => setPositionSearch(e.target.value)}
-                          className="mb-2 w-full border border-gray-300 rounded px-2 py-1"
-                        />
-                        <select
-                          value={selectedPositionId || ''}
-                          onChange={(e) => setSelectedPositionId(e.target.value ? parseInt(e.target.value) : null)}
+                          onChange={(e) => {
+                            setPositionSearch(e.target.value);
+                            setShowPositionDropdown(true);
+                            setSelectedPositionId(null);
+                          }}
+                          onFocus={() => setShowPositionDropdown(true)}
                           className="w-full border border-gray-300 rounded px-2 py-1"
-                        >
-                          <option value="">Выберите должность</option>
-                          {filteredPositions.map((position) => (
-                            <option key={position.id} value={position.id}>
-                              {position.name}
-                            </option>
-                          ))}
-                        </select>
+                        />
+                        {showPositionDropdown && filteredPositions.length > 0 && (
+                          <div className="absolute z-10 w-full bg-white border border-gray-300 rounded-md mt-1 max-h-48 overflow-y-auto shadow-lg">
+                            {filteredPositions.map((position) => (
+                              <div
+                                key={position.id}
+                                onClick={() => {
+                                  setSelectedPositionId(position.id);
+                                  setPositionSearch(position.name);
+                                  setShowPositionDropdown(false);
+                                }}
+                                className="px-3 py-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0"
+                              >
+                                {position.name}
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     ) : (
                       <span className="text-blue-600">{employee.position}</span>
