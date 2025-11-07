@@ -1430,11 +1430,17 @@ async def get_employees_simple():
         results = execute_query(
             conn,
             """
-            SELECT id, full_name
-            FROM employees
-            WHERE is_active = %s
-            AND full_name NOT IN ('Охрана М.', '1 пост о.', '2 пост о.', 'Крыша К.', 'Водитель 1 В.', 'Водитель 2 В.', 'Дежурный в.', 'Дежурный В.')
-            ORDER BY full_name
+            SELECT 
+                e.id, 
+                e.full_name,
+                COALESCE(p.name, 'Не указано') as position,
+                COALESCE(d.name, 'Не указано') as department
+            FROM employees e
+            LEFT JOIN positions p ON e.position_id = p.id
+            LEFT JOIN departments d ON e.department_id = d.id
+            WHERE e.is_active = %s
+            AND e.full_name NOT IN ('Охрана М.', '1 пост о.', '2 пост о.', 'Крыша К.', 'Водитель 1 В.', 'Водитель 2 В.', 'Дежурный в.', 'Дежурный В.')
+            ORDER BY e.full_name
             """,
             (True,),
             fetch_all=True
@@ -1442,13 +1448,17 @@ async def get_employees_simple():
         
         conn.close()
         
-        return [
-            {
-                'id': row['id'],
-                'full_name': row['full_name']
-            }
-            for row in results
-        ]
+        return {
+            'employees': [
+                {
+                    'id': row['id'],
+                    'full_name': row['full_name'],
+                    'position': row['position'],
+                    'department': row['department']
+                }
+                for row in results
+            ]
+        }
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка получения списка сотрудников: {str(e)}")
