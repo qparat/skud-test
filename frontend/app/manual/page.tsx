@@ -99,20 +99,20 @@ export default function ManualPage() {
             </div>
             
             <div className="bg-gray-50 p-6 rounded-lg mb-4">
-              <h3 className="text-lg font-semibold mb-3">Сводный отчет</h3>
+              <h3 className="text-lg font-semibold mb-3">•</h3>
               <ul className="space-y-2 text-gray-700">
-                <li>• Выберите период для формирования отчета</li>
-                <li>• Просмотрите статистику по всем сотрудникам</li>
-                <li>• Экспортируйте данные в Excel для дальнейшего анализа</li>
+                <li>• </li>
+                <li>• </li>
+                <li>• </li>
               </ul>
             </div>
 
             <div className="bg-gray-50 p-6 rounded-lg">
-              <h3 className="text-lg font-semibold mb-3">Отчет по сотруднику</h3>
+              <h3 className="text-lg font-semibold mb-3">•</h3>
               <ul className="space-y-2 text-gray-700">
-                <li>• Выберите конкретного сотрудника</li>
-                <li>• Укажите период анализа</li>
-                <li>• Получите детальную статистику посещений</li>
+                <li>• </li>
+                <li>• </li>
+                <li>• </li>
               </ul>
             </div>
           </section>
@@ -129,7 +129,6 @@ export default function ManualPage() {
               <ul className="space-y-2 text-gray-700">
                 <li>• Перейдите в раздел "Службы"</li>
                 <li>• Отображается список всех служб/отделов организации</li>
-                <li>• Для каждой службы показано количество сотрудников</li>
               </ul>
             </div>
 
@@ -150,6 +149,14 @@ export default function ManualPage() {
                 <li>• <strong>Внимание:</strong> Удаление службы возможно только если в ней нет сотрудников</li>
               </ul>
             </div>
+            <div className="bg-gray-50 p-6 rounded-lg">
+              <h3 className="text-lg font-semibold mb-3">Добавление сотрудников и должностей в службы</h3>
+              <ul className="space-y-2 text-gray-700">
+                <li>• Нажмите на службу для редактирования</li>
+                <li>• Выберите сотрудников из списка</li>
+                <li>• Нажмите "Добавить" для подтверждения</li>
+              </ul>
+            </div>
           </section>
 
           {/* Раздел 5 */}
@@ -165,6 +172,7 @@ export default function ManualPage() {
                 <li>• Перейдите в раздел "Должности"</li>
                 <li>• Просмотрите список всех должностей</li>
                 <li>• Создавайте новые должности для организации</li>
+                <li>• Изменяйте созданные должности для организации</li>
               </ul>
             </div>
 
@@ -203,28 +211,7 @@ export default function ManualPage() {
                 <li>• Для диапазона дат используйте "Диапазон дат"</li>
               </ul>
             </div>
-
-            <div className="bg-gray-50 p-6 rounded-lg mb-4">
-              <h3 className="text-lg font-semibold mb-3">Типы исключений</h3>
-              <ul className="space-y-2 text-gray-700">
-                <li>• <strong>Без проверки опозданий</strong> - игнорировать опоздания</li>
-                <li>• <strong>Больничный</strong> - отсутствие по болезни</li>
-                <li>• <strong>Отпуск</strong> - плановое отсутствие</li>
-                <li>• <strong>Командировка</strong> - служебная поездка</li>
-              </ul>
-            </div>
-
-            <div className="bg-gray-50 p-6 rounded-lg">
-              <h3 className="text-lg font-semibold mb-3">Управление исключениями</h3>
-              <ul className="space-y-2 text-gray-700">
-                <li>• Просмотрите список всех активных исключений</li>
-                <li>• Отредактируйте причину или дату исключения</li>
-                <li>• Удалите исключение при необходимости</li>
-                <li>• Фильтруйте исключения по сотруднику или дате</li>
-              </ul>
-            </div>
           </section>
-            
         </div>
       </div>
     </div>
