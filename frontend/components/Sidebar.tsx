@@ -52,16 +52,16 @@ export function Sidebar() {
         {/* Кнопка сворачивания */}
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className={`absolute bg-white border border-gray-300 rounded-full p-1 hover:bg-gray-50 z-10 shadow-sm transition-opacity ${
+          className={`absolute bg-white border border-gray-300 rounded-full p-2 hover:bg-gray-50 z-10 shadow-sm transition-opacity ${
             isCollapsed ? 'opacity-0 group-hover:opacity-100' : 'opacity-100'
           }`}
           style={{ right: '0.5rem', top: '1.5rem' }}
           title={isCollapsed ? 'Развернуть' : 'Свернуть'}
         >
           {isCollapsed ? (
-            <ChevronRight className="h-4 w-4 text-gray-600" />
+            <ChevronRight className="h-5 w-5 text-gray-600" />
           ) : (
-            <ChevronLeft className="h-4 w-4 text-gray-600" />
+            <ChevronLeft className="h-5 w-5 text-gray-600" />
           )}
         </button>
 
