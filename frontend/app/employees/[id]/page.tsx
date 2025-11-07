@@ -422,7 +422,7 @@ export default function EmployeePage({ params }: EmployeePageProps) {
                       statusBadge = (
                         <div className="flex items-center space-x-2">
                           {record.exception_info && (
-                            <div className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-purple-100 text-purple-800" title={record.exception_info.reason}>
+                            <div className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800" title={record.exception_info.reason}>
                               {record.exception_info.reason.length > 20 
                                 ? `🛡️ ${record.exception_info.reason.substring(0, 20)}...`
                                 : `🛡️ ${record.exception_info.reason}`
