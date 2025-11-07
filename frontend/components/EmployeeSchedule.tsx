@@ -155,8 +155,8 @@ export function EmployeeSchedule() {
       if (showCalendar && !target.closest('.calendar-container')) {
         setShowCalendar(false);
       }
-      // Для фильтра
-      if (showFilter && filterRef.current && !filterRef.current.contains(target)) {
+      // Для фильтра - проверяем, что клик не внутри filter-container (включая кнопку)
+      if (showFilter && !target.closest('.filter-container')) {
         setShowFilter(false);
       }
     };
@@ -815,7 +815,7 @@ export function EmployeeSchedule() {
                 />
               </div>
               {/* Кнопка фильтра и выпадающий список отделов */}
-              <div className="">
+              <div className="filter-container">
                 <button
                   onClick={() => setShowFilter(!showFilter)}
                   className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
