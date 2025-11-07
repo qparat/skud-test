@@ -55,7 +55,7 @@ export function Sidebar() {
           className={`absolute bg-white border border-gray-300 rounded-full p-2 hover:bg-gray-50 z-10 shadow-sm transition-opacity ${
             isCollapsed ? 'opacity-0 group-hover:opacity-100' : 'opacity-100'
           }`}
-          style={{ right: '0.5rem', top: '1.5rem' }}
+          style={{ right: '0.7rem', top: '1rem' }}
           title={isCollapsed ? 'Развернуть' : 'Свернуть'}
         >
           {isCollapsed ? (
