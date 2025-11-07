@@ -9,11 +9,18 @@ interface SvodEmployee {
   department: string
   comment: string
   exception_type: string | null
-  in_svod: boolean
+}
+
+interface AllEmployee {
+  id: number
+  full_name: string
+  position: string
+  department: string
 }
 
 export default function SvodReportPage() {
-  const [employees, setEmployees] = useState<SvodEmployee[]>([])
+  const [svodEmployees, setSvodEmployees] = useState<SvodEmployee[]>([])
+  const [allEmployees, setAllEmployees] = useState<AllEmployee[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [selectedDate, setSelectedDate] = useState(() => {
@@ -21,9 +28,11 @@ export default function SvodReportPage() {
     return d.toISOString().slice(0, 10)
   })
   const [searchQuery, setSearchQuery] = useState('')
+  const [modalSearchQuery, setModalSearchQuery] = useState('')
+  const [showModal, setShowModal] = useState(false)
   const [actionLoading, setActionLoading] = useState<number | null>(null)
 
-  // Загрузка сводной таблицы
+  // Загрузка сводной таблицы (только те кто в своде)
   useEffect(() => {
     loadSvodReport()
   }, [selectedDate])
@@ -33,13 +42,32 @@ export default function SvodReportPage() {
     setError(null)
     try {
       const data = await apiRequest(`svod-report?date=${selectedDate}`)
-      setEmployees(data.employees || [])
+      // Показываем только тех, кто в своде
+      const inSvod = data.employees?.filter((emp: any) => emp.in_svod) || []
+      setSvodEmployees(inSvod)
     } catch (err) {
       setError('Ошибка загрузки данных')
       console.error(err)
     } finally {
       setLoading(false)
     }
+  }
+
+  // Загрузка всех сотрудников для модального окна
+  const loadAllEmployees = async () => {
+    try {
+      const data = await apiRequest('employees/simple')
+      setAllEmployees(data.employees || [])
+    } catch (err) {
+      console.error('Ошибка загрузки списка сотрудников:', err)
+    }
+  }
+
+  // Открыть модальное окно
+  const openModal = () => {
+    setShowModal(true)
+    loadAllEmployees()
+    setModalSearchQuery('')
   }
 
   // Добавить сотрудника в свод
@@ -54,6 +82,7 @@ export default function SvodReportPage() {
         })
       })
       await loadSvodReport()
+      setShowModal(false)
     } catch (err) {
       console.error('Ошибка добавления в свод:', err)
       alert('Ошибка добавления в свод')
@@ -83,19 +112,32 @@ export default function SvodReportPage() {
     setSelectedDate(e.target.value)
   }
 
-  // Фильтрация по поиску
-  const filteredEmployees = employees.filter(emp => 
+  // Фильтрация по поиску в основной таблице
+  const filteredSvodEmployees = svodEmployees.filter(emp => 
     emp.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     emp.position.toLowerCase().includes(searchQuery.toLowerCase()) ||
     emp.department.toLowerCase().includes(searchQuery.toLowerCase())
   )
+
+  // Фильтрация в модальном окне
+  const filteredModalEmployees = allEmployees.filter(emp => {
+    const matchesSearch = 
+      emp.full_name.toLowerCase().includes(modalSearchQuery.toLowerCase()) ||
+      emp.position.toLowerCase().includes(modalSearchQuery.toLowerCase()) ||
+      emp.department.toLowerCase().includes(modalSearchQuery.toLowerCase())
+    
+    // Не показываем тех, кто уже в своде
+    const alreadyInSvod = svodEmployees.some(se => se.id === emp.id)
+    
+    return matchesSearch && !alreadyInSvod
+  })
 
   // Экспорт в Excel
   const exportToExcel = async () => {
     try {
       const XLSX = await import('xlsx')
       
-      const excelData = filteredEmployees.map((emp, index) => ({
+      const excelData = filteredSvodEmployees.map((emp, index) => ({
         '№': index + 1,
         'Должность': emp.position,
         'ФИО': emp.full_name,
@@ -128,6 +170,12 @@ export default function SvodReportPage() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Свод ТРК</h1>
+        <button
+          onClick={openModal}
+          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          + Добавить сотрудника
+        </button>
       </div>
 
       <div className="bg-white rounded-lg shadow-sm border p-6">
@@ -155,7 +203,7 @@ export default function SvodReportPage() {
             </div>
           </div>
           
-          {employees.length > 0 && (
+          {svodEmployees.length > 0 && (
             <button
               onClick={exportToExcel}
               className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
@@ -169,13 +217,18 @@ export default function SvodReportPage() {
           <div className="p-6 text-center text-gray-600">Загрузка данных...</div>
         ) : error ? (
           <div className="p-6 text-center text-red-600">{error}</div>
+        ) : svodEmployees.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-gray-500 text-lg mb-2">Список свода пуст</p>
+            <p className="text-gray-400 text-sm">Нажмите "Добавить сотрудника" для начала работы</p>
+          </div>
         ) : (
           <div className="overflow-x-auto">
             <div className="mb-4 text-sm text-gray-600">
-              Всего сотрудников: <span className="font-semibold">{filteredEmployees.length}</span>
-              {filteredEmployees.filter(e => e.comment).length > 0 && (
+              Всего сотрудников: <span className="font-semibold">{filteredSvodEmployees.length}</span>
+              {filteredSvodEmployees.filter(e => e.comment).length > 0 && (
                 <span className="ml-4">
-                  С комментариями: <span className="font-semibold">{filteredEmployees.filter(e => e.comment).length}</span>
+                  С комментариями: <span className="font-semibold">{filteredSvodEmployees.filter(e => e.comment).length}</span>
                 </span>
               )}
             </div>
@@ -192,7 +245,7 @@ export default function SvodReportPage() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredEmployees.map((emp, idx) => (
+                {filteredSvodEmployees.map((emp, idx) => (
                   <tr key={emp.id} className={`hover:bg-gray-50 ${emp.comment ? 'bg-blue-50' : ''}`}>
                     <td className="px-4 py-3 text-sm text-gray-900">{idx + 1}</td>
                     <td className="px-4 py-3 text-sm text-gray-900">{emp.position}</td>
@@ -208,30 +261,20 @@ export default function SvodReportPage() {
                       )}
                     </td>
                     <td className="px-4 py-3 text-center">
-                      {emp.in_svod ? (
-                        <button
-                          onClick={() => removeFromSvod(emp.id)}
-                          disabled={actionLoading === emp.id}
-                          className="px-3 py-1 bg-red-500 text-white text-xs rounded hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          {actionLoading === emp.id ? 'Удаление...' : 'Убрать'}
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => addToSvod(emp.id)}
-                          disabled={actionLoading === emp.id}
-                          className="px-3 py-1 bg-green-500 text-white text-xs rounded hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          {actionLoading === emp.id ? 'Добавление...' : 'Добавить'}
-                        </button>
-                      )}
+                      <button
+                        onClick={() => removeFromSvod(emp.id)}
+                        disabled={actionLoading === emp.id}
+                        className="px-3 py-1 bg-red-500 text-white text-xs rounded hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {actionLoading === emp.id ? 'Удаление...' : 'Убрать'}
+                      </button>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
             
-            {filteredEmployees.length === 0 && employees.length > 0 && (
+            {filteredSvodEmployees.length === 0 && svodEmployees.length > 0 && (
               <div className="text-center py-12">
                 <p className="text-gray-500">По запросу "{searchQuery}" ничего не найдено</p>
               </div>
@@ -239,6 +282,93 @@ export default function SvodReportPage() {
           </div>
         )}
       </div>
+
+      {/* Модальное окно для добавления сотрудников */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowModal(false)}>
+          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+            {/* Заголовок */}
+            <div className="px-6 py-4 border-b flex items-center justify-between">
+              <h2 className="text-xl font-bold">Добавить сотрудника в свод</h2>
+              <button
+                onClick={() => setShowModal(false)}
+                className="text-gray-500 hover:text-gray-700 text-2xl leading-none"
+              >
+                ×
+              </button>
+            </div>
+
+            {/* Поиск */}
+            <div className="px-6 py-4 border-b">
+              <input
+                type="text"
+                value={modalSearchQuery}
+                onChange={(e) => setModalSearchQuery(e.target.value)}
+                placeholder="Поиск по ФИО, должности или службе..."
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                autoFocus
+              />
+            </div>
+
+            {/* Список сотрудников */}
+            <div className="flex-1 overflow-y-auto px-6 py-4">
+              {filteredModalEmployees.length === 0 ? (
+                <div className="text-center py-12">
+                  <p className="text-gray-500">
+                    {modalSearchQuery ? 'Нет результатов по запросу' : 'Все сотрудники уже добавлены в свод'}
+                  </p>
+                </div>
+              ) : (
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50 sticky top-0">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">№</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ФИО</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Должность</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Служба</th>
+                      <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Действие</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {filteredModalEmployees.map((emp, idx) => (
+                      <tr key={emp.id} className="hover:bg-gray-50">
+                        <td className="px-4 py-3 text-sm text-gray-900">{idx + 1}</td>
+                        <td className="px-4 py-3 text-sm font-medium text-gray-900">{emp.full_name}</td>
+                        <td className="px-4 py-3 text-sm text-gray-600">{emp.position}</td>
+                        <td className="px-4 py-3 text-sm text-gray-600">{emp.department}</td>
+                        <td className="px-4 py-3 text-center">
+                          <button
+                            onClick={() => addToSvod(emp.id)}
+                            disabled={actionLoading === emp.id}
+                            className="px-3 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {actionLoading === emp.id ? 'Добавление...' : 'Добавить'}
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+
+            {/* Подвал */}
+            <div className="px-6 py-4 border-t bg-gray-50">
+              <div className="flex justify-between items-center">
+                <p className="text-sm text-gray-600">
+                  Найдено сотрудников: <span className="font-semibold">{filteredModalEmployees.length}</span>
+                </p>
+                <button
+                  onClick={() => setShowModal(false)}
+                  className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400"
+                >
+                  Закрыть
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
