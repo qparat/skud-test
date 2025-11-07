@@ -260,7 +260,7 @@ export default function ExceptionsPage() {
   const fetchEmployees = async () => {
     try {
       const data = await apiRequest('employees/simple')
-      setEmployees(Array.isArray(data) ? data : [])
+      setEmployees(Array.isArray(data.employees) ? data.employees : (Array.isArray(data) ? data : []))
     } catch (error) {
       console.error('Ошибка при загрузке сотрудников:', error)
       setEmployees([]) // Устанавливаем пустой массив при ошибке
