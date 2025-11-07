@@ -272,6 +272,17 @@ export default function ExceptionsPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
+    // Валидация
+    if (!formData.employee_id) {
+      alert('Выберите сотрудника')
+      return
+    }
+    
+    if (!formData.exception_date && !formData.start_date && !formData.end_date) {
+      alert('Выберите дату или диапазон дат')
+      return
+    }
+    
     try {
       if (editingException) {
         await apiRequest(`employee-exceptions/${editingException.id}`, {
@@ -294,6 +305,8 @@ export default function ExceptionsPage() {
           reason: formData.reason,
           exception_type: formData.exception_type
         }
+
+        console.log('Отправка данных:', payload) // Для отладки
 
         const endpoint = isDateRange ? 'employee-exceptions/range' : 'employee-exceptions'
         await apiRequest(endpoint, {
