@@ -9,6 +9,7 @@ interface SvodEmployee {
   department: string
   comment: string
   exception_type: string | null
+  in_svod: boolean
 }
 
 export default function SvodReportPage() {
@@ -20,6 +21,7 @@ export default function SvodReportPage() {
     return d.toISOString().slice(0, 10)
   })
   const [searchQuery, setSearchQuery] = useState('')
+  const [actionLoading, setActionLoading] = useState<number | null>(null)
 
   // Загрузка сводной таблицы
   useEffect(() => {
@@ -37,6 +39,42 @@ export default function SvodReportPage() {
       console.error(err)
     } finally {
       setLoading(false)
+    }
+  }
+
+  // Добавить сотрудника в свод
+  const addToSvod = async (employeeId: number) => {
+    setActionLoading(employeeId)
+    try {
+      await apiRequest('svod-report/add-employee', {
+        method: 'POST',
+        body: JSON.stringify({
+          employee_id: employeeId,
+          report_date: selectedDate
+        })
+      })
+      await loadSvodReport()
+    } catch (err) {
+      console.error('Ошибка добавления в свод:', err)
+      alert('Ошибка добавления в свод')
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
+  // Убрать сотрудника из свода
+  const removeFromSvod = async (employeeId: number) => {
+    setActionLoading(employeeId)
+    try {
+      await apiRequest(`svod-report/remove-employee?employee_id=${employeeId}&report_date=${selectedDate}`, {
+        method: 'DELETE'
+      })
+      await loadSvodReport()
+    } catch (err) {
+      console.error('Ошибка удаления из свода:', err)
+      alert('Ошибка удаления из свода')
+    } finally {
+      setActionLoading(null)
     }
   }
 
@@ -150,6 +188,7 @@ export default function SvodReportPage() {
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ФИО</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Служба</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Комментарий</th>
+                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Действия</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -166,6 +205,25 @@ export default function SvodReportPage() {
                         </span>
                       ) : (
                         <span className="text-gray-400">-</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      {emp.in_svod ? (
+                        <button
+                          onClick={() => removeFromSvod(emp.id)}
+                          disabled={actionLoading === emp.id}
+                          className="px-3 py-1 bg-red-500 text-white text-xs rounded hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {actionLoading === emp.id ? 'Удаление...' : 'Убрать'}
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => addToSvod(emp.id)}
+                          disabled={actionLoading === emp.id}
+                          className="px-3 py-1 bg-green-500 text-white text-xs rounded hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {actionLoading === emp.id ? 'Добавление...' : 'Добавить'}
+                        </button>
                       )}
                     </td>
                   </tr>

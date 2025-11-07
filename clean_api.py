@@ -461,6 +461,25 @@ def create_department_positions_table():
     except Exception as e:
         print(f"Ошибка создания таблицы department_positions: {e}")
 
+def create_svod_report_employees_table():
+    """Создание таблицы для хранения списка сотрудников в своде ТРК"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS svod_report_employees (
+                id SERIAL PRIMARY KEY,
+                employee_id INTEGER NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
+                report_date DATE NOT NULL,
+                added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(employee_id, report_date)
+            )
+        """)
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print(f"Ошибка создания таблицы svod_report_employees: {e}")
+
 @app.on_event("startup")
 async def startup_event():
     """Инициализация при запуске приложения"""
@@ -468,6 +487,7 @@ async def startup_event():
     create_auth_tables()
     create_department_positions_table()
     create_whitelist_departments_table()
+    create_svod_report_employees_table()
     # update_employees_table()  # Функция не определена, убрано для предотвращения ошибки
     create_initial_admin()
 
@@ -2034,7 +2054,7 @@ async def create_employee_exception_range(exception_range: ExceptionRangeCreate)
 
 @app.get("/svod-report")
 async def get_svod_report(date: str = None):
-    """Получить сводную таблицу всех сотрудников с исключениями за указанную дату"""
+    """Получить сводную таблицу сотрудников в своде ТРК с исключениями за указанную дату"""
     try:
         from datetime import date as dt_date
         
@@ -2044,23 +2064,58 @@ async def get_svod_report(date: str = None):
         
         conn = get_db_connection()
         
-        # Получаем всех активных сотрудников с их должностями
-        employees_data = execute_query(
+        # Получаем сотрудников, добавленных в свод за эту дату
+        employees_in_svod = execute_query(
             conn,
             """
-            SELECT e.id, e.full_name, 
-                   p.name as position_name,
-                   d.name as department_name
-            FROM employees e
-            LEFT JOIN positions p ON e.position_id = p.id
-            LEFT JOIN departments d ON e.department_id = d.id
-            WHERE e.is_active = %s
-            AND e.full_name NOT IN ('Охрана М.', '1 пост о.', '2 пост о.', 'Крыша К.', 'Водитель 1 В.', 'Водитель 2 В.', 'Дежурный в.', 'Дежурный В.')
-            ORDER BY d.name, p.name, e.full_name
+            SELECT employee_id
+            FROM svod_report_employees
+            WHERE report_date = %s
             """,
-            (True,),
+            (date,),
             fetch_all=True
         )
+        
+        svod_employee_ids = [emp['employee_id'] for emp in employees_in_svod]
+        
+        # Если список пуст, возвращаем всех активных сотрудников
+        if not svod_employee_ids:
+            # Получаем всех активных сотрудников
+            employees_data = execute_query(
+                conn,
+                """
+                SELECT e.id, e.full_name, 
+                       p.name as position_name,
+                       d.name as department_name
+                FROM employees e
+                LEFT JOIN positions p ON e.position_id = p.id
+                LEFT JOIN departments d ON e.department_id = d.id
+                WHERE e.is_active = %s
+                AND e.full_name NOT IN ('Охрана М.', '1 пост о.', '2 пост о.', 'Крыша К.', 'Водитель 1 В.', 'Водитель 2 В.', 'Дежурный в.', 'Дежурный В.')
+                ORDER BY d.name, p.name, e.full_name
+                """,
+                (True,),
+                fetch_all=True
+            )
+        else:
+            # Получаем только сотрудников из списка свода
+            placeholders = ','.join(['%s'] * len(svod_employee_ids))
+            employees_data = execute_query(
+                conn,
+                f"""
+                SELECT e.id, e.full_name, 
+                       p.name as position_name,
+                       d.name as department_name
+                FROM employees e
+                LEFT JOIN positions p ON e.position_id = p.id
+                LEFT JOIN departments d ON e.department_id = d.id
+                WHERE e.id IN ({placeholders})
+                AND e.is_active = %s
+                ORDER BY d.name, p.name, e.full_name
+                """,
+                (*svod_employee_ids, True),
+                fetch_all=True
+            )
         
         # Получаем исключения за выбранную дату
         exceptions_data = execute_query(
@@ -2089,17 +2144,97 @@ async def get_svod_report(date: str = None):
                 'position': emp.get('position_name') or 'Не указана должность',
                 'department': emp.get('department_name') or 'Не указан отдел',
                 'comment': exception['reason'] if exception else '',
-                'exception_type': exception['exception_type'] if exception else None
+                'exception_type': exception['exception_type'] if exception else None,
+                'in_svod': emp['id'] in svod_employee_ids
             })
         
         return {
             'date': date,
             'employees': result,
-            'total_count': len(result)
+            'total_count': len(result),
+            'svod_count': len(svod_employee_ids)
         }
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка получения сводной таблицы: {str(e)}")
+
+@app.post("/svod-report/add-employee")
+async def add_employee_to_svod(data: dict):
+    """Добавить сотрудника в свод ТРК на указанную дату"""
+    try:
+        employee_id = data.get('employee_id')
+        report_date = data.get('report_date')
+        
+        if not employee_id or not report_date:
+            raise HTTPException(status_code=400, detail="Необходимо указать employee_id и report_date")
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Проверяем существование сотрудника
+        cursor.execute("SELECT full_name FROM employees WHERE id = %s", (employee_id,))
+        employee = cursor.fetchone()
+        if not employee:
+            raise HTTPException(status_code=404, detail="Сотрудник не найден")
+        
+        # Добавляем в свод (если уже есть - игнорируем)
+        try:
+            cursor.execute("""
+                INSERT INTO svod_report_employees (employee_id, report_date)
+                VALUES (%s, %s)
+            """, (employee_id, report_date))
+            conn.commit()
+        except Exception as e:
+            if "duplicate key value violates unique constraint" in str(e):
+                pass  # Уже добавлен
+            else:
+                raise e
+        
+        conn.close()
+        
+        return {
+            "message": f"Сотрудник {employee[0]} добавлен в свод",
+            "employee_id": employee_id,
+            "report_date": report_date
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка добавления в свод: {str(e)}")
+
+@app.delete("/svod-report/remove-employee")
+async def remove_employee_from_svod(employee_id: int, report_date: str):
+    """Убрать сотрудника из свода ТРК на указанную дату"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Проверяем существование сотрудника
+        cursor.execute("SELECT full_name FROM employees WHERE id = %s", (employee_id,))
+        employee = cursor.fetchone()
+        if not employee:
+            raise HTTPException(status_code=404, detail="Сотрудник не найден")
+        
+        # Удаляем из свода
+        cursor.execute("""
+            DELETE FROM svod_report_employees
+            WHERE employee_id = %s AND report_date = %s
+        """, (employee_id, report_date))
+        
+        conn.commit()
+        conn.close()
+        
+        return {
+            "message": f"Сотрудник {employee[0]} убран из свода",
+            "employee_id": employee_id,
+            "report_date": report_date
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка удаления из свода: {str(e)}")
 
 @app.get("/departments/{department_id}/positions")
 async def get_department_positions(department_id: int):
