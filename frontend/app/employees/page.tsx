@@ -19,20 +19,33 @@ interface DepartmentsData {
   total_employees: number
 }
 
+interface Department {
+  id: number
+  name: string
+}
+
 export default function EmployeesPage() {
   const router = useRouter()
   const [departmentsData, setDepartmentsData] = useState<DepartmentsData | null>(null)
+  const [departmentsList, setDepartmentsList] = useState<Department[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
+  
   useEffect(() => {
-    const fetchEmployees = async () => {
+    const fetchData = async () => {
       try {
         setLoading(true)
         setError(null)
         
-        const data = await apiRequest('/employees')
-        setDepartmentsData(data)
+        // Загружаем сотрудников и департаменты параллельно
+        const [employeesData, departmentsData] = await Promise.all([
+          apiRequest('/employees'),
+          apiRequest('/departments')
+        ])
+        
+        setDepartmentsData(employeesData)
+        setDepartmentsList(Array.isArray(departmentsData) ? departmentsData : [])
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Ошибка загрузки данных сотрудников')
         console.error('Ошибка загрузки данных сотрудников:', err)
@@ -41,7 +54,7 @@ export default function EmployeesPage() {
       }
     }
 
-    fetchEmployees()
+    fetchData()
   }, [])
 
   const handleEmployeeClick = (employeeId: number) => {
@@ -54,6 +67,12 @@ export default function EmployeesPage() {
 
   const handleScheduleClick = () => {
     router.push('/')
+  }
+
+  // Функция для получения ID департамента по названию
+  const getDepartmentId = (departmentName: string): number | null => {
+    const dept = departmentsList.find(d => d.name === departmentName)
+    return dept ? dept.id : null
   }
 
   // Фильтрация сотрудников по введенному запросу
@@ -161,9 +180,9 @@ export default function EmployeesPage() {
           </div>
         ) : (
           Object.entries(filteredDepartments).map(([departmentName, employees]) => {
-            // Получаем department_id из первого сотрудника в группе
+            // Получаем department_id по названию департамента
             const employeeList = employees as Employee[];
-            const departmentId = employeeList.length > 0 ? employeeList[0].department_id : null;
+            const departmentId = getDepartmentId(departmentName);
             
             return (
               <div key={departmentName} className="bg-white rounded-lg shadow-sm border">
