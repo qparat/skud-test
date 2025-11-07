@@ -11,6 +11,7 @@ interface Employee {
   position: string
   birth_date?: string
   department?: string
+  department_id?: number
 }
 
 interface DepartmentsData {
@@ -45,6 +46,10 @@ export default function EmployeesPage() {
 
   const handleEmployeeClick = (employeeId: number) => {
     router.push(`/employees/${employeeId}`)
+  }
+
+  const handleDepartmentClick = (departmentId: number) => {
+    router.push(`/departments/${departmentId}`)
   }
 
   const handleScheduleClick = () => {
@@ -155,20 +160,34 @@ export default function EmployeesPage() {
             </p>
           </div>
         ) : (
-          Object.entries(filteredDepartments).map(([departmentName, employees]) => (
-            <div key={departmentName} className="bg-white rounded-lg shadow-sm border">
-              <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
-                <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                  {departmentName}
-                  <span className="bg-blue-100 text-blue-800 text-sm font-medium px-2.5 py-0.5 rounded-full">
-                    {employees.length}
-                  </span>
-                </h3>
-              </div>
+          Object.entries(filteredDepartments).map(([departmentName, employees]) => {
+            // Получаем department_id из первого сотрудника в группе
+            const employeeList = employees as Employee[];
+            const departmentId = employeeList.length > 0 ? employeeList[0].department_id : null;
+            
+            return (
+              <div key={departmentName} className="bg-white rounded-lg shadow-sm border">
+                <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                  <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                    {departmentId ? (
+                      <button
+                        onClick={() => handleDepartmentClick(departmentId)}
+                        className="hover:text-blue-600 transition-colors hover:underline"
+                      >
+                        {departmentName}
+                      </button>
+                    ) : (
+                      <span>{departmentName}</span>
+                    )}
+                    <span className="bg-blue-100 text-blue-800 text-sm font-medium px-2.5 py-0.5 rounded-full">
+                      {employeeList.length}
+                    </span>
+                  </h3>
+                </div>
               
               <div className="p-6">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-                  {employees.map((employee) => (
+                  {employeeList.map((employee) => (
                     <button
                       key={employee.employee_id}
                       onClick={() => handleEmployeeClick(employee.employee_id)}
@@ -200,7 +219,8 @@ export default function EmployeesPage() {
                 </div>
               </div>
             </div>
-          ))
+            );
+          })
         )}
       </div>
     </div>
