@@ -815,7 +815,7 @@ export function EmployeeSchedule() {
                 />
               </div>
               {/* Кнопка фильтра и выпадающий список отделов */}
-              <div className="relative">
+              <div className="">
                 <button
                   onClick={() => setShowFilter(!showFilter)}
                   className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
@@ -824,7 +824,7 @@ export function EmployeeSchedule() {
                   <ChevronDown className="h-4 w-4 ml-2" />
                 </button>
                 {showFilter && (
-                  <div ref={filterRef} className="fixed mt-2 z-[10000] bg-white border border-gray-200 rounded-lg shadow-xl p-4" style={{ minWidth: '500px', top: 'auto', right: '1rem' }}>
+                  <div ref={filterRef} className="absolute mt-2 z-[10000] bg-white border border-gray-200 rounded-lg shadow-xl p-4" style={{ minWidth: '500px', top: 'auto', right: '1rem' }}>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Службы</label>
                     <input
                       type="text"
