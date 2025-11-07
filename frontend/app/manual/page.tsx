@@ -1,6 +1,6 @@
 'use client'
 
-import { BookOpen, Users, Calendar, Shield, Upload, FileText, Settings } from 'lucide-react'
+import { BookOpen, Users, Calendar, Shield, Upload, FileText, Settings, Building2, Briefcase } from 'lucide-react'
 
 export default function ManualPage() {
   return (
@@ -27,8 +27,7 @@ export default function ManualPage() {
               <h3 className="text-lg font-semibold mb-3">Просмотр расписания</h3>
               <ul className="space-y-2 text-gray-700">
                 <li>• При входе в систему автоматически загружается расписание за текущий день</li>
-                <li>• Отображается информация о времени прихода, ухода, опозданиях и часах работы</li>
-                <li>• Сотрудники с опозданиями выделяются красным цветом</li>
+                <li>• Отображается информация о времени прихода, ухода, опозданиях, часах работы и статус</li>
               </ul>
             </div>
 
@@ -37,18 +36,9 @@ export default function ManualPage() {
               <ul className="space-y-2 text-gray-700">
                 <li>• Нажмите на кнопку "Календарь" для выбора даты</li>
                 <li>• Первый клик - выделяет дату</li>
-                <li>• Второй клик по той же дате - загружает данные</li>
-                <li>• Клик по второй дате - создает диапазон дат</li>
+                <li>• Второй клик по той же дате - загружает данные за день</li>
+                <li>• Клик по второй другой дате - создает диапазон дат</li>
                 <li>• Кнопка "Очистить" возвращает к текущему дню</li>
-              </ul>
-            </div>
-
-            <div className="bg-gray-50 p-6 rounded-lg mb-4">
-              <h3 className="text-lg font-semibold mb-3">Быстрый выбор периода</h3>
-              <ul className="space-y-2 text-gray-700">
-                <li>• <strong>Неделя</strong> - последние 7 дней</li>
-                <li>• <strong>Месяц</strong> - последние 30 дней</li>
-                <li>• <strong>Квартал</strong> - последние 90 дней</li>
               </ul>
             </div>
 
@@ -86,7 +76,7 @@ export default function ManualPage() {
               <ul className="space-y-2 text-gray-700">
                 <li>• Перейдите в раздел "Список сотрудников"</li>
                 <li>• Сотрудники сгруппированы по службам</li>
-                <li>• Клик по сотруднику открывает детальную информацию</li>
+                <li>• Клик по сотруднику открывает детальную информацию о сотруднике</li>
               </ul>
             </div>
 
@@ -104,36 +94,8 @@ export default function ManualPage() {
           {/* Раздел 3 */}
           <section className="mb-8">
             <div className="flex items-center space-x-2 mb-4">
-              <Shield className="h-6 w-6 text-blue-600" />
-              <h2 className="text-2xl font-semibold text-gray-900">3. Исключения</h2>
-            </div>
-            
-            <div className="bg-gray-50 p-6 rounded-lg mb-4">
-              <h3 className="text-lg font-semibold mb-3">Создание исключения</h3>
-              <ul className="space-y-2 text-gray-700">
-                <li>• Перейдите в раздел "Исключения"</li>
-                <li>• Нажмите "Добавить исключение"</li>
-                <li>• Выберите сотрудника, дату и причину</li>
-                <li>• Для диапазона дат используйте "Диапазон дат"</li>
-              </ul>
-            </div>
-
-            <div className="bg-gray-50 p-6 rounded-lg">
-              <h3 className="text-lg font-semibold mb-3">Типы исключений</h3>
-              <ul className="space-y-2 text-gray-700">
-                <li>• <strong>Без проверки опозданий</strong> - игнорировать опоздания</li>
-                <li>• <strong>Больничный</strong> - отсутствие по болезни</li>
-                <li>• <strong>Отпуск</strong> - плановое отсутствие</li>
-                <li>• <strong>Командировка</strong> - служебная поездка</li>
-              </ul>
-            </div>
-          </section>
-
-          {/* Раздел 4 */}
-          <section className="mb-8">
-            <div className="flex items-center space-x-2 mb-4">
               <FileText className="h-6 w-6 text-blue-600" />
-              <h2 className="text-2xl font-semibold text-gray-900">4. Отчеты</h2>
+              <h2 className="text-2xl font-semibold text-gray-900">3. Отчеты</h2>
             </div>
             
             <div className="bg-gray-50 p-6 rounded-lg mb-4">
@@ -155,86 +117,114 @@ export default function ManualPage() {
             </div>
           </section>
 
-          {/* Раздел 5 */}
+          {/* Раздел 4 */}
           <section className="mb-8">
             <div className="flex items-center space-x-2 mb-4">
-              <Upload className="h-6 w-6 text-blue-600" />
-              <h2 className="text-2xl font-semibold text-gray-900">5. Загрузка данных</h2>
+              <Building2 className="h-6 w-6 text-blue-600" />
+              <h2 className="text-2xl font-semibold text-gray-900">4. Службы</h2>
             </div>
             
             <div className="bg-gray-50 p-6 rounded-lg mb-4">
-              <h3 className="text-lg font-semibold mb-3">Загрузка файла СКУД</h3>
+              <h3 className="text-lg font-semibold mb-3">Просмотр служб</h3>
               <ul className="space-y-2 text-gray-700">
-                <li>• Перейдите в раздел "Загрузка файлов"</li>
-                <li>• Выберите файл формата .xls или .xlsx</li>
-                <li>• Максимальный размер файла: 100 МБ</li>
-                <li>• После загрузки данные автоматически обработаются</li>
+                <li>• Перейдите в раздел "Службы"</li>
+                <li>• Отображается список всех служб/отделов организации</li>
+                <li>• Для каждой службы показано количество сотрудников</li>
               </ul>
             </div>
 
-            <div className="bg-blue-50 border-l-4 border-blue-600 p-4 rounded">
-              <p className="text-blue-900 font-semibold">⚠️ Важно:</p>
-              <p className="text-blue-800 mt-2">
-                Загружайте только файлы, полученные из системы СКУД. 
-                Файлы должны содержать корректные данные о проходах сотрудников.
-              </p>
+            <div className="bg-gray-50 p-6 rounded-lg mb-4">
+              <h3 className="text-lg font-semibold mb-3">Создание новой службы</h3>
+              <ul className="space-y-2 text-gray-700">
+                <li>• Нажмите кнопку "Добавить службу"</li>
+                <li>• Введите название службы</li>
+                <li>• Сохраните изменения</li>
+              </ul>
+            </div>
+
+            <div className="bg-gray-50 p-6 rounded-lg">
+              <h3 className="text-lg font-semibold mb-3">Редактирование и удаление</h3>
+              <ul className="space-y-2 text-gray-700">
+                <li>• Нажмите на службу для редактирования названия</li>
+                <li>• Используйте кнопку "Удалить" для удаления службы</li>
+                <li>• <strong>Внимание:</strong> Удаление службы возможно только если в ней нет сотрудников</li>
+              </ul>
+            </div>
+          </section>
+
+          {/* Раздел 5 */}
+          <section className="mb-8">
+            <div className="flex items-center space-x-2 mb-4">
+              <Briefcase className="h-6 w-6 text-blue-600" />
+              <h2 className="text-2xl font-semibold text-gray-900">5. Должности</h2>
+            </div>
+            
+            <div className="bg-gray-50 p-6 rounded-lg mb-4">
+              <h3 className="text-lg font-semibold mb-3">Управление должностями</h3>
+              <ul className="space-y-2 text-gray-700">
+                <li>• Перейдите в раздел "Должности"</li>
+                <li>• Просмотрите список всех должностей</li>
+                <li>• Создавайте новые должности для организации</li>
+              </ul>
+            </div>
+
+            <div className="bg-gray-50 p-6 rounded-lg mb-4">
+              <h3 className="text-lg font-semibold mb-3">Связь должностей со службами</h3>
+              <ul className="space-y-2 text-gray-700">
+                <li>• Каждая должность может быть связана с несколькими службами</li>
+                <li>• При назначении должности сотруднику проверяется соответствие его службе</li>
+                <li>• Настройте связи через раздел "Управление связями"</li>
+              </ul>
+            </div>
+
+            <div className="bg-gray-50 p-6 rounded-lg">
+              <h3 className="text-lg font-semibold mb-3">Добавление и удаление</h3>
+              <ul className="space-y-2 text-gray-700">
+                <li>• Нажмите "Добавить должность" для создания новой</li>
+                <li>• Введите название должности</li>
+                <li>• Удаление возможно только если должность не назначена сотрудникам</li>
+              </ul>
             </div>
           </section>
 
           {/* Раздел 6 */}
           <section className="mb-8">
             <div className="flex items-center space-x-2 mb-4">
-              <Settings className="h-6 w-6 text-blue-600" />
-              <h2 className="text-2xl font-semibold text-gray-900">6. Администрирование</h2>
+              <Shield className="h-6 w-6 text-blue-600" />
+              <h2 className="text-2xl font-semibold text-gray-900">6. Исключения</h2>
             </div>
             
             <div className="bg-gray-50 p-6 rounded-lg mb-4">
-              <h3 className="text-lg font-semibold mb-3">Управление пользователями</h3>
+              <h3 className="text-lg font-semibold mb-3">Создание исключения</h3>
               <ul className="space-y-2 text-gray-700">
-                <li>• Доступно только для администраторов</li>
-                <li>• Создание новых пользователей системы</li>
-                <li>• Назначение ролей и прав доступа</li>
-                <li>• Деактивация учетных записей</li>
+                <li>• Перейдите в раздел "Исключения"</li>
+                <li>• Нажмите "Добавить исключение"</li>
+                <li>• Выберите сотрудника, дату и причину</li>
+                <li>• Для диапазона дат используйте "Диапазон дат"</li>
               </ul>
             </div>
 
             <div className="bg-gray-50 p-6 rounded-lg mb-4">
-              <h3 className="text-lg font-semibold mb-3">Роли пользователей</h3>
+              <h3 className="text-lg font-semibold mb-3">Типы исключений</h3>
               <ul className="space-y-2 text-gray-700">
-                <li>• <strong>Root (0)</strong> - полный доступ ко всем функциям</li>
-                <li>• <strong>Superadmin (1)</strong> - управление пользователями и настройками</li>
-                <li>• <strong>Admin (2)</strong> - работа с данными и отчетами</li>
-                <li>• <strong>User (3)</strong> - просмотр расписания и сотрудников</li>
+                <li>• <strong>Без проверки опозданий</strong> - игнорировать опоздания</li>
+                <li>• <strong>Больничный</strong> - отсутствие по болезни</li>
+                <li>• <strong>Отпуск</strong> - плановое отсутствие</li>
+                <li>• <strong>Командировка</strong> - служебная поездка</li>
               </ul>
             </div>
 
             <div className="bg-gray-50 p-6 rounded-lg">
-              <h3 className="text-lg font-semibold mb-3">Управление справочниками</h3>
+              <h3 className="text-lg font-semibold mb-3">Управление исключениями</h3>
               <ul className="space-y-2 text-gray-700">
-                <li>• <strong>Службы</strong> - добавление и редактирование отделов</li>
-                <li>• <strong>Должности</strong> - управление списком должностей</li>
-                <li>• Связывание должностей с отделами</li>
+                <li>• Просмотрите список всех активных исключений</li>
+                <li>• Отредактируйте причину или дату исключения</li>
+                <li>• Удалите исключение при необходимости</li>
+                <li>• Фильтруйте исключения по сотруднику или дате</li>
               </ul>
             </div>
           </section>
-
-          {/* Техническая поддержка */}
-          <section className="mt-12 bg-gradient-to-r from-blue-50 to-indigo-50 p-8 rounded-lg border border-blue-200">
-            <h2 className="text-2xl font-semibold text-gray-900 mb-4">Техническая поддержка</h2>
-            <div className="space-y-3 text-gray-700">
-              <p>При возникновении проблем или вопросов по работе системы обращайтесь:</p>
-              <ul className="space-y-2 ml-4">
-                <li>• Email: support@skud.local</li>
-                <li>• Внутренний телефон: доб. 1234</li>
-                <li>• Рабочие часы: Пн-Пт, 9:00-18:00</li>
-              </ul>
-            </div>
-          </section>
-
-          <div className="mt-8 text-center text-sm text-gray-500">
-            <p>Версия документации: 1.0</p>
-            <p>Дата обновления: {new Date().toLocaleDateString('ru-RU')}</p>
-          </div>
+            
         </div>
       </div>
     </div>
