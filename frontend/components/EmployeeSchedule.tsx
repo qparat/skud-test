@@ -824,7 +824,7 @@ export function EmployeeSchedule() {
                   <ChevronDown className="h-4 w-4 ml-2" />
                 </button>
                 {showFilter && (
-                  <div ref={filterRef} className="absolute top-full right-0 mt-2 z-[9999] bg-white border border-gray-200 rounded-lg shadow-xl p-4" style={{ minWidth: '500px' }}>
+                  <div ref={filterRef} className="fixed mt-2 z-[10000] bg-white border border-gray-200 rounded-lg shadow-xl p-4" style={{ minWidth: '500px', top: 'auto', right: '1rem' }}>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Службы</label>
                     <input
                       type="text"
