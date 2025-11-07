@@ -77,8 +77,7 @@ export default function SvodReportPage() {
       await apiRequest('svod-report/add-employee', {
         method: 'POST',
         body: JSON.stringify({
-          employee_id: employeeId,
-          report_date: selectedDate
+          employee_id: employeeId
         })
       })
       await loadSvodReport()
@@ -95,7 +94,7 @@ export default function SvodReportPage() {
   const removeFromSvod = async (employeeId: number) => {
     setActionLoading(employeeId)
     try {
-      await apiRequest(`svod-report/remove-employee?employee_id=${employeeId}&report_date=${selectedDate}`, {
+      await apiRequest(`svod-report/remove-employee?employee_id=${employeeId}`, {
         method: 'DELETE'
       })
       await loadSvodReport()
