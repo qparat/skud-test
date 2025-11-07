@@ -1130,7 +1130,7 @@ export function EmployeeSchedule() {
                               {emp.status || (emp.is_late ? 'Опоздал' : 'В норме')}
                             </span>
                             {emp.exception?.has_exception && (
-                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-purple-100 text-purple-800">
+                              <span className="inline-flex items-center text-xs text-gray-600">
                                 🛡️ {emp.exception.reason}
                               </span>
                             )}
@@ -1217,7 +1217,7 @@ export function EmployeeSchedule() {
                               {emp.status || (emp.is_late ? 'Опоздал' : 'В норме')}
                             </span>
                             {emp.exception?.has_exception && (
-                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-purple-100 text-purple-800">
+                              <span className="inline-flex items-center text-xs text-gray-600">
                                 🛡️ {emp.exception.reason}
                               </span>
                             )}

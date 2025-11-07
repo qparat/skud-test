@@ -421,9 +421,6 @@ export default function EmployeePage({ params }: EmployeePageProps) {
                     if (record.has_exception) {
                       statusBadge = (
                         <div className="flex items-center space-x-2">
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                            Исключение
-                          </span>
                           {record.exception_info && (
                             <div className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-purple-100 text-purple-800" title={record.exception_info.reason}>
                               {record.exception_info.reason.length > 20 
