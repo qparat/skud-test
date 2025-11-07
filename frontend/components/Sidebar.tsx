@@ -48,11 +48,14 @@ export function Sidebar() {
 
   return (
     <div className={`hidden md:flex md:flex-col transition-all duration-300 ${isCollapsed ? 'md:w-16' : 'md:w-64'}`}>
-      <div className="flex flex-col flex-grow pt-5 pb-4 overflow-y-auto bg-white border-r relative">
+      <div className="flex flex-col flex-grow pt-5 pb-4 overflow-y-auto bg-white border-r relative group">
         {/* Кнопка сворачивания */}
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className="absolute -right-3 top-8 bg-white border border-gray-300 rounded-full p-1 hover:bg-gray-50 z-10 shadow-sm"
+          className={`absolute bg-white border border-gray-300 rounded-full p-1 hover:bg-gray-50 z-10 shadow-sm transition-opacity ${
+            isCollapsed ? 'opacity-0 group-hover:opacity-100' : 'opacity-100'
+          }`}
+          style={{ right: '0.5rem', top: '1.5rem' }}
           title={isCollapsed ? 'Развернуть' : 'Свернуть'}
         >
           {isCollapsed ? (
