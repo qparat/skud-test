@@ -2032,6 +2032,75 @@ async def create_employee_exception_range(exception_range: ExceptionRangeCreate)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка при создании исключений в диапазоне: {str(e)}")
 
+@app.get("/svod-report")
+async def get_svod_report(date: str = None):
+    """Получить сводную таблицу всех сотрудников с исключениями за указанную дату"""
+    try:
+        from datetime import date as dt_date
+        
+        # Если дата не указана, берем сегодняшнюю
+        if not date:
+            date = dt_date.today().strftime('%Y-%m-%d')
+        
+        conn = get_db_connection()
+        
+        # Получаем всех активных сотрудников с их должностями
+        employees_data = execute_query(
+            conn,
+            """
+            SELECT e.id, e.full_name, 
+                   p.name as position_name,
+                   d.name as department_name
+            FROM employees e
+            LEFT JOIN positions p ON e.position_id = p.id
+            LEFT JOIN departments d ON e.department_id = d.id
+            WHERE e.is_active = %s
+            AND e.full_name NOT IN ('Охрана М.', '1 пост о.', '2 пост о.', 'Крыша К.', 'Водитель 1 В.', 'Водитель 2 В.', 'Дежурный в.', 'Дежурный В.')
+            ORDER BY d.name, p.name, e.full_name
+            """,
+            (True,),
+            fetch_all=True
+        )
+        
+        # Получаем исключения за выбранную дату
+        exceptions_data = execute_query(
+            conn,
+            """
+            SELECT employee_id, reason, exception_type
+            FROM employee_exceptions
+            WHERE exception_date = %s
+            """,
+            (date,),
+            fetch_all=True
+        )
+        
+        conn.close()
+        
+        # Создаем словарь исключений по employee_id
+        exceptions_dict = {exc['employee_id']: exc for exc in exceptions_data}
+        
+        # Формируем результат
+        result = []
+        for emp in employees_data:
+            exception = exceptions_dict.get(emp['id'])
+            result.append({
+                'id': emp['id'],
+                'full_name': emp['full_name'],
+                'position': emp.get('position_name') or 'Не указана должность',
+                'department': emp.get('department_name') or 'Не указан отдел',
+                'comment': exception['reason'] if exception else '',
+                'exception_type': exception['exception_type'] if exception else None
+            })
+        
+        return {
+            'date': date,
+            'employees': result,
+            'total_count': len(result)
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка получения сводной таблицы: {str(e)}")
+
 @app.get("/departments/{department_id}/positions")
 async def get_department_positions(department_id: int):
     """Получить должности, доступные в конкретном отделе"""

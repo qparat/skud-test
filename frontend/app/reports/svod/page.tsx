@@ -1,169 +1,186 @@
 'use client'
 import React, { useState, useEffect } from 'react'
+import { apiRequest } from '@/lib/api'
 
-
+interface SvodEmployee {
+  id: number
+  full_name: string
+  position: string
+  department: string
+  comment: string
+  exception_type: string | null
+}
 
 export default function SvodReportPage() {
-  const [allEmployees, setAllEmployees] = useState<{ id: number; name: string; position: string }[]>([]);
-  const [employeeExceptions, setEmployeeExceptions] = useState<{ [key: string]: { date: string; comment: string } }>({});
-  const [employees, setEmployees] = useState<{ id: number; position: string; name: string; comment: string }[]>([]);
-  const [form, setForm] = useState({ employeeId: '', position: '', name: '', comment: '' });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [employees, setEmployees] = useState<SvodEmployee[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [selectedDate, setSelectedDate] = useState(() => {
-    const d = new Date();
-    return d.toISOString().slice(0, 10);
-  });
+    const d = new Date()
+    return d.toISOString().slice(0, 10)
+  })
+  const [searchQuery, setSearchQuery] = useState('')
+
+  // Загрузка сводной таблицы
+  useEffect(() => {
+    loadSvodReport()
+  }, [selectedDate])
+
+  const loadSvodReport = async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const data = await apiRequest(`svod-report?date=${selectedDate}`)
+      setEmployees(data.employees || [])
+    } catch (err) {
+      setError('Ошибка загрузки данных')
+      console.error(err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   // Обработчик выбора даты
   const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSelectedDate(e.target.value);
-  };
+    setSelectedDate(e.target.value)
+  }
 
-  // Загрузка сотрудников и исключений
-  useEffect(() => {
-    setLoading(true);
-    Promise.all([
-      fetch('/api/employees').then(r => r.json()),
-      fetch('/api/employee-exceptions').then(r => r.json())
-    ])
-      .then(([employeesData, exceptionsData]) => {
-        console.log('API employees response:', employeesData);
-        // Flatten employees from all departments
-        let employeesList: { id: number; name: string; position: string }[] = [];
-        if (employeesData && employeesData.departments) {
-          Object.values(employeesData.departments).forEach((arr: any) => {
-            if (Array.isArray(arr)) {
-              employeesList = employeesList.concat(arr);
-            }
-          });
-        }
-        setAllEmployees(employeesList);
-        // Filter exceptions by selectedDate and map by employee_id
-        const filtered = (exceptionsData.exceptions || []).filter(
-          (ex: any) => ex.exception_date === selectedDate
-        );
-        const mapped: { [key: string]: { date: string; comment: string } } = {};
-        filtered.forEach((ex: any) => {
-          mapped[String(ex.employee_id)] = { date: ex.exception_date, comment: ex.reason };
-        });
-        setEmployeeExceptions(mapped);
-        setLoading(false);
-      })
-      .catch((err) => {
-        setError('Ошибка загрузки данных');
-        setLoading(false);
-      });
-  }, [selectedDate]);
+  // Фильтрация по поиску
+  const filteredEmployees = employees.filter(emp => 
+    emp.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    emp.position.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    emp.department.toLowerCase().includes(searchQuery.toLowerCase())
+  )
 
-  // При выборе сотрудника — автозаполнение
-  const handleEmployeeSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
-  const id = e.target.value;
-  const emp = allEmployees.find((emp: { id: number; name: string; position: string }) => String(emp.id) === id);
-    let comment = '';
-    if (emp && employeeExceptions[String(emp.id)]) {
-      comment = employeeExceptions[String(emp.id)].comment;
+  // Экспорт в Excel
+  const exportToExcel = async () => {
+    try {
+      const XLSX = await import('xlsx')
+      
+      const excelData = filteredEmployees.map((emp, index) => ({
+        '№': index + 1,
+        'Должность': emp.position,
+        'ФИО': emp.full_name,
+        'Служба': emp.department,
+        'Комментарий': emp.comment || '-'
+      }))
+
+      const ws = XLSX.utils.json_to_sheet(excelData)
+      const wb = XLSX.utils.book_new()
+      
+      // Настраиваем ширину колонок
+      const colWidths = [
+        { wch: 5 },   // №
+        { wch: 30 },  // Должность
+        { wch: 25 },  // ФИО
+        { wch: 30 },  // Служба
+        { wch: 40 }   // Комментарий
+      ]
+      ws['!cols'] = colWidths
+
+      XLSX.utils.book_append_sheet(wb, ws, 'Свод ТРК')
+      XLSX.writeFile(wb, `Свод_ТРК_${selectedDate}.xlsx`)
+    } catch (err) {
+      console.error('Ошибка экспорта:', err)
+      alert('Ошибка при экспорте в Excel')
     }
-    setForm({
-      employeeId: id,
-      position: emp ? emp.position : '',
-      name: emp ? emp.name : '',
-      comment
-    });
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  };
-
-  const handleAdd = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (!form.position || !form.name || !form.employeeId) return;
-    setEmployees([
-      ...employees,
-      {
-        id: Number(form.employeeId),
-        position: form.position,
-        name: form.name,
-        comment: form.comment
-      }
-    ]);
-    setForm({ employeeId: '', position: '', name: '', comment: '' });
-  };
+  }
 
   return (
-    <div className="max-w-2xl mx-auto py-10">
-      <h1 className="text-2xl font-bold mb-6">Свод ТРК — Добавить сотрудника</h1>
-      <div className="mb-6">
-        <label className="block text-sm font-medium mb-2">Дата отчета</label>
-        <input
-          type="date"
-          value={selectedDate}
-          onChange={handleDateChange}
-          className="px-3 py-2 border rounded-md"
-        />
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold">Свод ТРК</h1>
       </div>
-      <div>
+
+      <div className="bg-white rounded-lg shadow-sm border p-6">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center space-x-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Дата отчета</label>
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={handleDateChange}
+                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Поиск</label>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Поиск по ФИО, должности или службе..."
+                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                style={{ minWidth: '300px' }}
+              />
+            </div>
+          </div>
+          
+          {employees.length > 0 && (
+            <button
+              onClick={exportToExcel}
+              className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
+            >
+              Выгрузить в Excel
+            </button>
+          )}
+        </div>
+
         {loading ? (
           <div className="p-6 text-center text-gray-600">Загрузка данных...</div>
         ) : error ? (
           <div className="p-6 text-center text-red-600">{error}</div>
         ) : (
-          <>
-            <form className="mb-8 space-y-4" onSubmit={handleAdd}>
-              <div>
-                <label className="block text-sm font-medium mb-1">Сотрудник</label>
-                <select
-                  name="employeeId"
-                  value={form.employeeId}
-                  onChange={handleEmployeeSelect}
-                  className="w-full px-3 py-2 border rounded-md"
-                  required
-                >
-                  <option value="">Выберите сотрудника</option>
-                  {allEmployees.map((emp: { id: number; name: string; position: string }) => (
-                    <option key={emp.id} value={emp.id}>{emp.name}</option>
-                  ))}
-                </select>
-              </div>
-              {form.employeeId && (
-                <div className="flex space-x-4 items-center">
-                  <div className="text-sm text-gray-700"><b>ФИО:</b> {form.name}</div>
-                  <div className="text-sm text-gray-700"><b>Должность:</b> {form.position}</div>
-                </div>
+          <div className="overflow-x-auto">
+            <div className="mb-4 text-sm text-gray-600">
+              Всего сотрудников: <span className="font-semibold">{filteredEmployees.length}</span>
+              {filteredEmployees.filter(e => e.comment).length > 0 && (
+                <span className="ml-4">
+                  С комментариями: <span className="font-semibold">{filteredEmployees.filter(e => e.comment).length}</span>
+                </span>
               )}
-              <div>
-                <label className="block text-sm font-medium mb-1">Комментарий</label>
-                <input
-                  name="comment"
-                  value={form.comment}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border rounded-md"
-                  placeholder="Комментарий или исключение"
-                />
-              </div>
-              <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Добавить</button>
-            </form>
-            <table className="min-w-full bg-white rounded-lg shadow overflow-hidden">
-              <thead className="bg-gray-100">
+            </div>
+            
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">Должность</th>
-                  <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">ФИО</th>
-                  <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">Комментарий</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">№</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Должность</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ФИО</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Служба</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Комментарий</th>
                 </tr>
               </thead>
-              <tbody>
-                {employees.map((row: { id: number; position: string; name: string; comment: string }, idx: number) => (
-                  <tr key={idx} className="border-b">
-                    <td className="px-4 py-2 text-gray-900">{row.position}</td>
-                    <td className="px-4 py-2 text-blue-700 font-semibold">{row.name}</td>
-                    <td className="px-4 py-2 text-gray-600">{employeeExceptions[String(row.id)]?.comment || row.comment || ''}</td>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {filteredEmployees.map((emp, idx) => (
+                  <tr key={emp.id} className={`hover:bg-gray-50 ${emp.comment ? 'bg-blue-50' : ''}`}>
+                    <td className="px-4 py-3 text-sm text-gray-900">{idx + 1}</td>
+                    <td className="px-4 py-3 text-sm text-gray-900">{emp.position}</td>
+                    <td className="px-4 py-3 text-sm font-medium text-blue-700">{emp.full_name}</td>
+                    <td className="px-4 py-3 text-sm text-gray-600">{emp.department}</td>
+                    <td className="px-4 py-3 text-sm">
+                      {emp.comment ? (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                          🛡️ {emp.comment}
+                        </span>
+                      ) : (
+                        <span className="text-gray-400">-</span>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          </>
+            
+            {filteredEmployees.length === 0 && employees.length > 0 && (
+              <div className="text-center py-12">
+                <p className="text-gray-500">По запросу "{searchQuery}" ничего не найдено</p>
+              </div>
+            )}
+          </div>
         )}
       </div>
     </div>
-  );
+  )
 }
