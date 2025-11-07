@@ -278,7 +278,11 @@ export default function ExceptionsPage() {
       return
     }
     
-    if (!formData.exception_date && !formData.start_date && !formData.end_date) {
+    // Определяем тип запроса: диапазон или один день
+    const isRange = formData.start_date && formData.end_date
+    const isSingleDay = formData.exception_date
+    
+    if (!isRange && !isSingleDay) {
       alert('Выберите дату или диапазон дат')
       return
     }
@@ -293,7 +297,7 @@ export default function ExceptionsPage() {
           })
         })
       } else {
-        const payload = isDateRange ? {
+        const payload = isRange ? {
           employee_id: parseInt(formData.employee_id),
           start_date: formData.start_date,
           end_date: formData.end_date,
@@ -307,8 +311,9 @@ export default function ExceptionsPage() {
         }
 
         console.log('Отправка данных:', payload) // Для отладки
+        console.log('Тип запроса:', isRange ? 'диапазон' : 'один день')
 
-        const endpoint = isDateRange ? 'employee-exceptions/range' : 'employee-exceptions'
+        const endpoint = isRange ? 'employee-exceptions/range' : 'employee-exceptions'
         await apiRequest(endpoint, {
           method: 'POST',
           body: JSON.stringify(payload)
