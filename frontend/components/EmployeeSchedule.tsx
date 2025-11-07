@@ -1117,24 +1117,21 @@ export function EmployeeSchedule() {
                           {emp.work_hours !== null && emp.work_hours !== undefined ? `${emp.work_hours.toFixed(1)} ч` : '-'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center space-x-2">
-                            <span
-                              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                emp.exception?.has_exception
-                                  ? 'bg-blue-100 text-blue-800'
-                                  : emp.is_late
-                                  ? 'bg-red-100 text-red-800'
-                                  : 'bg-green-100 text-green-800'
-                              }`}
-                            >
-                              {emp.status || (emp.is_late ? 'Опоздал' : 'В норме')}
-                            </span>
-                            {emp.exception?.has_exception && (
-                              <span className="inline-flex items-center text-xs text-gray-600">
-                                🛡️ {emp.exception.reason}
-                              </span>
+                          <span
+                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                              emp.exception?.has_exception
+                                ? 'bg-blue-100 text-blue-800'
+                                : emp.is_late
+                                ? 'bg-red-100 text-red-800'
+                                : 'bg-green-100 text-green-800'
+                            }`}
+                          >
+                            {emp.exception?.has_exception ? (
+                              <>🛡️ {emp.exception.reason}</>
+                            ) : (
+                              emp.status || (emp.is_late ? 'Опоздал' : 'В норме')
                             )}
-                          </div>
+                          </span>
                         </td>
                       </tr>
                     )
@@ -1204,24 +1201,21 @@ export function EmployeeSchedule() {
                           {emp.work_hours ? `${emp.work_hours.toFixed(1)} ч` : '-'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center space-x-2">
-                            <span
-                              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                emp.exception?.has_exception
-                                  ? 'bg-blue-100 text-blue-800'
-                                  : emp.is_late
-                                  ? 'bg-red-100 text-red-800'
-                                  : 'bg-green-100 text-green-800'
-                              }`}
-                            >
-                              {emp.status || (emp.is_late ? 'Опоздал' : 'В норме')}
-                            </span>
-                            {emp.exception?.has_exception && (
-                              <span className="inline-flex items-center text-xs text-gray-600">
-                                🛡️ {emp.exception.reason}
-                              </span>
+                          <span
+                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                              emp.exception?.has_exception
+                                ? 'bg-blue-100 text-blue-800'
+                                : emp.is_late
+                                ? 'bg-red-100 text-red-800'
+                                : 'bg-green-100 text-green-800'
+                            }`}
+                          >
+                            {emp.exception?.has_exception ? (
+                              <>🛡️ {emp.exception.reason}</>
+                            ) : (
+                              emp.status || (emp.is_late ? 'Опоздал' : 'В норме')
                             )}
-                          </div>
+                          </span>
                         </td>
                             <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center justify-end">
