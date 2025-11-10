@@ -37,6 +37,9 @@ export default function ExceptionsPage() {
   const [searchDateRange, setSearchDateRange] = useState<string>(''); // Для отображения периода
   const [showDateCalendar, setShowDateCalendar] = useState<boolean>(false);
   const [dateCalendarMonth, setDateCalendarMonth] = useState<Date>(new Date());
+  const [searchSelectedDate, setSearchSelectedDate] = useState<string>(''); // Для выбора диапазона в поиске
+  const [searchStartDate, setSearchStartDate] = useState<string>('');
+  const [searchEndDate, setSearchEndDate] = useState<string>('');
   const [exceptions, setExceptions] = useState<Exception[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -239,6 +242,53 @@ export default function ExceptionsPage() {
     setLastLoadedDate(endStr);
   };
 
+  // Обработка клика по дате в календаре поиска
+  const handleSearchDateClick = (dateStr: string) => {
+    const hasSelectedDate = searchSelectedDate !== '';
+    const hasRange = searchStartDate !== '' && searchEndDate !== '';
+
+    if (!hasSelectedDate && !hasRange) {
+      // Первый клик — просто выделяем дату
+      setSearchSelectedDate(dateStr);
+      setSearchStartDate('');
+      setSearchEndDate('');
+      setSearchDate('');
+      setSearchDateRange('');
+      return;
+    }
+
+    if (hasSelectedDate && !hasRange) {
+      if (dateStr === searchSelectedDate) {
+        // Второй клик по той же дате — выбираем один день
+        setSearchDate(dateStr);
+        setSearchDateRange('');
+        setSearchSelectedDate('');
+        setSearchStartDate('');
+        setSearchEndDate('');
+        setShowDateCalendar(false);
+        return;
+      } else {
+        // Второй клик по другой дате — диапазон
+        const start = dateStr < searchSelectedDate ? dateStr : searchSelectedDate;
+        const end = dateStr < searchSelectedDate ? searchSelectedDate : dateStr;
+        setSearchStartDate(start);
+        setSearchEndDate(end);
+        setSearchDate('');
+        setSearchDateRange(`${start} - ${end} (диапазон)`);
+        setSearchSelectedDate('');
+        setShowDateCalendar(false);
+        return;
+      }
+    }
+
+    // Если уже выбран диапазон — сбрасываем и выделяем новую дату
+    setSearchSelectedDate(dateStr);
+    setSearchStartDate('');
+    setSearchEndDate('');
+    setSearchDate('');
+    setSearchDateRange('');
+  };
+
   // Быстрый выбор периода для календаря поиска
   const selectWeekPeriodSearch = () => {
     const todayDate = new Date();
@@ -248,6 +298,9 @@ export default function ExceptionsPage() {
     const endStr = formatDate(todayDate);
     setSearchDate('');
     setSearchDateRange(`${startStr} - ${endStr} (неделя)`);
+    setSearchSelectedDate('');
+    setSearchStartDate(startStr);
+    setSearchEndDate(endStr);
     setShowDateCalendar(false);
   };
 
@@ -259,6 +312,9 @@ export default function ExceptionsPage() {
     const endStr = formatDate(todayDate);
     setSearchDate('');
     setSearchDateRange(`${startStr} - ${endStr} (месяц)`);
+    setSearchSelectedDate('');
+    setSearchStartDate(startStr);
+    setSearchEndDate(endStr);
     setShowDateCalendar(false);
   };
 
@@ -270,6 +326,9 @@ export default function ExceptionsPage() {
     const endStr = formatDate(todayDate);
     setSearchDate('');
     setSearchDateRange(`${startStr} - ${endStr} (квартал)`);
+    setSearchSelectedDate('');
+    setSearchStartDate(startStr);
+    setSearchEndDate(endStr);
     setShowDateCalendar(false);
   };
 
@@ -502,7 +561,7 @@ export default function ExceptionsPage() {
                 <button type="button" onClick={selectWeekPeriodSearch} className="px-2 py-1 text-xs bg-gray-100 rounded hover:bg-blue-100">Неделя</button>
                 <button type="button" onClick={selectMonthPeriodSearch} className="px-2 py-1 text-xs bg-gray-100 rounded hover:bg-blue-100">Месяц</button>
                 <button type="button" onClick={selectQuarterPeriodSearch} className="px-2 py-1 text-xs bg-gray-100 rounded hover:bg-blue-100">Квартал</button>
-                <button type="button" onClick={() => { setSearchDate(''); setSearchDateRange(''); setShowDateCalendar(false); }} className="px-2 py-1 text-xs bg-gray-100 rounded hover:bg-red-100 text-red-600">Сбросить</button>
+                <button type="button" onClick={() => { setSearchDate(''); setSearchDateRange(''); setSearchSelectedDate(''); setSearchStartDate(''); setSearchEndDate(''); setShowDateCalendar(false); }} className="px-2 py-1 text-xs bg-gray-100 rounded hover:bg-red-100 text-red-600">Сбросить</button>
               </div>
               <div className="grid grid-cols-7 gap-1 mb-2">
                 {['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'].map(day => (
@@ -528,24 +587,22 @@ export default function ExceptionsPage() {
                   return days.map((date, index) => {
                     const dateStr = formatDate(date);
                     const isCurrentMonth = date.getMonth() === dateCalendarMonth.getMonth();
-                    
-                    // Проверяем, находится ли дата в выбранном диапазоне
-                    let isInSearchRange = false;
-                    if (searchDateRange !== '') {
-                      const rangeParts = searchDateRange.split(' - ');
-                      if (rangeParts.length >= 2) {
-                        const rangeStart = rangeParts[0].trim();
-                        const rangeEnd = rangeParts[1].split(' ')[0].trim();
-                        isInSearchRange = dateStr >= rangeStart && dateStr <= rangeEnd;
-                      }
-                    }
+                    const isSelectedDate = dateStr === searchSelectedDate;
+                    const isInRange = searchStartDate && searchEndDate && dateStr >= searchStartDate && dateStr <= searchEndDate;
+                    const isStartOrEnd = dateStr === searchStartDate || dateStr === searchEndDate;
                     
                     return (
                       <button
                         key={index}
                         type="button"
-                        onClick={() => { setSearchDate(dateStr); setSearchDateRange(''); setShowDateCalendar(false); }}
-                        className={`w-8 h-8 text-xs rounded-full flex items-center justify-center ${!isCurrentMonth ? 'text-gray-300' : ''} ${searchDate === dateStr ? 'bg-blue-600 text-white font-bold' : isInSearchRange ? 'bg-blue-100 text-blue-800 font-medium' : 'hover:bg-gray-100'}`}
+                        onClick={() => handleSearchDateClick(dateStr)}
+                        className={`w-8 h-8 text-xs rounded-full flex items-center justify-center
+                          ${!isCurrentMonth ? 'text-gray-300' : ''}
+                          ${searchDate === dateStr ? 'bg-blue-600 text-white font-bold' : ''}
+                          ${isSelectedDate ? 'bg-blue-600 text-white' : ''}
+                          ${isStartOrEnd ? 'bg-green-600 text-white' : ''}
+                          ${isInRange && !isStartOrEnd ? 'bg-green-100 text-green-800' : ''}
+                          ${!searchDate && !isSelectedDate && !isInRange && isCurrentMonth ? 'hover:bg-gray-100' : ''}`}
                       >
                         {date.getDate()}
                       </button>
