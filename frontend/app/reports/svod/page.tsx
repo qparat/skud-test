@@ -1,6 +1,7 @@
 'use client'
 import React, { useState, useEffect } from 'react'
 import { apiRequest } from '@/lib/api'
+import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react'
 
 interface SvodEmployee {
   id: number
@@ -18,6 +19,14 @@ interface AllEmployee {
   department: string
 }
 
+// Функция для форматирования даты
+const formatDate = (date: Date) => {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 export default function SvodReportPage() {
   const [svodEmployees, setSvodEmployees] = useState<SvodEmployee[]>([])
   const [allEmployees, setAllEmployees] = useState<AllEmployee[]>([])
@@ -31,6 +40,10 @@ export default function SvodReportPage() {
   const [modalSearchQuery, setModalSearchQuery] = useState('')
   const [showModal, setShowModal] = useState(false)
   const [actionLoading, setActionLoading] = useState<number | null>(null)
+  
+  // Состояния для календаря
+  const [showCalendar, setShowCalendar] = useState(false)
+  const [currentMonth, setCurrentMonth] = useState(new Date())
 
   // Загрузка сводной таблицы (только те кто в своде)
   useEffect(() => {
@@ -106,9 +119,51 @@ export default function SvodReportPage() {
     }
   }
 
-  // Обработчик выбора даты
-  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSelectedDate(e.target.value)
+  // Закрытие календаря при клике вне его
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element
+      if (showCalendar && !target.closest('.calendar-container')) {
+        setShowCalendar(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [showCalendar])
+
+  // Генерация календаря
+  const generateCalendar = () => {
+    const year = currentMonth.getFullYear()
+    const month = currentMonth.getMonth()
+    const firstDay = new Date(year, month, 1)
+    let dayOfWeek = firstDay.getDay()
+    dayOfWeek = dayOfWeek === 0 ? 6 : dayOfWeek - 1
+    const startDate = new Date(firstDay)
+    startDate.setDate(startDate.getDate() - dayOfWeek)
+
+    const days = []
+    const currentDate = new Date(startDate)
+    for (let i = 0; i < 42; i++) {
+      days.push(new Date(currentDate))
+      currentDate.setDate(currentDate.getDate() + 1)
+    }
+    return days
+  }
+
+  // Навигация по месяцам
+  const goToPreviousMonth = () => {
+    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1))
+  }
+
+  const goToNextMonth = () => {
+    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1))
+  }
+
+  // Выбор даты из календаря
+  const handleDateClick = (dateStr: string) => {
+    setSelectedDate(dateStr)
+    setShowCalendar(false)
   }
 
   // Фильтрация по поиску в основной таблице
@@ -180,14 +235,76 @@ export default function SvodReportPage() {
       <div className="bg-white rounded-lg shadow-sm border p-6">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center space-x-4">
-            <div className="relative">
+            <div className="calendar-container relative">
               <label className="block text-sm font-medium text-gray-700 mb-2">Дата отчета</label>
-              <input
-                type="date"
-                value={selectedDate}
-                onChange={handleDateChange}
-                className="px-3 py-2 border border-gray-300 rounded-lg shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              />
+              <button
+                type="button"
+                onClick={() => setShowCalendar(!showCalendar)}
+                className="inline-flex items-center justify-between px-3 py-2 border border-gray-300 rounded-lg shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                style={{ minWidth: '160px' }}
+              >
+                <div className="flex items-center">
+                  <Calendar className="h-4 w-4 mr-2" />
+                  {selectedDate}
+                </div>
+              </button>
+              
+              {/* Выпадающий календарь */}
+              {showCalendar && (
+                <div className="absolute top-full mt-2 z-[9999] bg-white border border-gray-200 rounded-lg shadow-xl p-4" style={{minWidth: '280px', left: 0}}>
+                  {/* Заголовок календаря */}
+                  <div className="flex items-center justify-between mb-4">
+                    <button
+                      type="button"
+                      onClick={goToPreviousMonth}
+                      className="p-1 hover:bg-gray-100 rounded"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </button>
+                    <h3 className="text-sm font-medium">
+                      {currentMonth.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' })}
+                    </h3>
+                    <button
+                      type="button"
+                      onClick={goToNextMonth}
+                      className="p-1 hover:bg-gray-100 rounded"
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </button>
+                  </div>
+                  
+                  {/* Дни недели */}
+                  <div className="grid grid-cols-7 gap-1 mb-2">
+                    {['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'].map(day => (
+                      <div key={day} className="text-xs text-center text-gray-500 font-medium py-1">{day}</div>
+                    ))}
+                  </div>
+                  
+                  {/* Дни месяца */}
+                  <div className="grid grid-cols-7 gap-1">
+                    {generateCalendar().map((date, index) => {
+                      const dateStr = formatDate(date)
+                      const isCurrentMonth = date.getMonth() === currentMonth.getMonth()
+                      const isToday = dateStr === formatDate(new Date())
+                      const isSelected = dateStr === selectedDate
+                      return (
+                        <button
+                          key={index}
+                          type="button"
+                          onClick={() => handleDateClick(dateStr)}
+                          className={`w-8 h-8 text-xs rounded-full flex items-center justify-center
+                            ${!isCurrentMonth ? 'text-gray-300' : ''}
+                            ${isToday ? 'bg-blue-100 text-blue-600 font-bold' : ''}
+                            ${isSelected ? 'bg-blue-600 text-white' : ''}
+                            ${!isSelected && !isToday && isCurrentMonth ? 'hover:bg-gray-100' : ''}`}
+                        >
+                          {date.getDate()}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Поиск</label>
