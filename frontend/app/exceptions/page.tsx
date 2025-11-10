@@ -198,7 +198,7 @@ export default function ExceptionsPage() {
     setCurrentMonth((prev: Date) => new Date(prev.getFullYear(), prev.getMonth() + 1));
   };
 
-  // Быстрый выбор периода
+  // Быстрый выбор периода для формы добавления
   const selectWeekPeriod = () => {
     const todayDate = new Date();
     const weekStart = new Date(todayDate);
@@ -236,6 +236,25 @@ export default function ExceptionsPage() {
     setSelectedDate('');
     setShowCalendar(false);
     setLastLoadedDate(endStr);
+  };
+
+  // Быстрый выбор периода для календаря поиска (устанавливает searchDate на последний день периода)
+  const selectWeekPeriodSearch = () => {
+    const todayDate = new Date();
+    setSearchDate(formatDate(todayDate));
+    setShowDateCalendar(false);
+  };
+
+  const selectMonthPeriodSearch = () => {
+    const todayDate = new Date();
+    setSearchDate(formatDate(todayDate));
+    setShowDateCalendar(false);
+  };
+
+  const selectQuarterPeriodSearch = () => {
+    const todayDate = new Date();
+    setSearchDate(formatDate(todayDate));
+    setShowDateCalendar(false);
   };
 
   // Сброс выбора дат и возврат к сегодняшнему дню
@@ -428,13 +447,6 @@ export default function ExceptionsPage() {
             <Calendar className="h-4 w-4 mr-2" />
             {searchDate ? searchDate : 'Поиск по дате'}
           </button>
-          {searchDate && (
-            <button
-              type="button"
-              onClick={() => setSearchDate('')}
-              className="absolute right-2 top-2 text-sm text-red-600 hover:text-red-800"
-            >✕</button>
-          )}
           {showDateCalendar && (
             <div className="absolute top-full mt-2 z-[9999] bg-white border border-gray-200 rounded-lg shadow-xl p-4" style={{minWidth: '320px', right: 0}}>
               <div className="flex items-center justify-between mb-4">
@@ -457,9 +469,9 @@ export default function ExceptionsPage() {
                 </button>
               </div>
               <div className="flex gap-2 mb-2">
-                <button type="button" onClick={selectWeekPeriod} className="px-2 py-1 text-xs bg-gray-100 rounded hover:bg-blue-100">Неделя</button>
-                <button type="button" onClick={selectMonthPeriod} className="px-2 py-1 text-xs bg-gray-100 rounded hover:bg-blue-100">Месяц</button>
-                <button type="button" onClick={selectQuarterPeriod} className="px-2 py-1 text-xs bg-gray-100 rounded hover:bg-blue-100">Квартал</button>
+                <button type="button" onClick={selectWeekPeriodSearch} className="px-2 py-1 text-xs bg-gray-100 rounded hover:bg-blue-100">Неделя</button>
+                <button type="button" onClick={selectMonthPeriodSearch} className="px-2 py-1 text-xs bg-gray-100 rounded hover:bg-blue-100">Месяц</button>
+                <button type="button" onClick={selectQuarterPeriodSearch} className="px-2 py-1 text-xs bg-gray-100 rounded hover:bg-blue-100">Квартал</button>
                 <button type="button" onClick={() => { setSearchDate(''); setShowDateCalendar(false); }} className="px-2 py-1 text-xs bg-gray-100 rounded hover:bg-red-100 text-red-600">Сбросить</button>
               </div>
               <div className="grid grid-cols-7 gap-1 mb-2">
