@@ -369,9 +369,13 @@ export default function SvodReportPage() {
                     <td className="px-4 py-3 text-sm text-gray-600">{emp.department}</td>
                     <td className="px-4 py-3 text-sm">
                       {emp.comment ? (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                          🛡️ {emp.comment}
-                        </span>
+                        emp.exception_type === 'at_work' ? (
+                          <span className="text-gray-900">{emp.comment}</span>
+                        ) : (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                            🛡️ {emp.comment}
+                          </span>
+                        )
                       ) : (
                         <span className="text-gray-400">-</span>
                       )}
