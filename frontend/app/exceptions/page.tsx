@@ -436,7 +436,7 @@ export default function ExceptionsPage() {
             >✕</button>
           )}
           {showDateCalendar && (
-            <div className="absolute top-full mt-2 z-[9999] bg-white border border-gray-200 rounded-lg shadow-xl p-4" style={{minWidth: '280px', right: 0}}>
+            <div className="absolute top-full mt-2 z-[9999] bg-white border border-gray-200 rounded-lg shadow-xl p-4" style={{minWidth: '320px', right: 0}}>
               <div className="flex items-center justify-between mb-4">
                 <button
                   type="button"
@@ -455,6 +455,12 @@ export default function ExceptionsPage() {
                 >
                   <ChevronRight className="h-4 w-4" />
                 </button>
+              </div>
+              <div className="flex gap-2 mb-2">
+                <button type="button" onClick={selectWeekPeriod} className="px-2 py-1 text-xs bg-gray-100 rounded hover:bg-blue-100">Неделя</button>
+                <button type="button" onClick={selectMonthPeriod} className="px-2 py-1 text-xs bg-gray-100 rounded hover:bg-blue-100">Месяц</button>
+                <button type="button" onClick={selectQuarterPeriod} className="px-2 py-1 text-xs bg-gray-100 rounded hover:bg-blue-100">Квартал</button>
+                <button type="button" onClick={() => { setSearchDate(''); setShowDateCalendar(false); }} className="px-2 py-1 text-xs bg-gray-100 rounded hover:bg-red-100 text-red-600">Сбросить</button>
               </div>
               <div className="grid grid-cols-7 gap-1 mb-2">
                 {['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'].map(day => (
