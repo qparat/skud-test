@@ -362,7 +362,7 @@ export default function SvodReportPage() {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredSvodEmployees.map((emp, idx) => (
-                  <tr key={emp.id} className="hover:bg-gray-50">
+                  <tr key={emp.id} className={`hover:bg-gray-50 ${emp.exception_type && emp.exception_type !== 'at_work' ? 'bg-blue-50' : ''}`}>
                     <td className="px-4 py-3 text-sm text-gray-900">{idx + 1}</td>
                     <td className="px-4 py-3 text-sm text-gray-900">{emp.position}</td>
                     <td className="px-4 py-3 text-sm font-medium text-blue-700">{emp.full_name}</td>
