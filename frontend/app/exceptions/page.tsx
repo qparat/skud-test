@@ -132,10 +132,11 @@ export default function ExceptionsPage() {
     if (hasSelectedDate && !hasRange) {
       if (dateStr === selectedDate) {
         // Второй клик по той же дате — выбираем один день
-  setFormData((prev: typeof formData) => ({ ...prev, exception_date: dateStr, start_date: '', end_date: '' }));
+        setFormData((prev: typeof formData) => ({ ...prev, exception_date: dateStr, start_date: '', end_date: '' }));
         setIsDateRange(false);
         setShowCalendar(false);
-        setSelectedDate('');
+        // Оставляем selectedDate чтобы показать что дата выбрана
+        // setSelectedDate(''); // НЕ сбрасываем
         setStartDate('');
         setEndDate('');
         return;
@@ -552,7 +553,9 @@ export default function ExceptionsPage() {
                   <Calendar className="h-4 w-4 mr-2" />
                   {startDate && endDate 
                     ? `${startDate} - ${endDate} (диапазон)`
-                    : selectedDate 
+                    : formData.exception_date 
+                    ? formData.exception_date
+                    : selectedDate
                     ? selectedDate
                     : 'Выбрать дату'
                   }
@@ -560,7 +563,7 @@ export default function ExceptionsPage() {
               </button>
               
               {/* Кнопка сброса */}
-              {(selectedDate || (startDate && endDate)) && (
+              {(formData.exception_date || selectedDate || (startDate && endDate)) && (
                 <button
                   type="button"
                   onClick={clearDates}
