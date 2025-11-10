@@ -2125,22 +2125,53 @@ async def get_svod_report(date: str = None):
             fetch_all=True
         )
         
+        # Получаем данные о входах за выбранную дату
+        access_data = execute_query(
+            conn,
+            """
+            SELECT DISTINCT employee_id
+            FROM access_logs
+            WHERE DATE(access_datetime) = %s
+            """,
+            (date,),
+            fetch_all=True
+        )
+        
         conn.close()
         
         # Создаем словарь исключений по employee_id
         exceptions_dict = {exc['employee_id']: exc for exc in exceptions_data}
         
+        # Создаем set с id сотрудников, у которых есть вход
+        employees_with_access = {acc['employee_id'] for acc in access_data}
+        
         # Формируем результат
         result = []
         for emp in employees_data:
             exception = exceptions_dict.get(emp['id'])
+            has_access = emp['id'] in employees_with_access
+            
+            # Определяем комментарий по приоритету:
+            # 1. Если есть исключение - показываем исключение
+            # 2. Если есть вход - показываем "На рабочем месте"
+            # 3. Иначе - пусто (будет показан прочерк)
+            if exception:
+                comment = exception['reason']
+                exception_type = exception['exception_type']
+            elif has_access:
+                comment = 'На рабочем месте'
+                exception_type = 'at_work'
+            else:
+                comment = ''
+                exception_type = None
+            
             result.append({
                 'id': emp['id'],
                 'full_name': emp['full_name'],
                 'position': emp.get('position_name') or 'Не указана должность',
                 'department': emp.get('department_name') or 'Не указан отдел',
-                'comment': exception['reason'] if exception else '',
-                'exception_type': exception['exception_type'] if exception else None,
+                'comment': comment,
+                'exception_type': exception_type,
                 'in_svod': True  # Всегда True, т.к. показываем только тех кто в своде
             })
         
