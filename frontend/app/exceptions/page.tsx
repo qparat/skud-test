@@ -587,6 +587,7 @@ export default function ExceptionsPage() {
                   return days.map((date, index) => {
                     const dateStr = formatDate(date);
                     const isCurrentMonth = date.getMonth() === dateCalendarMonth.getMonth();
+                    const isToday = dateStr === today;
                     const isSelectedDate = dateStr === searchSelectedDate;
                     const isInRange = searchStartDate && searchEndDate && dateStr >= searchStartDate && dateStr <= searchEndDate;
                     const isStartOrEnd = dateStr === searchStartDate || dateStr === searchEndDate;
@@ -598,11 +599,12 @@ export default function ExceptionsPage() {
                         onClick={() => handleSearchDateClick(dateStr)}
                         className={`w-8 h-8 text-xs rounded-full flex items-center justify-center
                           ${!isCurrentMonth ? 'text-gray-300' : ''}
+                          ${isToday && !searchDate && !isSelectedDate && !isStartOrEnd && !isInRange ? 'bg-blue-100 text-blue-600 font-bold' : ''}
                           ${searchDate === dateStr ? 'bg-blue-600 text-white font-bold' : ''}
                           ${isSelectedDate ? 'bg-blue-600 text-white' : ''}
                           ${isStartOrEnd ? 'bg-green-600 text-white' : ''}
                           ${isInRange && !isStartOrEnd ? 'bg-green-100 text-green-800' : ''}
-                          ${!searchDate && !isSelectedDate && !isInRange && isCurrentMonth ? 'hover:bg-gray-100' : ''}`}
+                          ${!searchDate && !isSelectedDate && !isInRange && !isToday && isCurrentMonth ? 'hover:bg-gray-100' : ''}`}
                       >
                         {date.getDate()}
                       </button>
