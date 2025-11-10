@@ -528,12 +528,24 @@ export default function ExceptionsPage() {
                   return days.map((date, index) => {
                     const dateStr = formatDate(date);
                     const isCurrentMonth = date.getMonth() === dateCalendarMonth.getMonth();
+                    
+                    // Проверяем, находится ли дата в выбранном диапазоне
+                    let isInSearchRange = false;
+                    if (searchDateRange !== '') {
+                      const rangeParts = searchDateRange.split(' - ');
+                      if (rangeParts.length >= 2) {
+                        const rangeStart = rangeParts[0].trim();
+                        const rangeEnd = rangeParts[1].split(' ')[0].trim();
+                        isInSearchRange = dateStr >= rangeStart && dateStr <= rangeEnd;
+                      }
+                    }
+                    
                     return (
                       <button
                         key={index}
                         type="button"
                         onClick={() => { setSearchDate(dateStr); setSearchDateRange(''); setShowDateCalendar(false); }}
-                        className={`w-8 h-8 text-xs rounded-full flex items-center justify-center ${!isCurrentMonth ? 'text-gray-300' : ''} ${searchDate === dateStr ? 'bg-blue-600 text-white font-bold' : 'hover:bg-gray-100'}`}
+                        className={`w-8 h-8 text-xs rounded-full flex items-center justify-center ${!isCurrentMonth ? 'text-gray-300' : ''} ${searchDate === dateStr ? 'bg-blue-600 text-white font-bold' : isInSearchRange ? 'bg-blue-100 text-blue-800 font-medium' : 'hover:bg-gray-100'}`}
                       >
                         {date.getDate()}
                       </button>
