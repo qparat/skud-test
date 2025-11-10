@@ -1,7 +1,7 @@
 ﻿'use client'
 
 import React, { useState, useEffect, ChangeEvent, FormEvent } from 'react';
-import { Plus, Edit3, Trash2, Calendar, User, AlertCircle, ChevronUp, ChevronDown } from 'lucide-react';
+import { Plus, Edit3, Trash2, Calendar, User, AlertCircle, ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { apiRequest } from '@/lib/api';
 
 // Функция для правильного получения даты в формате YYYY-MM-DD без проблем с временной зоной
@@ -443,7 +443,7 @@ export default function ExceptionsPage() {
                   onClick={() => setDateCalendarMonth(prev => new Date(prev.getFullYear(), prev.getMonth() - 1))}
                   className="p-1 hover:bg-gray-100 rounded"
                 >
-                  <ChevronUp className="h-4 w-4 rotate-270" />
+                  <ChevronLeft className="h-4 w-4" />
                 </button>
                 <h3 className="text-sm font-medium">
                   {dateCalendarMonth.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' })}
@@ -453,7 +453,7 @@ export default function ExceptionsPage() {
                   onClick={() => setDateCalendarMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + 1))}
                   className="p-1 hover:bg-gray-100 rounded"
                 >
-                  <ChevronDown className="h-4 w-4 rotate-90" />
+                  <ChevronRight className="h-4 w-4" />
                 </button>
               </div>
               <div className="grid grid-cols-7 gap-1 mb-2">
@@ -583,7 +583,7 @@ export default function ExceptionsPage() {
                       onClick={goToPreviousMonth}
                       className="p-1 hover:bg-gray-100 rounded"
                     >
-                      <ChevronUp className="h-4 w-4 rotate-270" />
+                      <ChevronLeft className="h-4 w-4" />
                     </button>
                     <h3 className="text-sm font-medium">
                       {currentMonth.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' })}
@@ -593,7 +593,7 @@ export default function ExceptionsPage() {
                       onClick={goToNextMonth}
                       className="p-1 hover:bg-gray-100 rounded"
                     >
-                      <ChevronDown className="h-4 w-4 rotate-90" />
+                      <ChevronRight className="h-4 w-4" />
                     </button>
                   </div>
                   <div className="flex gap-2 mb-2">
