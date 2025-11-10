@@ -34,6 +34,7 @@ export default function ExceptionsPage() {
   const [searchName, setSearchName] = useState<string>('');
   const [searchReason, setSearchReason] = useState<string>('');
   const [searchDate, setSearchDate] = useState<string>('');
+  const [searchDateRange, setSearchDateRange] = useState<string>(''); // Для отображения периода
   const [showDateCalendar, setShowDateCalendar] = useState<boolean>(false);
   const [dateCalendarMonth, setDateCalendarMonth] = useState<Date>(new Date());
   const [exceptions, setExceptions] = useState<Exception[]>([]);
@@ -238,22 +239,37 @@ export default function ExceptionsPage() {
     setLastLoadedDate(endStr);
   };
 
-  // Быстрый выбор периода для календаря поиска (устанавливает searchDate на последний день периода)
+  // Быстрый выбор периода для календаря поиска
   const selectWeekPeriodSearch = () => {
     const todayDate = new Date();
-    setSearchDate(formatDate(todayDate));
+    const weekStart = new Date(todayDate);
+    weekStart.setDate(todayDate.getDate() - 7);
+    const startStr = formatDate(weekStart);
+    const endStr = formatDate(todayDate);
+    setSearchDate('');
+    setSearchDateRange(`${startStr} - ${endStr} (неделя)`);
     setShowDateCalendar(false);
   };
 
   const selectMonthPeriodSearch = () => {
     const todayDate = new Date();
-    setSearchDate(formatDate(todayDate));
+    const monthStart = new Date(todayDate);
+    monthStart.setDate(todayDate.getDate() - 30);
+    const startStr = formatDate(monthStart);
+    const endStr = formatDate(todayDate);
+    setSearchDate('');
+    setSearchDateRange(`${startStr} - ${endStr} (месяц)`);
     setShowDateCalendar(false);
   };
 
   const selectQuarterPeriodSearch = () => {
     const todayDate = new Date();
-    setSearchDate(formatDate(todayDate));
+    const quarterStart = new Date(todayDate);
+    quarterStart.setDate(todayDate.getDate() - 90);
+    const startStr = formatDate(quarterStart);
+    const endStr = formatDate(todayDate);
+    setSearchDate('');
+    setSearchDateRange(`${startStr} - ${endStr} (квартал)`);
     setShowDateCalendar(false);
   };
 
@@ -393,7 +409,21 @@ export default function ExceptionsPage() {
   const filteredExceptions = exceptions.filter((exception: Exception) => {
     const nameMatch = searchName.trim() === '' || exception.full_name.toLowerCase().includes(searchName.trim().toLowerCase());
     const reasonMatch = searchReason.trim() === '' || exception.reason.toLowerCase().includes(searchReason.trim().toLowerCase());
-    const dateMatch = searchDate.trim() === '' || exception.exception_date === searchDate.trim();
+    
+    let dateMatch = true;
+    if (searchDate.trim() !== '') {
+      // Фильтр по конкретной дате
+      dateMatch = exception.exception_date === searchDate.trim();
+    } else if (searchDateRange !== '') {
+      // Фильтр по диапазону дат
+      const rangeParts = searchDateRange.split(' - ');
+      if (rangeParts.length >= 2) {
+        const startDate = rangeParts[0].trim();
+        const endDate = rangeParts[1].split(' ')[0].trim(); // Убираем "(неделя)", "(месяц)", "(квартал)"
+        dateMatch = exception.exception_date >= startDate && exception.exception_date <= endDate;
+      }
+    }
+    
     return nameMatch && reasonMatch && dateMatch;
   });
 
@@ -445,7 +475,7 @@ export default function ExceptionsPage() {
             className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md bg-white text-sm text-gray-700 hover:bg-gray-50"
           >
             <Calendar className="h-4 w-4 mr-2" />
-            {searchDate ? searchDate : 'Поиск по дате'}
+            {searchDateRange ? searchDateRange : (searchDate ? searchDate : 'Поиск по дате')}
           </button>
           {showDateCalendar && (
             <div className="absolute top-full mt-2 z-[9999] bg-white border border-gray-200 rounded-lg shadow-xl p-4" style={{minWidth: '320px', right: 0}}>
@@ -472,7 +502,7 @@ export default function ExceptionsPage() {
                 <button type="button" onClick={selectWeekPeriodSearch} className="px-2 py-1 text-xs bg-gray-100 rounded hover:bg-blue-100">Неделя</button>
                 <button type="button" onClick={selectMonthPeriodSearch} className="px-2 py-1 text-xs bg-gray-100 rounded hover:bg-blue-100">Месяц</button>
                 <button type="button" onClick={selectQuarterPeriodSearch} className="px-2 py-1 text-xs bg-gray-100 rounded hover:bg-blue-100">Квартал</button>
-                <button type="button" onClick={() => { setSearchDate(''); setShowDateCalendar(false); }} className="px-2 py-1 text-xs bg-gray-100 rounded hover:bg-red-100 text-red-600">Сбросить</button>
+                <button type="button" onClick={() => { setSearchDate(''); setSearchDateRange(''); setShowDateCalendar(false); }} className="px-2 py-1 text-xs bg-gray-100 rounded hover:bg-red-100 text-red-600">Сбросить</button>
               </div>
               <div className="grid grid-cols-7 gap-1 mb-2">
                 {['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'].map(day => (
@@ -502,7 +532,7 @@ export default function ExceptionsPage() {
                       <button
                         key={index}
                         type="button"
-                        onClick={() => { setSearchDate(dateStr); setShowDateCalendar(false); }}
+                        onClick={() => { setSearchDate(dateStr); setSearchDateRange(''); setShowDateCalendar(false); }}
                         className={`w-8 h-8 text-xs rounded-full flex items-center justify-center ${!isCurrentMonth ? 'text-gray-300' : ''} ${searchDate === dateStr ? 'bg-blue-600 text-white font-bold' : 'hover:bg-gray-100'}`}
                       >
                         {date.getDate()}
