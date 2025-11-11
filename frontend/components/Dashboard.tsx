@@ -575,7 +575,7 @@ export function Dashboard() {
             <span className="text-sm font-medium text-amber-700">Исключения</span>
           </button>
           <button className="flex flex-col items-center p-4 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors duration-200">
-            <TrendingUp className="h-8 w-8 text-purple-600 mb-2" />
+            <File className="h-8 w-8 text-purple-600 mb-2" />
             <span className="text-sm font-medium text-purple-700">Отчеты</span>
           </button>
         </div>
