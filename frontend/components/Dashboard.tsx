@@ -184,7 +184,7 @@ export function Dashboard() {
               Статистика посещаемости за {new Date().toLocaleDateString('ru-RU')}
             </p>
           </div>
-          <Activity className="h-16 w-16 text-blue-200" />
+          <Calendar className="h-16 w-16 text-blue-200" />
         </div>
       </div>
 
