@@ -9,7 +9,8 @@ import {
   Calendar, 
   MapPin,
   Activity,
-  UserCheck
+  UserCheck,
+  File
 } from 'lucide-react'
 import { apiRequest } from '@/lib/api'
 
