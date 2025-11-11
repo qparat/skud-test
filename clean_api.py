@@ -3071,10 +3071,11 @@ async def get_dashboard_employee_lists(
             date = datetime.today().strftime('%Y-%m-%d')
         
         conn = get_db_connection()
-        cursor = conn.cursor()
         
         # Получаем всех сотрудников с первым входом за день
-        cursor.execute("""
+        all_employees = execute_query(
+            conn,
+            """
             WITH first_entries AS (
                 SELECT 
                     al.employee_id,
@@ -3099,9 +3100,10 @@ async def get_dashboard_employee_lists(
                 is_late
             FROM first_entries
             ORDER BY full_name
-        """, (date,))
-        
-        all_employees = cursor.fetchall()
+            """,
+            (date,),
+            fetch_all=True
+        )
         conn.close()
         
         # Разделяем на две группы

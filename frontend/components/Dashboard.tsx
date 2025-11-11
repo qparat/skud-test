@@ -215,12 +215,12 @@ export function Dashboard() {
         let hasMoreData = true
         
         while (hasMoreData) {
-          const endpoint = `employee-schedule?date=${targetDate}&per_page=1000&page=${page}`
+          const endpoint = `employee-schedule?date=${targetDate}&per_page=100&page=${page}`
           const response = await apiRequest(endpoint)
           
           if (response.employees && response.employees.length > 0) {
             allEmployees = [...allEmployees, ...response.employees]
-            hasMoreData = response.employees.length === 1000
+            hasMoreData = response.employees.length === 100
             page++
           } else {
             hasMoreData = false
