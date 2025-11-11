@@ -202,10 +202,10 @@ export function Dashboard() {
       
       while (hasMoreData) {
         const endpoint = `employee-schedule?date=${targetDate}&per_page=100&page=${page}`
-        console.log(`Fetching page ${page} from:`, endpoint) // Отладка
+        // console.log(`Fetching page ${page} from:`, endpoint) // Отладка
         
         const response = await apiRequest(endpoint)
-        console.log(`Page ${page} response:`, response) // Отладка
+        // console.log(`Page ${page} response:`, response) // Отладка
         
         if (response.employees && response.employees.length > 0) {
           allEmployees = [...allEmployees, ...response.employees]
@@ -217,7 +217,7 @@ export function Dashboard() {
         }
       }
       
-      console.log('Total employees across all pages:', allEmployees.length) // Отладка
+      // console.log('Total employees across all pages:', allEmployees.length) // Отладка
       
       // Фильтруем сотрудников в зависимости от типа
       let filteredEmployees: any[] = []
@@ -227,9 +227,9 @@ export function Dashboard() {
           const onTimeEmployees = allEmployees.filter((emp: any) => 
             emp.first_entry && !emp.is_late
           )
-          console.log(`Found ${onTimeEmployees.length} employees who came on time`) // Отладка
+          // console.log(`Found ${onTimeEmployees.length} employees who came on time`) // Отладка
           filteredEmployees = onTimeEmployees.map((emp: any) => {
-            console.log('Processing onTime employee:', emp) // Отладка структуры
+            // console.log('Processing onTime employee:', emp) // Отладка структуры
             return {
               id: emp.id || emp.employee_id || emp.emp_id,
               name: emp.full_name || emp.name,
@@ -242,9 +242,9 @@ export function Dashboard() {
           const lateEmployees = allEmployees.filter((emp: any) => 
             emp.first_entry && emp.is_late
           )
-          console.log(`Found ${lateEmployees.length} employees who came late`) // Отладка
+          // console.log(`Found ${lateEmployees.length} employees who came late`) // Отладка
           filteredEmployees = lateEmployees.map((emp: any) => {
-            console.log('Processing late employee:', emp) // Отладка структуры
+            // console.log('Processing late employee:', emp) // Отладка структуры
             return {
               id: emp.id || emp.employee_id || emp.emp_id,
               name: emp.full_name || emp.name,
@@ -255,7 +255,7 @@ export function Dashboard() {
         }
       }
       
-      console.log('Filtered employees:', filteredEmployees) // Отладка
+      // console.log('Filtered employees:', filteredEmployees) // Отладка
       setEmployeeDetails(filteredEmployees)
       setModalType(type)
       setShowModal(true)
