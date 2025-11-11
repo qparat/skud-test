@@ -194,18 +194,37 @@ export function Dashboard() {
     try {
       setModalLoading(true)
       const targetDate = selectedDate || today
-      const endpoint = `employee-schedule?date=${targetDate}&per_page=1000` // Получаем до 1000 сотрудников
-      console.log('Fetching employee details from:', endpoint) // Отладка
-      const response = await apiRequest(endpoint)
-      console.log('Employee schedule response:', response) // Отладка
-      console.log('Total employees in response:', response.employees ? response.employees.length : 0) // Отладка
+      
+      // Получаем всех сотрудников через пагинацию
+      let allEmployees: any[] = []
+      let page = 1
+      let hasMoreData = true
+      
+      while (hasMoreData) {
+        const endpoint = `employee-schedule?date=${targetDate}&per_page=100&page=${page}`
+        console.log(`Fetching page ${page} from:`, endpoint) // Отладка
+        
+        const response = await apiRequest(endpoint)
+        console.log(`Page ${page} response:`, response) // Отладка
+        
+        if (response.employees && response.employees.length > 0) {
+          allEmployees = [...allEmployees, ...response.employees]
+          // Если получили меньше 100, значит это последняя страница
+          hasMoreData = response.employees.length === 100
+          page++
+        } else {
+          hasMoreData = false
+        }
+      }
+      
+      console.log('Total employees across all pages:', allEmployees.length) // Отладка
       
       // Фильтруем сотрудников в зависимости от типа
-      let filteredEmployees = []
-      if (response.employees) {
+      let filteredEmployees: any[] = []
+      if (allEmployees.length > 0) {
         if (type === 'onTime') {
           // Сотрудники, которые пришли и не опоздали
-          const onTimeEmployees = response.employees.filter((emp: any) => 
+          const onTimeEmployees = allEmployees.filter((emp: any) => 
             emp.first_entry && !emp.is_late
           )
           console.log(`Found ${onTimeEmployees.length} employees who came on time`) // Отладка
@@ -220,7 +239,7 @@ export function Dashboard() {
           })
         } else if (type === 'late') {
           // Сотрудники, которые опоздали
-          const lateEmployees = response.employees.filter((emp: any) => 
+          const lateEmployees = allEmployees.filter((emp: any) => 
             emp.first_entry && emp.is_late
           )
           console.log(`Found ${lateEmployees.length} employees who came late`) // Отладка
@@ -242,6 +261,7 @@ export function Dashboard() {
       setShowModal(true)
     } catch (err) {
       console.error('Ошибка получения данных сотрудников:', err)
+      console.error('Error details:', err instanceof Error ? err.message : err)
       // Показываем mock данные для демонстрации
       const mockEmployees = type === 'onTime' ? [
         { id: 123, name: 'Иванов Иван Иванович', first_entry: '08:45:00', is_late: false },
