@@ -758,6 +758,20 @@ export function EmployeeSchedule() {
 
   return (
     <div className="space-y-6">
+      {/* Header with title and navigation button */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Расписание сотрудников</h1>
+          <p className="text-gray-600">Просмотр расписания работы сотрудников по дням</p>
+        </div>
+        <button
+          onClick={() => router.push('/reports')}
+          className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+        >
+          Отчеты
+        </button>
+      </div>
+
       {/* Employee table */}
       <div className="bg-white rounded-lg shadow overflow-visible">
         <div className="px-6 py-4 border-b border-gray-200">
