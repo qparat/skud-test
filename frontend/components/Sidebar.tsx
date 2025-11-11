@@ -20,7 +20,7 @@ import {
 } from 'lucide-react'
 
 const navigation = [
-  { name: 'Расписание', href: '/', icon: LayoutDashboard },
+  { name: 'Расписание', href: '/schedule', icon: LayoutDashboard },
   { name: 'Список сотрудников', href: '/employees', icon: Users },
   { name: 'Отчеты', href: '/reports', icon: File, requireRole: 2 },
   { name: 'Службы', href: '/departments', icon: Building2, requireRole: 2 },
