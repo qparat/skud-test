@@ -33,7 +33,7 @@ const navigation = [
 export function Sidebar() {
   const pathname = usePathname()
   const { hasRole, hasAnyRole } = useAuth()
-  const [isCollapsed, setIsCollapsed] = useState(false)
+  const [isCollapsed, setIsCollapsed] = useState(true)
 
   // Фильтруем навигацию по ролям
   const filteredNavigation = navigation.filter(item => {
