@@ -323,7 +323,7 @@ export function Dashboard() {
 
   const attendanceData = [
     { name: 'Вовремя', value: stats.todayAttendance.onTime, color: '#10b981' },
-    { name: 'Опоздали', value: stats.todayAttendance.late, color: '#f59e0b' }
+    { name: 'Опоздали', value: stats.todayAttendance.late, color: '#dc2626' }
   ]
 
   const total = stats.todayAttendance.onTime + stats.todayAttendance.late
@@ -439,25 +439,25 @@ export function Dashboard() {
 
         {/* Опоздания */}
         <div 
-          className="bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow duration-300 cursor-pointer hover:bg-amber-50"
+          className="bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow duration-300 cursor-pointer hover:bg-red-50"
           onClick={() => fetchEmployeeDetails('late')}
         >
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Опоздания</p>
-              <p className="text-3xl font-bold text-amber-600 animate-pulse">
+              <p className="text-3xl font-bold text-red-600 animate-pulse">
                 {stats.todayAttendance.late}
               </p>
             </div>
-            <div className="p-3 bg-amber-100 rounded-full">
-              <Clock className="h-8 w-8 text-amber-600" />
+            <div className="p-3 bg-red-100 rounded-full">
+              <Clock className="h-8 w-8 text-red-600" />
             </div>
           </div>
           <div className="mt-4">
             <div className="text-sm text-gray-500">
               {total > 0 ? (stats.todayAttendance.late / total * 100).toFixed(1) : 0}% от общего числа
             </div>
-            <div className="text-xs text-amber-600 font-medium mt-1">
+            <div className="text-xs text-red-600 font-medium mt-1">
               Нажмите для просмотра списка
             </div>
           </div>
@@ -470,12 +470,12 @@ export function Dashboard() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Исключения</p>
-              <p className="text-3xl font-bold text-red-600 animate-pulse">
+              <p className="text-3xl font-bold text-blue-600 animate-pulse">
                 {stats.recentActivity.exceptions}
               </p>
             </div>
-            <div className="p-3 bg-red-100 rounded-full">
-              <AlertCircle className="h-8 w-8 text-red-600" />
+            <div className="p-3 bg-blue-100 rounded-full">
+              <AlertCircle className="h-8 w-8 text-blue-600" />
             </div>
           </div>
           <div className="mt-4">
