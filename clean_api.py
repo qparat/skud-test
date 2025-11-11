@@ -470,9 +470,18 @@ def create_svod_report_employees_table():
             CREATE TABLE IF NOT EXISTS svod_report_employees (
                 id SERIAL PRIMARY KEY,
                 employee_id INTEGER NOT NULL UNIQUE REFERENCES employees(id) ON DELETE CASCADE,
+                order_index INTEGER DEFAULT 0,
                 added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
+        
+        # Добавляем колонку order_index, если таблица уже существует без неё
+        try:
+            cursor.execute("ALTER TABLE svod_report_employees ADD COLUMN order_index INTEGER DEFAULT 0")
+        except Exception:
+            # Колонка уже существует, это нормально
+            pass
+            
         conn.commit()
         conn.close()
     except Exception as e:
@@ -2072,17 +2081,26 @@ async def get_svod_report(date: str = None):
         
         conn = get_db_connection()
         
-        # Получаем список сотрудников в своде (без привязки к дате)
-        employees_in_svod = execute_query(
+        # Получаем сотрудников из свода в правильном порядке
+        employees_data = execute_query(
             conn,
             """
-            SELECT employee_id
-            FROM svod_report_employees
+            SELECT e.id, e.full_name, 
+                   p.name as position_name,
+                   d.name as department_name,
+                   sre.order_index
+            FROM svod_report_employees sre
+            JOIN employees e ON sre.employee_id = e.id
+            LEFT JOIN positions p ON e.position_id = p.id
+            LEFT JOIN departments d ON e.department_id = d.id
+            WHERE e.is_active = %s
+            ORDER BY sre.order_index ASC, sre.id ASC
             """,
+            (True,),
             fetch_all=True
         )
         
-        svod_employee_ids = [emp['employee_id'] for emp in employees_in_svod]
+        svod_employee_ids = [emp['id'] for emp in employees_data]
         
         # Если список пуст, возвращаем пустой результат
         if not svod_employee_ids:
@@ -2093,25 +2111,6 @@ async def get_svod_report(date: str = None):
                 'total_count': 0,
                 'svod_count': 0
             }
-        
-        # Получаем только сотрудников из списка свода
-        placeholders = ','.join(['%s'] * len(svod_employee_ids))
-        employees_data = execute_query(
-            conn,
-            f"""
-            SELECT e.id, e.full_name, 
-                   p.name as position_name,
-                   d.name as department_name
-            FROM employees e
-            LEFT JOIN positions p ON e.position_id = p.id
-            LEFT JOIN departments d ON e.department_id = d.id
-            WHERE e.id IN ({placeholders})
-            AND e.is_active = %s
-            ORDER BY d.name, p.name, e.full_name
-            """,
-            (*svod_employee_ids, True),
-            fetch_all=True
-        )
         
         # Получаем исключения за выбранную дату
         exceptions_data = execute_query(
@@ -2259,6 +2258,61 @@ async def remove_employee_from_svod(employee_id: int):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка удаления из свода: {str(e)}")
+
+@app.post("/svod-report/update-order")
+async def update_svod_order(order_data: dict, current_user: dict = Depends(get_current_user)):
+    """Обновить порядок сотрудников в своде ТРК"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Получаем данные о порядке из запроса
+        order_list = order_data.get('order', [])
+        if not order_list:
+            raise HTTPException(status_code=400, detail="Не переданы данные о порядке")
+        
+        # Проверим, что все employee_id существуют в своде
+        employee_ids = [item['employee_id'] for item in order_list]
+        placeholders = ','.join(['%s'] * len(employee_ids))
+        cursor.execute(f"SELECT employee_id FROM svod_report_employees WHERE employee_id IN ({placeholders})", employee_ids)
+        existing_ids = [row[0] for row in cursor.fetchall()]
+        
+        # Проверяем, что все переданные ID существуют в своде
+        missing_ids = set(employee_ids) - set(existing_ids)
+        if missing_ids:
+            raise HTTPException(status_code=400, detail=f"Сотрудники с ID {missing_ids} не найдены в своде")
+        
+        # Добавляем колонку order_index в таблицу, если её нет
+        try:
+            cursor.execute("ALTER TABLE svod_report_employees ADD COLUMN order_index INTEGER DEFAULT 0")
+            conn.commit()
+        except Exception:
+            # Колонка уже существует, это нормально
+            pass
+        
+        # Обновляем порядок для каждого сотрудника
+        for item in order_list:
+            employee_id = item['employee_id']
+            order_index = item['order_index']
+            
+            cursor.execute("""
+                UPDATE svod_report_employees 
+                SET order_index = %s 
+                WHERE employee_id = %s
+            """, (order_index, employee_id))
+        
+        conn.commit()
+        conn.close()
+        
+        return {
+            "message": "Порядок сотрудников в своде обновлен",
+            "updated_count": len(order_list)
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка обновления порядка: {str(e)}")
 
 @app.get("/departments/{department_id}/positions")
 async def get_department_positions(department_id: int):

@@ -40,7 +40,6 @@ export default function SvodReportPage() {
   const [modalSearchQuery, setModalSearchQuery] = useState('')
   const [showModal, setShowModal] = useState(false)
   const [actionLoading, setActionLoading] = useState<number | null>(null)
-  const [orderSaving, setOrderSaving] = useState(false)
   
   // Состояния для календаря
   const [showCalendar, setShowCalendar] = useState(false)
@@ -221,7 +220,6 @@ export default function SvodReportPage() {
     setSvodEmployees(updatedSvodEmployees)
     
     // Сохраняем новый порядок на сервере
-    setOrderSaving(true)
     try {
       const orderData = updatedSvodEmployees.map((emp, index) => ({
         employee_id: emp.id,
@@ -232,13 +230,13 @@ export default function SvodReportPage() {
         method: 'POST',
         body: JSON.stringify({ order: orderData })
       })
+      
+      console.log('Порядок сотрудников сохранен на сервере')
     } catch (err) {
       console.error('Ошибка сохранения порядка:', err)
-      // При ошибке возвращаем исходный порядок
+      // При ошибке перезагружаем данные с сервера
       loadSvodReport()
-      alert('Ошибка сохранения порядка сотрудников')
-    } finally {
-      setOrderSaving(false)
+      alert('Ошибка сохранения порядка сотрудников. Данные восстановлены.')
     }
     
     setDraggedIndex(null)
@@ -432,9 +430,6 @@ export default function SvodReportPage() {
               <div className="text-xs text-gray-500 flex items-center">
                 <GripVertical className="h-3 w-3 mr-1" />
                 Перетащите строки для изменения порядка
-                {orderSaving && (
-                  <span className="ml-3 text-blue-600 font-medium">Сохраняется...</span>
-                )}
               </div>
             </div>
             
