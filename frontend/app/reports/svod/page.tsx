@@ -40,6 +40,7 @@ export default function SvodReportPage() {
   const [modalSearchQuery, setModalSearchQuery] = useState('')
   const [showModal, setShowModal] = useState(false)
   const [actionLoading, setActionLoading] = useState<number | null>(null)
+  const [orderSaving, setOrderSaving] = useState(false)
   
   // Состояния для календаря
   const [showCalendar, setShowCalendar] = useState(false)
@@ -185,7 +186,7 @@ export default function SvodReportPage() {
     setDragOverIndex(null)
   }
 
-  const handleDrop = (e: React.DragEvent, dropIndex: number) => {
+  const handleDrop = async (e: React.DragEvent, dropIndex: number) => {
     e.preventDefault()
     
     if (draggedIndex === null || draggedIndex === dropIndex) {
@@ -204,16 +205,40 @@ export default function SvodReportPage() {
     newEmployees.splice(dropIndex, 0, draggedEmployee)
     
     // Обновляем порядок в основном массиве
-    const updatedSvodEmployees = [...svodEmployees]
+    let updatedSvodEmployees = [...svodEmployees]
     
     // Если есть фильтрация, нужно корректно обновить порядок
     if (searchQuery.trim() === '') {
-      setSvodEmployees(newEmployees)
+      updatedSvodEmployees = newEmployees
     } else {
       // При фильтрации обновляем только отфильтрованные элементы в правильном порядке
       const filteredIds = newEmployees.map(emp => emp.id)
       const nonFilteredEmployees = svodEmployees.filter(emp => !filteredIds.includes(emp.id))
-      setSvodEmployees([...newEmployees, ...nonFilteredEmployees])
+      updatedSvodEmployees = [...newEmployees, ...nonFilteredEmployees]
+    }
+    
+    // Обновляем состояние локально
+    setSvodEmployees(updatedSvodEmployees)
+    
+    // Сохраняем новый порядок на сервере
+    setOrderSaving(true)
+    try {
+      const orderData = updatedSvodEmployees.map((emp, index) => ({
+        employee_id: emp.id,
+        order_index: index
+      }))
+      
+      await apiRequest('svod-report/update-order', {
+        method: 'POST',
+        body: JSON.stringify({ order: orderData })
+      })
+    } catch (err) {
+      console.error('Ошибка сохранения порядка:', err)
+      // При ошибке возвращаем исходный порядок
+      loadSvodReport()
+      alert('Ошибка сохранения порядка сотрудников')
+    } finally {
+      setOrderSaving(false)
     }
     
     setDraggedIndex(null)
