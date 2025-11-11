@@ -2917,12 +2917,24 @@ def execute_query(conn, query, params=None, fetch_one=False, fetch_all=False):
 async def get_dashboard_stats(date: str = None):
     """Получает статистику для дашборда"""
     try:
+        print(f"Dashboard stats requested for date: {date}")  # Отладка
         conn = get_db_connection()
         cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
         
         # Получаем дату для запроса (переданную или текущую)
         from datetime import datetime
         target_date = date if date else datetime.now().strftime('%Y-%m-%d')
+        print(f"Using target_date: {target_date}")  # Отладка
+        
+        # Проверяем, есть ли вообще данные в таблице employee_schedule
+        cursor.execute("SELECT COUNT(*) as total_records FROM employee_schedule")
+        total_records = cursor.fetchone()['total_records']
+        print(f"Total records in employee_schedule: {total_records}")  # Отладка
+        
+        # Проверяем, есть ли данные за выбранную дату
+        cursor.execute("SELECT COUNT(*) as records_for_date FROM employee_schedule WHERE date = %s", (target_date,))
+        records_for_date = cursor.fetchone()['records_for_date']
+        print(f"Records for {target_date}: {records_for_date}")  # Отладка
         
         # Статистика посещаемости за сегодня
         cursor.execute("""
@@ -2936,14 +2948,16 @@ async def get_dashboard_stats(date: str = None):
         """, (target_date,))
         
         attendance_stats = cursor.fetchone()
+        print(f"Attendance stats for {target_date}: {attendance_stats}")  # Отладка
         
-        if not attendance_stats:
-            # Если нет данных за сегодня, используем mock данные
+        if not attendance_stats or attendance_stats['total_employees'] == 0:
+            print(f"No data found for date {target_date}, using default values")  # Отладка
+            # Если нет данных за выбранную дату, используем пустые значения
             attendance_stats = {
-                'present_count': 234,
-                'late_count': 45, 
-                'absent_count': 21,
-                'total_employees': 300
+                'present_count': 0,
+                'late_count': 0, 
+                'absent_count': 0,
+                'total_employees': 0
             }
         
         # Статистика активных сотрудников (кто зашел, но еще не вышел)
@@ -2975,6 +2989,7 @@ async def get_dashboard_stats(date: str = None):
         
         exceptions_result = cursor.fetchone()
         exceptions_count = exceptions_result['exceptions_count'] if exceptions_result else 12
+        print(f"Exceptions count for {target_date}: {exceptions_count}")  # Отладка
         
         # Средняя посещаемость за неделю
         cursor.execute("""

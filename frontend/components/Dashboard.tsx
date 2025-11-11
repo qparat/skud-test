@@ -188,28 +188,7 @@ export function Dashboard() {
       // Попробуем получить статистику с сервера, если не получится - используем mock данные
       const endpoint = date ? `dashboard-stats?date=${date}` : 'dashboard-stats'
       console.log('Fetching dashboard stats for:', date, 'endpoint:', endpoint) // Отладка
-      const data = await apiRequest(endpoint).catch(() => {
-        // Mock данные для демонстрации - изменяем в зависимости от даты
-        const dateHash = date ? date.split('-').reduce((a, b) => parseInt(a.toString()) + parseInt(b), 0) : 100
-        const variation = dateHash % 50
-        console.log('Using mock data for date:', date, 'variation:', variation) // Отладка
-        return {
-          todayAttendance: {
-            onTime: 200 + variation,
-            late: 30 + (variation % 20)
-          },
-          weeklyTrend: {
-            totalEmployees: 300,
-            averageAttendance: 85 + (variation % 10),
-            latePercentage: 10 + (variation % 15)
-          },
-          recentActivity: {
-            totalEntries: 1000 + variation * 10,
-            activeEmployees: 250 + variation,
-            exceptions: 5 + (variation % 15)
-          }
-        }
-      })
+      const data = await apiRequest(endpoint)
       console.log('Setting stats data:', data) // Отладка
       setStats(data)
     } catch (err) {
