@@ -122,6 +122,10 @@ export function Dashboard() {
   const [showCalendar, setShowCalendar] = useState(false)
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const [selectedDate, setSelectedDate] = useState('')
+  const [showModal, setShowModal] = useState(false)
+  const [modalType, setModalType] = useState<'onTime' | 'late'>('onTime')
+  const [employeeDetails, setEmployeeDetails] = useState<any[]>([])
+  const [modalLoading, setModalLoading] = useState(false)
   
   // Получаем сегодняшнюю дату для ограничения выбора
   const today = formatDate(new Date())
@@ -131,17 +135,20 @@ export function Dashboard() {
     fetchDashboardStats(selectedDate)
   }, [selectedDate])
 
-  // Закрытие календаря при клике вне его
+  // Закрытие календаря и модального окна при клике вне их области
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Element;
       if (showCalendar && !target.closest('.calendar-container')) {
         setShowCalendar(false);
       }
+      if (showModal && target.classList.contains('modal-backdrop')) {
+        setShowModal(false);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [showCalendar]);
+  }, [showCalendar, showModal]);
 
   // Функции для навигации по календарю
   const goToPreviousMonth = () => {
@@ -180,6 +187,43 @@ export function Dashboard() {
     console.log('Selected date:', dateStr) // Отладка
     setSelectedDate(dateStr)
     setShowCalendar(false)
+  }
+
+  // Получение детальной информации о сотрудниках
+  const fetchEmployeeDetails = async (type: 'onTime' | 'late') => {
+    try {
+      setModalLoading(true)
+      const targetDate = selectedDate || today
+      const endpoint = `employee-schedule?date=${targetDate}`
+      const response = await apiRequest(endpoint)
+      
+      // Фильтруем сотрудников в зависимости от типа
+      let filteredEmployees = []
+      if (response.employees) {
+        if (type === 'onTime') {
+          filteredEmployees = response.employees.filter((emp: any) => 
+            emp.first_entry && !emp.is_late
+          )
+        } else if (type === 'late') {
+          filteredEmployees = response.employees.filter((emp: any) => 
+            emp.first_entry && emp.is_late
+          )
+        }
+      }
+      
+      setEmployeeDetails(filteredEmployees)
+      setModalType(type)
+      setShowModal(true)
+    } catch (err) {
+      console.error('Ошибка получения данных сотрудников:', err)
+    } finally {
+      setModalLoading(false)
+    }
+  }
+
+  // Обработка клика по карточке сотрудника
+  const handleEmployeeClick = (employeeId: number) => {
+    window.open(`/employees/${employeeId}`, '_blank')
   }
 
   const fetchDashboardStats = async (date?: string) => {
@@ -308,7 +352,10 @@ export function Dashboard() {
       {/* Основные метрики */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {/* Пришли вовремя */}
-        <div className="bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow duration-300">
+        <div 
+          className="bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow duration-300 cursor-pointer hover:bg-green-50"
+          onClick={() => fetchEmployeeDetails('onTime')}
+        >
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Пришли вовремя</p>
@@ -322,13 +369,19 @@ export function Dashboard() {
           </div>
           <div className="mt-4">
             <div className="text-sm text-gray-500">
-              {(stats.todayAttendance.onTime / total * 100).toFixed(1)}% от присутствующих
+              {total > 0 ? (stats.todayAttendance.onTime / total * 100).toFixed(1) : 0}% от присутствующих
+            </div>
+            <div className="text-xs text-green-600 font-medium mt-1">
+              Нажмите для просмотра списка
             </div>
           </div>
         </div>
 
         {/* Опоздания */}
-        <div className="bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow duration-300">
+        <div 
+          className="bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow duration-300 cursor-pointer hover:bg-amber-50"
+          onClick={() => fetchEmployeeDetails('late')}
+        >
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Опоздания</p>
@@ -342,7 +395,10 @@ export function Dashboard() {
           </div>
           <div className="mt-4">
             <div className="text-sm text-gray-500">
-              {(stats.todayAttendance.late / total * 100).toFixed(1)}% от общего числа
+              {total > 0 ? (stats.todayAttendance.late / total * 100).toFixed(1) : 0}% от общего числа
+            </div>
+            <div className="text-xs text-amber-600 font-medium mt-1">
+              Нажмите для просмотра списка
             </div>
           </div>
         </div>
@@ -468,6 +524,96 @@ export function Dashboard() {
           </button>
         </div>
       </div>
+
+      {/* Модальное окно со списком сотрудников */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 modal-backdrop">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] overflow-hidden">
+            {/* Заголовок модального окна */}
+            <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-6 text-white">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-bold">
+                  {modalType === 'onTime' ? 'Сотрудники, пришедшие вовремя' : 'Опоздавшие сотрудники'}
+                </h2>
+                <button
+                  onClick={() => setShowModal(false)}
+                  className="text-white hover:text-gray-200 transition-colors"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <p className="text-blue-100 mt-2">
+                За {selectedDate || new Date().toLocaleDateString('ru-RU')}
+              </p>
+            </div>
+
+            {/* Содержимое модального окна */}
+            <div className="p-6 overflow-y-auto max-h-96">
+              {modalLoading ? (
+                <div className="flex items-center justify-center h-32">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                </div>
+              ) : employeeDetails.length > 0 ? (
+                <div className="space-y-3">
+                  {employeeDetails.map((employee, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 rounded-lg cursor-pointer transition-colors"
+                      onClick={() => handleEmployeeClick(employee.id)}
+                    >
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-gray-900 hover:text-blue-600 transition-colors">
+                          {employee.name}
+                        </h3>
+                        <p className="text-sm text-gray-600">
+                          {employee.department_name || 'Не указан отдел'}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-medium text-gray-900">
+                          {employee.first_entry || 'Не указано'}
+                        </p>
+                        {modalType === 'late' && (
+                          <p className="text-xs text-amber-600">Опоздание</p>
+                        )}
+                        {modalType === 'onTime' && (
+                          <p className="text-xs text-green-600">Вовремя</p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <div className="text-gray-500">
+                    {modalType === 'onTime' 
+                      ? 'Нет сотрудников, пришедших вовремя' 
+                      : 'Нет опоздавших сотрудников'
+                    }
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Подвал модального окна */}
+            <div className="bg-gray-50 px-6 py-4 border-t">
+              <div className="flex justify-between items-center">
+                <div className="text-sm text-gray-600">
+                  Всего: {employeeDetails.length} {employeeDetails.length === 1 ? 'сотрудник' : 'сотрудников'}
+                </div>
+                <button
+                  onClick={() => setShowModal(false)}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                >
+                  Закрыть
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
