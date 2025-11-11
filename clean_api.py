@@ -2914,15 +2914,15 @@ def execute_query(conn, query, params=None, fetch_one=False, fetch_all=False):
         return cursor
 
 @app.get("/dashboard-stats")
-async def get_dashboard_stats():
+async def get_dashboard_stats(date: str = None):
     """Получает статистику для дашборда"""
     try:
         conn = get_db_connection()
         cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
         
-        # Получаем текущую дату
+        # Получаем дату для запроса (переданную или текущую)
         from datetime import datetime
-        today = datetime.now().strftime('%Y-%m-%d')
+        target_date = date if date else datetime.now().strftime('%Y-%m-%d')
         
         # Статистика посещаемости за сегодня
         cursor.execute("""
@@ -2933,7 +2933,7 @@ async def get_dashboard_stats():
                 COUNT(*) as total_employees
             FROM employee_schedule 
             WHERE date = %s
-        """, (today,))
+        """, (target_date,))
         
         attendance_stats = cursor.fetchone()
         
@@ -2951,7 +2951,7 @@ async def get_dashboard_stats():
             SELECT COUNT(*) as active_employees
             FROM employee_schedule 
             WHERE date = %s AND first_entry IS NOT NULL AND last_exit IS NULL
-        """, (today,))
+        """, (target_date,))
         
         active_result = cursor.fetchone()
         active_employees = active_result['active_employees'] if active_result else attendance_stats['present_count'] - attendance_stats['late_count']
@@ -2961,7 +2961,7 @@ async def get_dashboard_stats():
             SELECT COUNT(*) as total_entries
             FROM employee_schedule 
             WHERE date = %s AND first_entry IS NOT NULL
-        """, (today,))
+        """, (target_date,))
         
         entries_result = cursor.fetchone()
         total_entries = entries_result['total_entries'] if entries_result else attendance_stats['present_count']
@@ -2971,7 +2971,7 @@ async def get_dashboard_stats():
             SELECT COUNT(*) as exceptions_count
             FROM employee_exceptions 
             WHERE date = %s
-        """, (today,))
+        """, (target_date,))
         
         exceptions_result = cursor.fetchone()
         exceptions_count = exceptions_result['exceptions_count'] if exceptions_result else 12

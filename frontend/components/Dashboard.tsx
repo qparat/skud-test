@@ -107,20 +107,85 @@ interface DashboardStats {
   }
 }
 
+// Функция для правильного получения даты в формате YYYY-MM-DD без проблем с временной зоной
+const formatDate = (date: Date) => {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 export function Dashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [showCalendar, setShowCalendar] = useState(false)
+  const [currentMonth, setCurrentMonth] = useState(new Date())
+  const [selectedDate, setSelectedDate] = useState('')
+  
+  // Получаем сегодняшнюю дату для ограничения выбора
+  const today = formatDate(new Date())
 
   useEffect(() => {
-    fetchDashboardStats()
-  }, [])
+    fetchDashboardStats(selectedDate)
+  }, [selectedDate])
 
-  const fetchDashboardStats = async () => {
+  // Закрытие календаря при клике вне его
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element;
+      if (showCalendar && !target.closest('.calendar-container')) {
+        setShowCalendar(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showCalendar]);
+
+  // Функции для навигации по календарю
+  const goToPreviousMonth = () => {
+    setCurrentMonth(prev => new Date(prev.getFullYear(), prev.getMonth() - 1))
+  }
+
+  const goToNextMonth = () => {
+    setCurrentMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + 1))
+  }
+
+  // Генерация календаря
+  const generateCalendar = () => {
+    const year = currentMonth.getFullYear();
+    const month = currentMonth.getMonth();
+
+    const firstDay = new Date(year, month, 1);
+    let dayOfWeek = firstDay.getDay();
+    dayOfWeek = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Понедельник как первый день
+    const startDate = new Date(firstDay);
+    startDate.setDate(startDate.getDate() - dayOfWeek);
+
+    const days = [];
+    const currentDate = new Date(startDate);
+
+    for (let i = 0; i < 42; i++) {
+      days.push(new Date(currentDate));
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+
+    return days;
+  }
+
+  // Обработка клика по дате
+  const handleDateClick = (dateStr: string) => {
+    if (dateStr > today) return // Нельзя выбирать будущие даты
+    setSelectedDate(dateStr)
+    setShowCalendar(false)
+  }
+
+  const fetchDashboardStats = async (date?: string) => {
     try {
       setLoading(true)
       // Попробуем получить статистику с сервера, если не получится - используем mock данные
-      const data = await apiRequest('dashboard-stats').catch(() => {
+      const endpoint = date ? `dashboard-stats?date=${date}` : 'dashboard-stats'
+      const data = await apiRequest(endpoint).catch(() => {
         // Mock данные для демонстрации
         return {
           todayAttendance: {
@@ -184,7 +249,73 @@ export function Dashboard() {
               Статистика посещаемости за {new Date().toLocaleDateString('ru-RU')}
             </p>
           </div>
-          <Calendar className="h-16 w-16 text-blue-200" />
+          <div className="relative calendar-container">
+            <button
+              onClick={() => setShowCalendar(!showCalendar)}
+              className="inline-flex items-center px-4 py-2 bg-blue-500 hover:bg-blue-400 text-white text-sm font-medium rounded-md transition-colors duration-200"
+            >
+              <Calendar className="h-4 w-4 mr-2" />
+              {selectedDate ? selectedDate : 'Выбрать дату'}
+            </button>
+            {showCalendar && (
+              <div className="absolute top-full mt-2 z-50 bg-white border border-gray-200 rounded-lg shadow-xl p-4" style={{minWidth: '280px', right: 0}}>
+                {/* Заголовок календаря */}
+                <div className="flex items-center justify-between mb-4">
+                  <button
+                    onClick={goToPreviousMonth}
+                    className="p-1 hover:bg-gray-100 rounded text-gray-600"
+                  >
+                    ←
+                  </button>
+                  <h3 className="text-sm font-medium text-gray-900">
+                    {currentMonth.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' })}
+                  </h3>
+                  <button
+                    onClick={goToNextMonth}
+                    className="p-1 hover:bg-gray-100 rounded text-gray-600"
+                  >
+                    →
+                  </button>
+                </div>
+                {/* Дни недели */}
+                <div className="grid grid-cols-7 gap-1 mb-2">
+                  {['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'].map(day => (
+                    <div key={day} className="text-xs text-center text-gray-500 font-medium py-1">
+                      {day}
+                    </div>
+                  ))}
+                </div>
+                {/* Дни */}
+                <div className="grid grid-cols-7 gap-1">
+                  {generateCalendar().map((date, index) => {
+                    const dateStr = formatDate(date)
+                    const isCurrentMonth = date.getMonth() === currentMonth.getMonth()
+                    const isToday = dateStr === today
+                    const isSelected = dateStr === selectedDate
+                    const isFuture = dateStr > today
+                    const isDisabled = isFuture
+                    return (
+                      <button
+                        key={index}
+                        onClick={() => !isDisabled && handleDateClick(dateStr)}
+                        disabled={isDisabled}
+                        className={`
+                          w-8 h-8 text-xs rounded-full flex items-center justify-center transition-colors
+                          ${!isCurrentMonth ? 'text-gray-300' : ''}
+                          ${isDisabled ? 'bg-gray-100 text-gray-300 cursor-not-allowed' : ''}
+                          ${isSelected ? 'bg-blue-600 text-white font-bold' : ''}
+                          ${isToday && !isSelected ? 'bg-blue-100 text-blue-600 font-bold' : ''}
+                          ${!isSelected && !isToday && !isDisabled && isCurrentMonth ? 'hover:bg-gray-100 text-gray-700' : ''}
+                        `}
+                      >
+                        {date.getDate()}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
