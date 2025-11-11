@@ -2964,23 +2964,37 @@ async def get_dashboard_stats(date: str = None):
         present_result = cursor.fetchone()
         present_count = present_result['present_count'] if present_result else 0
         
-        # Сотрудники, которые опоздали (первый вход после 9:00)
+        # Сотрудники, которые опоздали (первый вход после 9:00, БЕЗ исключений)
         cursor.execute("""
             WITH first_entries AS (
                 SELECT 
                     al.employee_id,
+                    e.department_id,
                     MIN(CAST(al.access_datetime AS TIME)) as first_entry_time
                 FROM access_logs al
                 JOIN employees e ON al.employee_id = e.id
                 WHERE DATE(al.access_datetime) = %s
                 AND e.is_active = true
                 AND e.full_name NOT IN ('Охрана М.', '1 пост о.', '2 пост о.', 'Крыша К.', 'Водитель 1 В.', 'Водитель 2 В.', 'Дежурный в.', 'Дежурный В.')
-                GROUP BY al.employee_id
+                GROUP BY al.employee_id, e.department_id
             )
             SELECT COUNT(*) as late_count
-            FROM first_entries
-            WHERE first_entry_time > '09:00:00'
-        """, (target_date,))
+            FROM first_entries fe
+            WHERE fe.first_entry_time > '09:00:00'
+            AND NOT EXISTS (
+                -- Исключение для конкретного сотрудника
+                SELECT 1 FROM employee_exceptions ee 
+                WHERE ee.employee_id = fe.employee_id 
+                AND ee.exception_date = %s 
+                AND ee.exception_type = 'no_lateness_check'
+            )
+            AND NOT EXISTS (
+                -- Исключение для всего отдела
+                SELECT 1 FROM whitelist_departments wd 
+                WHERE wd.department_id = fe.department_id 
+                AND wd.exception_type = 'no_lateness_check'
+            )
+        """, (target_date, target_date))
         late_result = cursor.fetchone()
         late_count = late_result['late_count'] if late_result else 0
         
@@ -3077,7 +3091,7 @@ async def get_dashboard_employee_lists(
         
         conn = get_db_connection()
         
-        # Получаем всех сотрудников с первым входом за день
+        # Получаем всех сотрудников с первым входом за день (с учетом исключений)
         all_employees = execute_query(
             conn,
             """
@@ -3085,28 +3099,40 @@ async def get_dashboard_employee_lists(
                 SELECT 
                     al.employee_id,
                     e.full_name,
-                    MIN(CAST(al.access_datetime AS TIME)) as first_entry_time,
-                    CASE 
-                        WHEN MIN(CAST(al.access_datetime AS TIME)) > '09:00:00' THEN true
-                        ELSE false
-                    END as is_late
+                    e.department_id,
+                    MIN(CAST(al.access_datetime AS TIME)) as first_entry_time
                 FROM access_logs al
                 JOIN employees e ON al.employee_id = e.id
                 WHERE DATE(al.access_datetime) = %s
                 AND e.is_active = true
                 AND e.full_name NOT IN ('Охрана М.', '1 пост о.', '2 пост о.', 'Крыша К.', 'Водитель 1 В.', 'Водитель 2 В.', 'Дежурный в.', 'Дежурный В.')
                 AND (al.door_location NOT LIKE '%%выход%%' OR al.door_location IS NULL)
-                GROUP BY al.employee_id, e.full_name
+                GROUP BY al.employee_id, e.full_name, e.department_id
             )
             SELECT 
-                employee_id as id,
-                full_name,
-                first_entry_time as first_entry,
-                is_late
-            FROM first_entries
-            ORDER BY full_name
+                fe.employee_id as id,
+                fe.full_name,
+                fe.first_entry_time as first_entry,
+                CASE 
+                    WHEN fe.first_entry_time > '09:00:00' 
+                    AND NOT EXISTS (
+                        SELECT 1 FROM employee_exceptions ee 
+                        WHERE ee.employee_id = fe.employee_id 
+                        AND ee.exception_date = %s 
+                        AND ee.exception_type = 'no_lateness_check'
+                    )
+                    AND NOT EXISTS (
+                        SELECT 1 FROM whitelist_departments wd 
+                        WHERE wd.department_id = fe.department_id 
+                        AND wd.exception_type = 'no_lateness_check'
+                    )
+                    THEN true
+                    ELSE false
+                END as is_late
+            FROM first_entries fe
+            ORDER BY fe.full_name
             """,
-            (date,),
+            (date, date),
             fetch_all=True
         )
         conn.close()
