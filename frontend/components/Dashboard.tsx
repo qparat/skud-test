@@ -194,19 +194,22 @@ export function Dashboard() {
     try {
       setModalLoading(true)
       const targetDate = selectedDate || today
-      const endpoint = `employee-schedule?date=${targetDate}`
+      const endpoint = `employee-schedule?date=${targetDate}&per_page=1000` // Получаем до 1000 сотрудников
       console.log('Fetching employee details from:', endpoint) // Отладка
       const response = await apiRequest(endpoint)
       console.log('Employee schedule response:', response) // Отладка
+      console.log('Total employees in response:', response.employees ? response.employees.length : 0) // Отладка
       
       // Фильтруем сотрудников в зависимости от типа
       let filteredEmployees = []
       if (response.employees) {
         if (type === 'onTime') {
           // Сотрудники, которые пришли и не опоздали
-          filteredEmployees = response.employees.filter((emp: any) => 
+          const onTimeEmployees = response.employees.filter((emp: any) => 
             emp.first_entry && !emp.is_late
-          ).map((emp: any) => {
+          )
+          console.log(`Found ${onTimeEmployees.length} employees who came on time`) // Отладка
+          filteredEmployees = onTimeEmployees.map((emp: any) => {
             console.log('Processing onTime employee:', emp) // Отладка структуры
             return {
               id: emp.id || emp.employee_id || emp.emp_id,
@@ -217,9 +220,11 @@ export function Dashboard() {
           })
         } else if (type === 'late') {
           // Сотрудники, которые опоздали
-          filteredEmployees = response.employees.filter((emp: any) => 
+          const lateEmployees = response.employees.filter((emp: any) => 
             emp.first_entry && emp.is_late
-          ).map((emp: any) => {
+          )
+          console.log(`Found ${lateEmployees.length} employees who came late`) // Отладка
+          filteredEmployees = lateEmployees.map((emp: any) => {
             console.log('Processing late employee:', emp) // Отладка структуры
             return {
               id: emp.id || emp.employee_id || emp.emp_id,
