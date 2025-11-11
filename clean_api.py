@@ -3013,8 +3013,7 @@ async def get_dashboard_stats():
         stats = {
             "todayAttendance": {
                 "onTime": max(0, attendance_stats['present_count'] - attendance_stats['late_count']),
-                "late": attendance_stats['late_count'],
-                "absent": attendance_stats['absent_count']
+                "late": attendance_stats['late_count']
             },
             "weeklyTrend": {
                 "totalEmployees": attendance_stats['total_employees'],
@@ -3036,8 +3035,7 @@ async def get_dashboard_stats():
         return {
             "todayAttendance": {
                 "onTime": 234,
-                "late": 45,
-                "absent": 21
+                "late": 45
             },
             "weeklyTrend": {
                 "totalEmployees": 300,

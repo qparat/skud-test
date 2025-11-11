@@ -9,8 +9,7 @@ import {
   Calendar, 
   MapPin,
   Activity,
-  UserCheck,
-  UserX
+  UserCheck
 } from 'lucide-react'
 import { apiRequest } from '@/lib/api'
 
@@ -95,7 +94,6 @@ interface DashboardStats {
   todayAttendance: {
     onTime: number
     late: number
-    absent: number
   }
   weeklyTrend: {
     totalEmployees: number
@@ -127,8 +125,7 @@ export function Dashboard() {
         return {
           todayAttendance: {
             onTime: 234,
-            late: 45,
-            absent: 21
+            late: 45
           },
           weeklyTrend: {
             totalEmployees: 300,
@@ -171,11 +168,10 @@ export function Dashboard() {
 
   const attendanceData = [
     { name: 'Вовремя', value: stats.todayAttendance.onTime, color: '#10b981' },
-    { name: 'Опоздали', value: stats.todayAttendance.late, color: '#f59e0b' },
-    { name: 'Отсутствуют', value: stats.todayAttendance.absent, color: '#ef4444' }
+    { name: 'Опоздали', value: stats.todayAttendance.late, color: '#f59e0b' }
   ]
 
-  const total = stats.todayAttendance.onTime + stats.todayAttendance.late + stats.todayAttendance.absent
+  const total = stats.todayAttendance.onTime + stats.todayAttendance.late
 
   return (
     <div className="space-y-6">
@@ -193,14 +189,14 @@ export function Dashboard() {
       </div>
 
       {/* Основные метрики */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {/* Общая посещаемость */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Пришли вовремя */}
         <div className="bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow duration-300">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Общая посещаемость</p>
-              <p className="text-3xl font-bold text-gray-900 animate-pulse">
-                {((stats.todayAttendance.onTime + stats.todayAttendance.late) / total * 100).toFixed(1)}%
+              <p className="text-sm font-medium text-gray-600">Пришли вовремя</p>
+              <p className="text-3xl font-bold text-green-600 animate-pulse">
+                {stats.todayAttendance.onTime}
               </p>
             </div>
             <div className="p-3 bg-green-100 rounded-full">
@@ -209,7 +205,7 @@ export function Dashboard() {
           </div>
           <div className="mt-4">
             <div className="text-sm text-gray-500">
-              {stats.todayAttendance.onTime + stats.todayAttendance.late} из {total} сотрудников
+              {(stats.todayAttendance.onTime / total * 100).toFixed(1)}% от присутствующих
             </div>
           </div>
         </div>
@@ -234,25 +230,7 @@ export function Dashboard() {
           </div>
         </div>
 
-        {/* Отсутствующие */}
-        <div className="bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow duration-300">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Отсутствуют</p>
-              <p className="text-3xl font-bold text-red-600 animate-pulse">
-                {stats.todayAttendance.absent}
-              </p>
-            </div>
-            <div className="p-3 bg-red-100 rounded-full">
-              <UserX className="h-8 w-8 text-red-600" />
-            </div>
-          </div>
-          <div className="mt-4">
-            <div className="text-sm text-gray-500">
-              {(stats.todayAttendance.absent / total * 100).toFixed(1)}% от общего числа
-            </div>
-          </div>
-        </div>
+
 
         {/* Активные сотрудники */}
         <div className="bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow duration-300">
@@ -283,7 +261,7 @@ export function Dashboard() {
           <div className="flex items-center justify-center">
             <PieChart data={attendanceData} size={250} />
           </div>
-          <div className="mt-6 grid grid-cols-3 gap-4 text-center">
+          <div className="mt-6 grid grid-cols-2 gap-4 text-center">
             {attendanceData.map((item, index) => (
               <div key={index} className="p-3">
                 <div className="flex items-center justify-center mb-2">
