@@ -432,6 +432,9 @@ export default function SvodReportPage() {
               <div className="text-xs text-gray-500 flex items-center">
                 <GripVertical className="h-3 w-3 mr-1" />
                 Перетащите строки для изменения порядка
+                {orderSaving && (
+                  <span className="ml-3 text-blue-600 font-medium">Сохраняется...</span>
+                )}
               </div>
             </div>
             
