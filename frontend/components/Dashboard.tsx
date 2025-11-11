@@ -551,10 +551,6 @@ export function Dashboard() {
                   <span className="text-sm text-gray-600">Всего сотрудников</span>
                   <span className="font-semibold text-gray-900">{stats.weeklyTrend.totalEmployees}</span>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Всего входов</span>
-                  <span className="font-semibold text-blue-600">{stats.recentActivity.totalEntries}</span>
-                </div>
               </div>
             </div>
 
