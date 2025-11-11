@@ -319,10 +319,6 @@ export function Dashboard() {
                   <span className="font-semibold text-gray-900">{stats.weeklyTrend.totalEmployees}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Всего входов сегодня</span>
-                  <span className="font-semibold text-gray-900">{stats.recentActivity.totalEntries}</span>
-                </div>
-                <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-600">Исключения</span>
                   <span className="font-semibold text-blue-600">{stats.recentActivity.exceptions}</span>
                 </div>
