@@ -1231,31 +1231,33 @@ export function EmployeeSchedule() {
                                 ) : (
                                   <div className="flex items-center space-x-1">
                                     {/* Счетчики дней без опозданий, с опозданием и с исключением */}
-                                    {(() => {
-                                      // Получаем все дни сотрудника из исходных scheduleData.employees
-                                      let allDays: DayData[] = [];
-                                      let totalDays = 0;
-                                      if (scheduleData && Array.isArray(scheduleData.employees)) {
-                                        const found = (scheduleData.employees as any[]).find(e => e.employee_id === emp.employee_id && Array.isArray(e.days));
-                                        if (found && Array.isArray(found.days)) {
-                                          allDays = found.days.filter((d: DayData) => d.date !== emp.date);
-                                          totalDays = found.days.length;
+                                      {(() => {
+                                        // Получаем все дни сотрудника из исходных scheduleData.employees
+                                        // Включаем текущий отображаемый день в счетчики (не исключаем emp.date)
+                                        let allDays: DayData[] = [];
+                                        let totalDays = 0;
+                                        if (scheduleData && Array.isArray(scheduleData.employees)) {
+                                          const found = (scheduleData.employees as any[]).find(e => e.employee_id === emp.employee_id && Array.isArray(e.days));
+                                          if (found && Array.isArray(found.days)) {
+                                            // включаем все дни, включая текущую строку
+                                            allDays = [...found.days];
+                                            totalDays = found.days.length;
+                                          }
                                         }
-                                      }
-                                      const lateDays = allDays.filter(d => d.is_late && !(d.exception?.has_exception)).length;
-                                      const okDays = allDays.filter(d => !d.is_late && !(d.exception?.has_exception)).length;
-                                      const excDays = allDays.filter(d => d.exception?.has_exception).length;
-                                      return (
-                                        <>
-                                          <span className="bg-green-100 text-green-800 text-xs font-medium px-2 py-0.5 rounded-full">Вовремя: {okDays}</span>
-                                          <span className="bg-red-100 text-red-800 text-xs font-medium px-2 py-0.5 rounded-full ml-1">Опозданий: {lateDays}</span>
-                                          <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-0.5 rounded-full ml-1">Исключений: {excDays}</span>
-                                          <div className="flex items-center text-sm text-gray-500">Элементов: {totalDays}</div>
+                                        const lateDays = allDays.filter(d => d.is_late && !(d.exception?.has_exception)).length;
+                                        const okDays = allDays.filter(d => !d.is_late && !(d.exception?.has_exception)).length;
+                                        const excDays = allDays.filter(d => d.exception?.has_exception).length;
+                                        return (
+                                          <>
+                                            <span className="bg-green-100 text-green-800 text-xs font-medium px-2 py-0.5 rounded-full">Вовремя: {okDays}</span>
+                                            <span className="bg-red-100 text-red-800 text-xs font-medium px-2 py-0.5 rounded-full ml-1">Опозданий: {lateDays}</span>
+                                            <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-0.5 rounded-full ml-1">Исключений: {excDays}</span>
+                                            <div className="flex items-center text-sm text-gray-500">Элементов: {totalDays}</div>
 
-                                          <ChevronDown className="h-6 w-6 ml-2" />
-                                        </>
-                                      );
-                                    })()}
+                                            <ChevronDown className="h-6 w-6 ml-2" />
+                                          </>
+                                        );
+                                      })()}
                                   </div>
                                 )}
                               </button>
