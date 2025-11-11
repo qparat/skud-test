@@ -1,7 +1,7 @@
 'use client'
 import React, { useState, useEffect } from 'react'
 import { apiRequest } from '@/lib/api'
-import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Calendar, ChevronLeft, ChevronRight, GripVertical } from 'lucide-react'
 
 interface SvodEmployee {
   id: number
@@ -44,6 +44,10 @@ export default function SvodReportPage() {
   // Состояния для календаря
   const [showCalendar, setShowCalendar] = useState(false)
   const [currentMonth, setCurrentMonth] = useState(new Date())
+  
+  // Состояния для drag and drop
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
 
   // Загрузка сводной таблицы (только те кто в своде)
   useEffect(() => {
@@ -164,6 +168,61 @@ export default function SvodReportPage() {
   const handleDateClick = (dateStr: string) => {
     setSelectedDate(dateStr)
     setShowCalendar(false)
+  }
+
+  // Функции для drag and drop
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    setDraggedIndex(index)
+    e.dataTransfer.effectAllowed = 'move'
+  }
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault()
+    setDragOverIndex(index)
+  }
+
+  const handleDragLeave = () => {
+    setDragOverIndex(null)
+  }
+
+  const handleDrop = (e: React.DragEvent, dropIndex: number) => {
+    e.preventDefault()
+    
+    if (draggedIndex === null || draggedIndex === dropIndex) {
+      setDraggedIndex(null)
+      setDragOverIndex(null)
+      return
+    }
+
+    const newEmployees = [...filteredSvodEmployees]
+    const draggedEmployee = newEmployees[draggedIndex]
+    
+    // Удаляем элемент из старой позиции
+    newEmployees.splice(draggedIndex, 1)
+    
+    // Вставляем элемент в новую позицию
+    newEmployees.splice(dropIndex, 0, draggedEmployee)
+    
+    // Обновляем порядок в основном массиве
+    const updatedSvodEmployees = [...svodEmployees]
+    
+    // Если есть фильтрация, нужно корректно обновить порядок
+    if (searchQuery.trim() === '') {
+      setSvodEmployees(newEmployees)
+    } else {
+      // При фильтрации обновляем только отфильтрованные элементы в правильном порядке
+      const filteredIds = newEmployees.map(emp => emp.id)
+      const nonFilteredEmployees = svodEmployees.filter(emp => !filteredIds.includes(emp.id))
+      setSvodEmployees([...newEmployees, ...nonFilteredEmployees])
+    }
+    
+    setDraggedIndex(null)
+    setDragOverIndex(null)
+  }
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null)
+    setDragOverIndex(null)
   }
 
   // Фильтрация по поиску в основной таблице
@@ -340,18 +399,25 @@ export default function SvodReportPage() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <div className="mb-4 text-sm text-gray-600">
-              Всего сотрудников: <span className="font-semibold">{filteredSvodEmployees.length}</span>
-              {filteredSvodEmployees.filter(e => e.comment).length > 0 && (
-                <span className="ml-4">
-                  С комментариями: <span className="font-semibold">{filteredSvodEmployees.filter(e => e.comment).length}</span>
-                </span>
-              )}
+            <div className="mb-4 flex justify-between items-center text-sm text-gray-600">
+              <div>
+                Всего сотрудников: <span className="font-semibold">{filteredSvodEmployees.length}</span>
+                {filteredSvodEmployees.filter(e => e.comment).length > 0 && (
+                  <span className="ml-4">
+                    С комментариями: <span className="font-semibold">{filteredSvodEmployees.filter(e => e.comment).length}</span>
+                  </span>
+                )}
+              </div>
+              <div className="text-xs text-gray-500 flex items-center">
+                <GripVertical className="h-3 w-3 mr-1" />
+                Перетащите строки для изменения порядка
+              </div>
             </div>
             
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
+                  <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-8"></th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">№</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Должность</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ФИО</th>
@@ -362,7 +428,22 @@ export default function SvodReportPage() {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredSvodEmployees.map((emp, idx) => (
-                  <tr key={emp.id} className={`hover:bg-gray-50 ${emp.exception_type && emp.exception_type !== 'at_work' ? 'bg-blue-50' : ''}`}>
+                  <tr 
+                    key={emp.id} 
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, idx)}
+                    onDragOver={(e) => handleDragOver(e, idx)}
+                    onDragLeave={handleDragLeave}
+                    onDrop={(e) => handleDrop(e, idx)}
+                    onDragEnd={handleDragEnd}
+                    className={`hover:bg-gray-50 cursor-move transition-colors duration-200
+                      ${emp.exception_type && emp.exception_type !== 'at_work' ? 'bg-blue-50' : ''}
+                      ${draggedIndex === idx ? 'opacity-50' : ''}
+                      ${dragOverIndex === idx ? 'border-t-2 border-blue-500' : ''}`}
+                  >
+                    <td className="px-2 py-3 text-center">
+                      <GripVertical className="h-4 w-4 text-gray-400 mx-auto" />
+                    </td>
                     <td className="px-4 py-3 text-sm text-gray-900">{idx + 1}</td>
                     <td className="px-4 py-3 text-sm text-gray-900">{emp.position}</td>
                     <td className="px-4 py-3 text-sm font-medium text-blue-700">{emp.full_name}</td>
