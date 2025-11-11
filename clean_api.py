@@ -2965,16 +2965,23 @@ async def get_dashboard_stats(date: str = None):
         present_result = cursor.fetchone()
         present_count = present_result['present_count'] if present_result else 0
         
-        # Сотрудники, которые опоздали (пришли после 9:00)
+        # Сотрудники, которые опоздали (первый вход после 9:00)
         cursor.execute("""
-            SELECT COUNT(DISTINCT al.employee_id) as late_count
-            FROM access_logs al
-            JOIN employees e ON al.employee_id = e.id
-            WHERE DATE(al.access_datetime) = %s
-            AND EXTRACT(HOUR FROM al.access_datetime) >= 9
-            AND e.is_active = true
-            AND e.full_name NOT IN ('Охрана М.', '1 пост о.', '2 пост о.', 'Крыша К.', 'Водитель 1 В.', 'Водитель 2 В.', 'Дежурный в.', 'Дежурный В.')
-            AND al.door_location NOT LIKE '%%выход%%'
+            WITH first_entries AS (
+                SELECT 
+                    al.employee_id,
+                    MIN(CAST(al.access_datetime AS TIME)) as first_entry_time
+                FROM access_logs al
+                JOIN employees e ON al.employee_id = e.id
+                WHERE DATE(al.access_datetime) = %s
+                AND e.is_active = true
+                AND e.full_name NOT IN ('Охрана М.', '1 пост о.', '2 пост о.', 'Крыша К.', 'Водитель 1 В.', 'Водитель 2 В.', 'Дежурный в.', 'Дежурный В.')
+                AND al.door_location NOT LIKE '%%выход%%'
+                GROUP BY al.employee_id
+            )
+            SELECT COUNT(*) as late_count
+            FROM first_entries
+            WHERE first_entry_time > '09:00:00'
         """, (target_date,))
         late_result = cursor.fetchone()
         late_count = late_result['late_count'] if late_result else 0
