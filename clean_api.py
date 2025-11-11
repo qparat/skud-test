@@ -3069,21 +3069,23 @@ async def get_dashboard_stats(date: str = None):
         return stats
         
     except Exception as e:
+        import traceback
         print(f"Ошибка получения статистики дашборда: {e}")
-        # Возвращаем mock данные в случае ошибки
+        print(f"Полная ошибка: {traceback.format_exc()}")
+        # Возвращаем пустую статистику в случае ошибки
         return {
             "todayAttendance": {
-                "onTime": 234,
-                "late": 45
+                "onTime": 0,
+                "late": 0
             },
             "weeklyTrend": {
-                "totalEmployees": 300,
-                "averageAttendance": 89.5,
-                "latePercentage": 15.2
+                "totalEmployees": 0,
+                "averageAttendance": 0,
+                "latePercentage": 0
             },
             "recentActivity": {
-                "totalEntries": 1456,
-                "activeEmployees": 279,
-                "exceptions": 12
+                "totalEntries": 0,
+                "activeEmployees": 0,
+                "exceptions": 0
             }
         }
