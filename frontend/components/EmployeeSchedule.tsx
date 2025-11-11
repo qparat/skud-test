@@ -786,7 +786,7 @@ export function EmployeeSchedule() {
                   </div>
                 </div>
                 
-                <div className="">
+                {/* <div className="">
                   <div className="flex items-center">
                     <div className="flex items-center space-x-2">
                       <p className="text-s font-medium text-gray-600">
@@ -800,7 +800,7 @@ export function EmployeeSchedule() {
                       </p>
                     </div>
                   </div>
-                </div>
+                </div> */}
               </div>
             )}
             {/* Поиск по ФИО и фильтр по отделу */}
