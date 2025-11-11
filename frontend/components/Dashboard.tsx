@@ -189,76 +189,74 @@ export function Dashboard() {
     setShowCalendar(false)
   }
 
-  // Получение детальной информации о сотрудниках
+  // Получение детальной информации о сотрудниках (УСКОРЕННАЯ ВЕРСИЯ)
   const fetchEmployeeDetails = async (type: 'onTime' | 'late') => {
     try {
       setModalLoading(true)
       const targetDate = selectedDate || today
       
-      // Получаем всех сотрудников через пагинацию
-      let allEmployees: any[] = []
-      let page = 1
-      let hasMoreData = true
-      
-      while (hasMoreData) {
-        const endpoint = `employee-schedule?date=${targetDate}&per_page=100&page=${page}`
-        // console.log(`Fetching page ${page} from:`, endpoint) // Отладка
-        
+      // Пробуем использовать новый быстрый API endpoint
+      try {
+        const endpoint = `dashboard-employee-lists?date=${targetDate}`
         const response = await apiRequest(endpoint)
-        // console.log(`Page ${page} response:`, response) // Отладка
         
-        if (response.employees && response.employees.length > 0) {
-          allEmployees = [...allEmployees, ...response.employees]
-          // Если получили меньше 100, значит это последняя страница
-          hasMoreData = response.employees.length === 100
-          page++
-        } else {
-          hasMoreData = false
+        // Получаем уже готовые отфильтрованные списки
+        const employees = type === 'onTime' ? response.onTime : response.late
+        
+        setEmployeeDetails(employees || [])
+        setModalType(type)
+        setShowModal(true)
+      } catch (fastApiError) {
+        console.log('Fast API failed, falling back to pagination:', fastApiError)
+        
+        // Fallback: используем старый метод с пагинацией
+        let allEmployees: any[] = []
+        let page = 1
+        let hasMoreData = true
+        
+        while (hasMoreData) {
+          const endpoint = `employee-schedule?date=${targetDate}&per_page=1000&page=${page}`
+          const response = await apiRequest(endpoint)
+          
+          if (response.employees && response.employees.length > 0) {
+            allEmployees = [...allEmployees, ...response.employees]
+            hasMoreData = response.employees.length === 1000
+            page++
+          } else {
+            hasMoreData = false
+          }
         }
-      }
-      
-      // console.log('Total employees across all pages:', allEmployees.length) // Отладка
-      
-      // Фильтруем сотрудников в зависимости от типа
-      let filteredEmployees: any[] = []
-      if (allEmployees.length > 0) {
-        if (type === 'onTime') {
-          // Сотрудники, которые пришли и не опоздали
-          const onTimeEmployees = allEmployees.filter((emp: any) => 
-            emp.first_entry && !emp.is_late
-          )
-          // console.log(`Found ${onTimeEmployees.length} employees who came on time`) // Отладка
-          filteredEmployees = onTimeEmployees.map((emp: any) => {
-            // console.log('Processing onTime employee:', emp) // Отладка структуры
-            return {
+        
+        // Фильтруем сотрудников в зависимости от типа
+        let filteredEmployees: any[] = []
+        if (allEmployees.length > 0) {
+          if (type === 'onTime') {
+            const onTimeEmployees = allEmployees.filter((emp: any) => 
+              emp.first_entry && !emp.is_late
+            )
+            filteredEmployees = onTimeEmployees.map((emp: any) => ({
               id: emp.id || emp.employee_id || emp.emp_id,
               name: emp.full_name || emp.name,
               first_entry: emp.first_entry,
               is_late: emp.is_late
-            }
-          })
-        } else if (type === 'late') {
-          // Сотрудники, которые опоздали
-          const lateEmployees = allEmployees.filter((emp: any) => 
-            emp.first_entry && emp.is_late
-          )
-          // console.log(`Found ${lateEmployees.length} employees who came late`) // Отладка
-          filteredEmployees = lateEmployees.map((emp: any) => {
-            // console.log('Processing late employee:', emp) // Отладка структуры
-            return {
+            }))
+          } else if (type === 'late') {
+            const lateEmployees = allEmployees.filter((emp: any) => 
+              emp.first_entry && emp.is_late
+            )
+            filteredEmployees = lateEmployees.map((emp: any) => ({
               id: emp.id || emp.employee_id || emp.emp_id,
               name: emp.full_name || emp.name,
               first_entry: emp.first_entry,
               is_late: emp.is_late
-            }
-          })
+            }))
+          }
         }
+        
+        setEmployeeDetails(filteredEmployees)
+        setModalType(type)
+        setShowModal(true)
       }
-      
-      // console.log('Filtered employees:', filteredEmployees) // Отладка
-      setEmployeeDetails(filteredEmployees)
-      setModalType(type)
-      setShowModal(true)
     } catch (err) {
       console.error('Ошибка получения данных сотрудников:', err)
       console.error('Error details:', err instanceof Error ? err.message : err)

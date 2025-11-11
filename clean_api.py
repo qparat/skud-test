@@ -3059,3 +3059,77 @@ async def get_dashboard_stats(date: str = None):
                 "exceptions": 0
             }
         }
+
+@app.get("/dashboard-employee-lists")
+async def get_dashboard_employee_lists(
+    date: Optional[str] = Query(None), 
+    current_user: dict = Depends(get_current_user)
+):
+    """Быстрая загрузка списков сотрудников для модальных окон"""
+    try:
+        if date is None:
+            date = datetime.today().strftime('%Y-%m-%d')
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Получаем всех сотрудников с первым входом за день
+        cursor.execute("""
+            WITH first_entries AS (
+                SELECT 
+                    al.employee_id,
+                    e.full_name,
+                    MIN(CAST(al.access_datetime AS TIME)) as first_entry_time,
+                    CASE 
+                        WHEN MIN(CAST(al.access_datetime AS TIME)) > '09:00:00' THEN true
+                        ELSE false
+                    END as is_late
+                FROM access_logs al
+                JOIN employees e ON al.employee_id = e.id
+                WHERE DATE(al.access_datetime) = %s
+                AND e.is_active = true
+                AND e.full_name NOT IN ('Охрана М.', '1 пост о.', '2 пост о.', 'Крыша К.', 'Водитель 1 В.', 'Водитель 2 В.', 'Дежурный в.', 'Дежурный В.')
+                AND (al.door_location NOT LIKE '%%выход%%' OR al.door_location IS NULL)
+                GROUP BY al.employee_id, e.full_name
+            )
+            SELECT 
+                employee_id as id,
+                full_name,
+                first_entry_time as first_entry,
+                is_late
+            FROM first_entries
+            ORDER BY full_name
+        """, (date,))
+        
+        all_employees = cursor.fetchall()
+        conn.close()
+        
+        # Разделяем на две группы
+        on_time_employees = []
+        late_employees = []
+        
+        for emp in all_employees:
+            emp_data = {
+                'id': emp['id'],
+                'name': emp['full_name'],
+                'first_entry': str(emp['first_entry']),
+                'is_late': emp['is_late']
+            }
+            
+            if emp['is_late']:
+                late_employees.append(emp_data)
+            else:
+                on_time_employees.append(emp_data)
+        
+        return {
+            'date': date,
+            'onTime': on_time_employees,
+            'late': late_employees,
+            'total': len(all_employees)
+        }
+        
+    except Exception as e:
+        import traceback
+        print(f"Ошибка получения списков сотрудников: {e}")
+        print(f"Полная ошибка: {traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=f"Ошибка получения данных: {str(e)}")
