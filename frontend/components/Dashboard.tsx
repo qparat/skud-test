@@ -465,22 +465,22 @@ export function Dashboard() {
 
 
 
-        {/* Активные сотрудники */}
+        {/* Исключения */}
         <div className="bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow duration-300">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Активные сотрудники</p>
-              <p className="text-3xl font-bold text-blue-600 animate-pulse">
-                {stats.recentActivity.activeEmployees}
+              <p className="text-sm font-medium text-gray-600">Исключения</p>
+              <p className="text-3xl font-bold text-red-600 animate-pulse">
+                {stats.recentActivity.exceptions}
               </p>
             </div>
-            <div className="p-3 bg-blue-100 rounded-full">
-              <Users className="h-8 w-8 text-blue-600" />
+            <div className="p-3 bg-red-100 rounded-full">
+              <AlertCircle className="h-8 w-8 text-red-600" />
             </div>
           </div>
           <div className="mt-4">
             <div className="text-sm text-gray-500">
-              Сейчас в здании
+              За выбранный день
             </div>
           </div>
         </div>
@@ -552,8 +552,8 @@ export function Dashboard() {
                   <span className="font-semibold text-gray-900">{stats.weeklyTrend.totalEmployees}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Исключения</span>
-                  <span className="font-semibold text-blue-600">{stats.recentActivity.exceptions}</span>
+                  <span className="text-sm text-gray-600">Всего входов</span>
+                  <span className="font-semibold text-blue-600">{stats.recentActivity.totalEntries}</span>
                 </div>
               </div>
             </div>
