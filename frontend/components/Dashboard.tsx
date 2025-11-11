@@ -567,9 +567,6 @@ export function Dashboard() {
                         <h3 className="font-semibold text-gray-900 hover:text-blue-600 transition-colors">
                           {employee.name}
                         </h3>
-                        <p className="text-sm text-gray-600">
-                          {employee.department_name || 'Не указан отдел'}
-                        </p>
                       </div>
                       <div className="text-right">
                         <p className="font-medium text-gray-900">
