@@ -2186,12 +2186,16 @@ async def get_svod_report(date: str = None):
 
 @app.post("/svod-report/add-employee")
 async def add_employee_to_svod(data: dict):
-    """Добавить сотрудника в свод ТРК (без привязки к дате)"""
+    """Добавить сотрудника в свод ТРК с привязкой к дате"""
     try:
         employee_id = data.get('employee_id')
+        report_date = data.get('report_date')
         
         if not employee_id:
             raise HTTPException(status_code=400, detail="Необходимо указать employee_id")
+        
+        if not report_date:
+            raise HTTPException(status_code=400, detail="Необходимо указать report_date")
         
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -2202,12 +2206,20 @@ async def add_employee_to_svod(data: dict):
         if not employee:
             raise HTTPException(status_code=404, detail="Сотрудник не найден")
         
+        # Получаем максимальный order_index для этой даты
+        cursor.execute("""
+            SELECT COALESCE(MAX(order_index), -1) + 1
+            FROM svod_report_employees 
+            WHERE report_date = %s
+        """, (report_date,))
+        next_order_index = cursor.fetchone()[0]
+        
         # Добавляем в свод (если уже есть - игнорируем)
         try:
             cursor.execute("""
-                INSERT INTO svod_report_employees (employee_id)
-                VALUES (%s)
-            """, (employee_id,))
+                INSERT INTO svod_report_employees (employee_id, report_date, order_index)
+                VALUES (%s, %s, %s)
+            """, (employee_id, report_date, next_order_index))
             conn.commit()
         except Exception as e:
             if "duplicate key value violates unique constraint" in str(e):
@@ -2218,8 +2230,10 @@ async def add_employee_to_svod(data: dict):
         conn.close()
         
         return {
-            "message": f"Сотрудник {employee[0]} добавлен в свод",
-            "employee_id": employee_id
+            "message": f"Сотрудник {employee[0]} добавлен в свод на {report_date}",
+            "employee_id": employee_id,
+            "report_date": report_date,
+            "order_index": next_order_index
         }
         
     except HTTPException:
@@ -2228,8 +2242,8 @@ async def add_employee_to_svod(data: dict):
         raise HTTPException(status_code=500, detail=f"Ошибка добавления в свод: {str(e)}")
 
 @app.delete("/svod-report/remove-employee")
-async def remove_employee_from_svod(employee_id: int):
-    """Убрать сотрудника из свода ТРК (без привязки к дате)"""
+async def remove_employee_from_svod(employee_id: int, report_date: str = None):
+    """Убрать сотрудника из свода ТРК с привязкой к дате"""
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -2241,17 +2255,25 @@ async def remove_employee_from_svod(employee_id: int):
             raise HTTPException(status_code=404, detail="Сотрудник не найден")
         
         # Удаляем из свода
-        cursor.execute("""
-            DELETE FROM svod_report_employees
-            WHERE employee_id = %s
-        """, (employee_id,))
+        if report_date:
+            cursor.execute("""
+                DELETE FROM svod_report_employees
+                WHERE employee_id = %s AND report_date = %s
+            """, (employee_id, report_date))
+        else:
+            # Если дата не указана, удаляем все записи для этого сотрудника
+            cursor.execute("""
+                DELETE FROM svod_report_employees
+                WHERE employee_id = %s
+            """, (employee_id,))
         
         conn.commit()
         conn.close()
         
         return {
             "message": f"Сотрудник {employee[0]} убран из свода",
-            "employee_id": employee_id
+            "employee_id": employee_id,
+            "report_date": report_date
         }
         
     except HTTPException:
