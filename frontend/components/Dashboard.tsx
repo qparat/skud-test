@@ -127,6 +127,7 @@ export function Dashboard() {
   const today = formatDate(new Date())
 
   useEffect(() => {
+    console.log('useEffect triggered, selectedDate:', selectedDate) // Отладка
     fetchDashboardStats(selectedDate)
   }, [selectedDate])
 
@@ -176,6 +177,7 @@ export function Dashboard() {
   // Обработка клика по дате
   const handleDateClick = (dateStr: string) => {
     if (dateStr > today) return // Нельзя выбирать будущие даты
+    console.log('Selected date:', dateStr) // Отладка
     setSelectedDate(dateStr)
     setShowCalendar(false)
   }
@@ -185,25 +187,30 @@ export function Dashboard() {
       setLoading(true)
       // Попробуем получить статистику с сервера, если не получится - используем mock данные
       const endpoint = date ? `dashboard-stats?date=${date}` : 'dashboard-stats'
+      console.log('Fetching dashboard stats for:', date, 'endpoint:', endpoint) // Отладка
       const data = await apiRequest(endpoint).catch(() => {
-        // Mock данные для демонстрации
+        // Mock данные для демонстрации - изменяем в зависимости от даты
+        const dateHash = date ? date.split('-').reduce((a, b) => parseInt(a.toString()) + parseInt(b), 0) : 100
+        const variation = dateHash % 50
+        console.log('Using mock data for date:', date, 'variation:', variation) // Отладка
         return {
           todayAttendance: {
-            onTime: 234,
-            late: 45
+            onTime: 200 + variation,
+            late: 30 + (variation % 20)
           },
           weeklyTrend: {
             totalEmployees: 300,
-            averageAttendance: 89.5,
-            latePercentage: 15.2
+            averageAttendance: 85 + (variation % 10),
+            latePercentage: 10 + (variation % 15)
           },
           recentActivity: {
-            totalEntries: 1456,
-            activeEmployees: 279,
-            exceptions: 12
+            totalEntries: 1000 + variation * 10,
+            activeEmployees: 250 + variation,
+            exceptions: 5 + (variation % 15)
           }
         }
       })
+      console.log('Setting stats data:', data) // Отладка
       setStats(data)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ошибка загрузки данных')
@@ -246,7 +253,7 @@ export function Dashboard() {
           <div>
             <h1 className="text-3xl font-bold mb-2">Панель управления СКУД</h1>
             <p className="text-blue-100">
-              Статистика посещаемости за {new Date().toLocaleDateString('ru-RU')}
+              Статистика посещаемости за {selectedDate || new Date().toLocaleDateString('ru-RU')}
             </p>
           </div>
           <div className="relative calendar-container">
