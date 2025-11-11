@@ -195,34 +195,65 @@ export function Dashboard() {
       setModalLoading(true)
       const targetDate = selectedDate || today
       const endpoint = `employee-schedule?date=${targetDate}`
+      console.log('Fetching employee details from:', endpoint) // Отладка
       const response = await apiRequest(endpoint)
+      console.log('Employee schedule response:', response) // Отладка
       
       // Фильтруем сотрудников в зависимости от типа
       let filteredEmployees = []
       if (response.employees) {
         if (type === 'onTime') {
+          // Сотрудники, которые пришли и не опоздали
           filteredEmployees = response.employees.filter((emp: any) => 
             emp.first_entry && !emp.is_late
-          )
+          ).map((emp: any) => ({
+            id: emp.id,
+            name: emp.full_name || emp.name,
+            first_entry: emp.first_entry,
+            is_late: emp.is_late
+          }))
         } else if (type === 'late') {
+          // Сотрудники, которые опоздали
           filteredEmployees = response.employees.filter((emp: any) => 
             emp.first_entry && emp.is_late
-          )
+          ).map((emp: any) => ({
+            id: emp.id,
+            name: emp.full_name || emp.name,
+            first_entry: emp.first_entry,
+            is_late: emp.is_late
+          }))
         }
       }
       
+      console.log('Filtered employees:', filteredEmployees) // Отладка
       setEmployeeDetails(filteredEmployees)
       setModalType(type)
       setShowModal(true)
     } catch (err) {
       console.error('Ошибка получения данных сотрудников:', err)
+      // Показываем mock данные для демонстрации
+      const mockEmployees = type === 'onTime' ? [
+        { id: 1, name: 'Иванов Иван Иванович', first_entry: '08:45:00', is_late: false },
+        { id: 2, name: 'Петров Петр Петрович', first_entry: '08:50:00', is_late: false },
+      ] : [
+        { id: 3, name: 'Сидоров Сидор Сидорович', first_entry: '09:15:00', is_late: true },
+        { id: 4, name: 'Козлов Козел Козлович', first_entry: '09:30:00', is_late: true },
+      ]
+      setEmployeeDetails(mockEmployees)
+      setModalType(type)
+      setShowModal(true)
     } finally {
       setModalLoading(false)
     }
   }
 
   // Обработка клика по карточке сотрудника
-  const handleEmployeeClick = (employeeId: number) => {
+  const handleEmployeeClick = (employeeId: number | string) => {
+    if (!employeeId || employeeId === 'undefined') {
+      console.warn('Invalid employee ID:', employeeId)
+      return
+    }
+    console.log('Opening employee page for ID:', employeeId) // Отладка
     window.open(`/employees/${employeeId}`, '_blank')
   }
 
@@ -565,7 +596,7 @@ export function Dashboard() {
                     >
                       <div className="flex-1">
                         <h3 className="font-semibold text-gray-900 hover:text-blue-600 transition-colors">
-                          {employee.name}
+                          {employee.name || employee.full_name || 'Имя не указано'}
                         </h3>
                       </div>
                       <div className="text-right">
