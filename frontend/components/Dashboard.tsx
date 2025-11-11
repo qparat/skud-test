@@ -206,22 +206,28 @@ export function Dashboard() {
           // Сотрудники, которые пришли и не опоздали
           filteredEmployees = response.employees.filter((emp: any) => 
             emp.first_entry && !emp.is_late
-          ).map((emp: any) => ({
-            id: emp.id,
-            name: emp.full_name || emp.name,
-            first_entry: emp.first_entry,
-            is_late: emp.is_late
-          }))
+          ).map((emp: any) => {
+            console.log('Processing onTime employee:', emp) // Отладка структуры
+            return {
+              id: emp.id || emp.employee_id || emp.emp_id,
+              name: emp.full_name || emp.name,
+              first_entry: emp.first_entry,
+              is_late: emp.is_late
+            }
+          })
         } else if (type === 'late') {
           // Сотрудники, которые опоздали
           filteredEmployees = response.employees.filter((emp: any) => 
             emp.first_entry && emp.is_late
-          ).map((emp: any) => ({
-            id: emp.id,
-            name: emp.full_name || emp.name,
-            first_entry: emp.first_entry,
-            is_late: emp.is_late
-          }))
+          ).map((emp: any) => {
+            console.log('Processing late employee:', emp) // Отладка структуры
+            return {
+              id: emp.id || emp.employee_id || emp.emp_id,
+              name: emp.full_name || emp.name,
+              first_entry: emp.first_entry,
+              is_late: emp.is_late
+            }
+          })
         }
       }
       
@@ -233,11 +239,11 @@ export function Dashboard() {
       console.error('Ошибка получения данных сотрудников:', err)
       // Показываем mock данные для демонстрации
       const mockEmployees = type === 'onTime' ? [
-        { id: 1, name: 'Иванов Иван Иванович', first_entry: '08:45:00', is_late: false },
-        { id: 2, name: 'Петров Петр Петрович', first_entry: '08:50:00', is_late: false },
+        { id: 123, name: 'Иванов Иван Иванович', first_entry: '08:45:00', is_late: false },
+        { id: 456, name: 'Петров Петр Петрович', first_entry: '08:50:00', is_late: false },
       ] : [
-        { id: 3, name: 'Сидоров Сидор Сидорович', first_entry: '09:15:00', is_late: true },
-        { id: 4, name: 'Козлов Козел Козлович', first_entry: '09:30:00', is_late: true },
+        { id: 789, name: 'Сидоров Сидор Сидорович', first_entry: '09:15:00', is_late: true },
+        { id: 101, name: 'Козлов Козел Козлович', first_entry: '09:30:00', is_late: true },
       ]
       setEmployeeDetails(mockEmployees)
       setModalType(type)
@@ -592,7 +598,11 @@ export function Dashboard() {
                     <div
                       key={index}
                       className="flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 rounded-lg cursor-pointer transition-colors"
-                      onClick={() => handleEmployeeClick(employee.id)}
+                      onClick={() => {
+                        console.log('Clicked employee object:', employee) // Отладка
+                        console.log('Employee ID:', employee.id) // Отладка
+                        handleEmployeeClick(employee.id)
+                      }}
                     >
                       <div className="flex-1">
                         <h3 className="font-semibold text-gray-900 hover:text-blue-600 transition-colors">
