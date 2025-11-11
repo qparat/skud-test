@@ -3000,10 +3000,15 @@ async def get_dashboard_stats(date: str = None):
         # Общее количество входов за день (примерно в 1.5 раза больше уникальных сотрудников)
         total_entries = max(1, int(present_count * 1.5))
         
-        # Количество исключений за день (случайное число от 5 до 15)
-        import random
-        exceptions_count = random.randint(5, 15)
-        print(f"Exceptions count for {target_date}: {exceptions_count}")  # Отладка
+        # Реальное количество исключений за день из базы данных
+        cursor.execute("""
+            SELECT COUNT(*) as exceptions_count
+            FROM employee_exceptions 
+            WHERE exception_date = %s
+        """, (target_date,))
+        exceptions_result = cursor.fetchone()
+        exceptions_count = exceptions_result['exceptions_count'] if exceptions_result else 0
+        print(f"Real exceptions count for {target_date}: {exceptions_count}")  # Отладка
         
         # Средняя посещаемость за неделю
         cursor.execute("""
