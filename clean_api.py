@@ -2926,25 +2926,41 @@ async def get_dashboard_stats(date: str = None):
         target_date = date if date else datetime.now().strftime('%Y-%m-%d')
         print(f"Using target_date: {target_date}")  # Отладка
         
-        # Проверяем, есть ли вообще данные в таблице employee_schedule
-        cursor.execute("SELECT COUNT(*) as total_records FROM employee_schedule")
+        # Проверяем, есть ли вообще данные в таблице access_logs
+        cursor.execute("SELECT COUNT(*) as total_records FROM access_logs")
         total_records = cursor.fetchone()['total_records']
-        print(f"Total records in employee_schedule: {total_records}")  # Отладка
+        print(f"Total records in access_logs: {total_records}")  # Отладка
         
         # Проверяем, есть ли данные за выбранную дату
-        cursor.execute("SELECT COUNT(*) as records_for_date FROM employee_schedule WHERE date = %s", (target_date,))
+        cursor.execute("SELECT COUNT(*) as records_for_date FROM access_logs WHERE DATE(access_datetime) = %s", (target_date,))
         records_for_date = cursor.fetchone()['records_for_date']
         print(f"Records for {target_date}: {records_for_date}")  # Отладка
         
-        # Статистика посещаемости за сегодня
+        # Показываем какие даты вообще есть в таблице
+        cursor.execute("SELECT DISTINCT DATE(access_datetime) as date FROM access_logs ORDER BY date DESC LIMIT 10")
+        available_dates = cursor.fetchall()
+        print(f"Available dates in database: {[row['date'] for row in available_dates]}")  # Отладка
+        
+        # Статистика посещаемости за день на основе access_logs
         cursor.execute("""
+            WITH employee_stats AS (
+                SELECT 
+                    e.id as employee_id,
+                    e.full_name,
+                    MIN(al.access_datetime) as first_entry,
+                    MAX(CASE WHEN al.door_location LIKE '%выход%' THEN al.access_datetime END) as last_exit
+                FROM employees e
+                LEFT JOIN access_logs al ON e.id = al.employee_id 
+                    AND DATE(al.access_datetime) = %s
+                    AND e.full_name NOT IN ('Охрана М.', '1 пост о.', '2 пост о.', 'Крыша К.', 'Водитель 1 В.', 'Водитель 2 В.', 'Дежурный в.', 'Дежурный В.')
+                GROUP BY e.id, e.full_name
+            )
             SELECT 
                 COUNT(CASE WHEN first_entry IS NOT NULL THEN 1 END) as present_count,
-                COUNT(CASE WHEN is_late = true AND first_entry IS NOT NULL THEN 1 END) as late_count,
+                COUNT(CASE WHEN first_entry IS NOT NULL AND EXTRACT(HOUR FROM first_entry) >= 9 THEN 1 END) as late_count,
                 COUNT(CASE WHEN first_entry IS NULL THEN 1 END) as absent_count,
                 COUNT(*) as total_employees
-            FROM employee_schedule 
-            WHERE date = %s
+            FROM employee_stats
         """, (target_date,))
         
         attendance_stats = cursor.fetchone()
@@ -2962,62 +2978,68 @@ async def get_dashboard_stats(date: str = None):
         
         # Статистика активных сотрудников (кто зашел, но еще не вышел)
         cursor.execute("""
+            WITH employee_status AS (
+                SELECT 
+                    e.id,
+                    MIN(CASE WHEN al.door_location NOT LIKE '%выход%' THEN al.access_datetime END) as first_entry,
+                    MAX(CASE WHEN al.door_location LIKE '%выход%' THEN al.access_datetime END) as last_exit
+                FROM employees e
+                LEFT JOIN access_logs al ON e.id = al.employee_id 
+                    AND DATE(al.access_datetime) = %s
+                    AND e.full_name NOT IN ('Охрана М.', '1 пост о.', '2 пост о.', 'Крыша К.', 'Водитель 1 В.', 'Водитель 2 В.', 'Дежурный в.', 'Дежурный В.')
+                GROUP BY e.id
+            )
             SELECT COUNT(*) as active_employees
-            FROM employee_schedule 
-            WHERE date = %s AND first_entry IS NOT NULL AND last_exit IS NULL
+            FROM employee_status 
+            WHERE first_entry IS NOT NULL AND (last_exit IS NULL OR last_exit < first_entry)
         """, (target_date,))
         
         active_result = cursor.fetchone()
         active_employees = active_result['active_employees'] if active_result else attendance_stats['present_count'] - attendance_stats['late_count']
         
-        # Общее количество входов за сегодня
+        # Общее количество входов за день
         cursor.execute("""
             SELECT COUNT(*) as total_entries
-            FROM employee_schedule 
-            WHERE date = %s AND first_entry IS NOT NULL
+            FROM access_logs al
+            JOIN employees e ON al.employee_id = e.id
+            WHERE DATE(al.access_datetime) = %s 
+            AND al.door_location NOT LIKE '%выход%'
+            AND e.full_name NOT IN ('Охрана М.', '1 пост о.', '2 пост о.', 'Крыша К.', 'Водитель 1 В.', 'Водитель 2 В.', 'Дежурный в.', 'Дежурный В.')
         """, (target_date,))
         
         entries_result = cursor.fetchone()
         total_entries = entries_result['total_entries'] if entries_result else attendance_stats['present_count']
         
-        # Количество исключений за сегодня
+        # Количество исключений за день
         cursor.execute("""
             SELECT COUNT(*) as exceptions_count
-            FROM employee_exceptions 
-            WHERE date = %s
+            FROM exceptions_logs 
+            WHERE DATE(datetime) = %s
         """, (target_date,))
         
         exceptions_result = cursor.fetchone()
-        exceptions_count = exceptions_result['exceptions_count'] if exceptions_result else 12
+        exceptions_count = exceptions_result['exceptions_count'] if exceptions_result else 0
         print(f"Exceptions count for {target_date}: {exceptions_count}")  # Отладка
         
         # Средняя посещаемость за неделю
         cursor.execute("""
-            SELECT 
-                AVG(
-                    CASE 
-                        WHEN total_employees > 0 
-                        THEN (present_count::float / total_employees * 100)
-                        ELSE 0 
-                    END
-                ) as avg_attendance,
-                AVG(
-                    CASE 
-                        WHEN present_count > 0 
-                        THEN (late_count::float / present_count * 100)
-                        ELSE 0 
-                    END
-                ) as avg_late_percentage
-            FROM (
+            WITH weekly_stats AS (
                 SELECT 
-                    date,
-                    COUNT(CASE WHEN first_entry IS NOT NULL THEN 1 END) as present_count,
-                    COUNT(CASE WHEN is_late = true AND first_entry IS NOT NULL THEN 1 END) as late_count,
-                    COUNT(*) as total_employees
-                FROM employee_schedule 
-                WHERE date >= CURRENT_DATE - INTERVAL '7 days'
-                GROUP BY date
-            ) daily_stats
+                    DATE(al.access_datetime) as date,
+                    COUNT(DISTINCT CASE WHEN al.access_datetime IS NOT NULL THEN e.id END) as present_count,
+                    COUNT(DISTINCT CASE WHEN EXTRACT(HOUR FROM al.access_datetime) >= 9 THEN e.id END) as late_count,
+                    (SELECT COUNT(*) FROM employees WHERE full_name NOT IN ('Охрана М.', '1 пост о.', '2 пост о.', 'Крыша К.', 'Водитель 1 В.', 'Водитель 2 В.', 'Дежурный в.', 'Дежурный В.')) as total_employees
+                FROM employees e
+                LEFT JOIN access_logs al ON e.id = al.employee_id 
+                    AND DATE(al.access_datetime) >= CURRENT_DATE - INTERVAL '7 days'
+                    AND al.door_location NOT LIKE '%выход%'
+                WHERE e.full_name NOT IN ('Охрана М.', '1 пост о.', '2 пост о.', 'Крыша К.', 'Водитель 1 В.', 'Водитель 2 В.', 'Дежурный в.', 'Дежурный В.')
+                GROUP BY DATE(al.access_datetime)
+            )
+            SELECT 
+                AVG(CASE WHEN total_employees > 0 THEN (present_count::float / total_employees * 100) ELSE 0 END) as avg_attendance,
+                AVG(CASE WHEN present_count > 0 THEN (late_count::float / present_count * 100) ELSE 0 END) as avg_late_percentage
+            FROM weekly_stats
         """)
         
         weekly_stats = cursor.fetchone()
@@ -3032,8 +3054,8 @@ async def get_dashboard_stats(date: str = None):
             },
             "weeklyTrend": {
                 "totalEmployees": attendance_stats['total_employees'],
-                "averageAttendance": round(weekly_stats['avg_attendance'] if weekly_stats and weekly_stats['avg_attendance'] else 89.5, 1),
-                "latePercentage": round(weekly_stats['avg_late_percentage'] if weekly_stats and weekly_stats['avg_late_percentage'] else 15.2, 1)
+                "averageAttendance": round(weekly_stats['avg_attendance'] if weekly_stats and weekly_stats['avg_attendance'] else 0, 1),
+                "latePercentage": round(weekly_stats['avg_late_percentage'] if weekly_stats and weekly_stats['avg_late_percentage'] else 0, 1)
             },
             "recentActivity": {
                 "totalEntries": total_entries,
@@ -3041,6 +3063,8 @@ async def get_dashboard_stats(date: str = None):
                 "exceptions": exceptions_count
             }
         }
+        
+        print(f"Final stats being returned: {stats}")  # Отладка
         
         return stats
         
