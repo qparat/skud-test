@@ -228,16 +228,14 @@ export default function SvodReportPage() {
   // Фильтрация по поиску в основной таблице
   const filteredSvodEmployees = svodEmployees.filter(emp => 
     emp.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    emp.position.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    emp.department.toLowerCase().includes(searchQuery.toLowerCase())
+    emp.position.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
   // Фильтрация в модальном окне
   const filteredModalEmployees = allEmployees.filter(emp => {
     const matchesSearch = 
       emp.full_name.toLowerCase().includes(modalSearchQuery.toLowerCase()) ||
-      emp.position.toLowerCase().includes(modalSearchQuery.toLowerCase()) ||
-      emp.department.toLowerCase().includes(modalSearchQuery.toLowerCase())
+      emp.position.toLowerCase().includes(modalSearchQuery.toLowerCase())
     
     // Не показываем тех, кто уже в своде
     const alreadyInSvod = svodEmployees.some(se => se.id === emp.id)
@@ -254,7 +252,6 @@ export default function SvodReportPage() {
         '№': index + 1,
         'Должность': emp.position,
         'ФИО': emp.full_name,
-        'Служба': emp.department,
         'Комментарий': emp.comment || '-'
       }))
 
@@ -264,10 +261,9 @@ export default function SvodReportPage() {
       // Настраиваем ширину колонок
       const colWidths = [
         { wch: 5 },   // №
-        { wch: 30 },  // Должность
-        { wch: 25 },  // ФИО
-        { wch: 30 },  // Служба
-        { wch: 40 }   // Комментарий
+        { wch: 40 },  // Должность
+        { wch: 30 },  // ФИО
+        { wch: 50 }   // Комментарий
       ]
       ws['!cols'] = colWidths
 
@@ -371,7 +367,7 @@ export default function SvodReportPage() {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Поиск по ФИО, должности или службе..."
+                placeholder="Поиск по ФИО или должности..."
                 className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 style={{ minWidth: '300px' }}
               />
@@ -421,7 +417,6 @@ export default function SvodReportPage() {
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">№</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Должность</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ФИО</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Служба</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Комментарий</th>
                   <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Действия</th>
                 </tr>
@@ -447,7 +442,6 @@ export default function SvodReportPage() {
                     <td className="px-4 py-3 text-sm text-gray-900">{idx + 1}</td>
                     <td className="px-4 py-3 text-sm text-gray-900">{emp.position}</td>
                     <td className="px-4 py-3 text-sm font-medium text-blue-700">{emp.full_name}</td>
-                    <td className="px-4 py-3 text-sm text-gray-600">{emp.department}</td>
                     <td className="px-4 py-3 text-sm">
                       {emp.comment ? (
                         emp.exception_type === 'at_work' ? (
@@ -505,7 +499,7 @@ export default function SvodReportPage() {
                 type="text"
                 value={modalSearchQuery}
                 onChange={(e) => setModalSearchQuery(e.target.value)}
-                placeholder="Поиск по ФИО, должности или службе..."
+                placeholder="Поиск по ФИО или должности..."
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 autoFocus
               />
@@ -526,7 +520,6 @@ export default function SvodReportPage() {
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">№</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ФИО</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Должность</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Служба</th>
                       <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Действие</th>
                     </tr>
                   </thead>
@@ -536,7 +529,6 @@ export default function SvodReportPage() {
                         <td className="px-4 py-3 text-sm text-gray-900">{idx + 1}</td>
                         <td className="px-4 py-3 text-sm font-medium text-gray-900">{emp.full_name}</td>
                         <td className="px-4 py-3 text-sm text-gray-600">{emp.position}</td>
-                        <td className="px-4 py-3 text-sm text-gray-600">{emp.department}</td>
                         <td className="px-4 py-3 text-center">
                           <button
                             onClick={() => addToSvod(emp.id)}
