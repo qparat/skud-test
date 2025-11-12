@@ -1,14 +1,20 @@
 ﻿'use client'
 
 import { useState, useEffect } from 'react'
-import { RefreshCw, Wifi, WifiOff, User, LogOut } from 'lucide-react'
+import { RefreshCw, Wifi, WifiOff, User, LogOut, Home } from 'lucide-react'
 import { useAuth, USER_ROLES, ROLE_NAMES } from './AuthProvider'
+import { usePathname } from 'next/navigation'
+import Link from 'next/link'
 
 export function Header() {
   const [isOnline, setIsOnline] = useState(true)
   const [currentTime, setCurrentTime] = useState('')
   const [isClient, setIsClient] = useState(false)
   const { user, logout, isAuthenticated } = useAuth()
+  const pathname = usePathname()
+  
+  // Проверяем, находимся ли мы на главной странице
+  const isHomePage = pathname === '/'
 
   // Prevent hydration mismatch by only showing time on client
   useEffect(() => {
@@ -40,9 +46,19 @@ export function Header() {
     <header className="bg-white shadow-sm border-b border-gray-200">
       <div className="flex items-center justify-between h-16 px-6">
         <div className="flex items-center space-x-4">
-          <h2 className="text-lg font-semibold text-gray-900">
-            Система контроля доступа
-          </h2>
+          {isHomePage ? (
+            <h2 className="text-lg font-semibold text-gray-900">
+              Система контроля доступа
+            </h2>
+          ) : (
+            <Link 
+              href="/" 
+              className="flex items-center space-x-2 px-3 py-2 text-lg font-semibold text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-md transition-colors duration-200"
+            >
+              <Home className="h-5 w-5" />
+              <span>На главную</span>
+            </Link>
+          )}
         </div>
         
         <div className="flex items-center space-x-4">
