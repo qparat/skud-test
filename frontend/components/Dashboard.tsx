@@ -352,9 +352,32 @@ export function Dashboard() {
   const fetchBirthdays = async (date?: string) => {
     setBirthdayLoading(true)
     try {
-      const endpoint = `/dashboard-birthdays${date ? `?date=${date}` : ''}`
+      const endpoint = `dashboard-birthdays${date ? `?date=${date}` : ''}`
       const data = await apiRequest(endpoint)
-      setBirthdayEmployees(data.employees || [])
+      console.log('Birthday data received:', data) // Отладка
+      setBirthdayEmployees(data.birthdays || [])
+      
+      // Временные mock данные для тестирования
+      if (!data.birthdays || data.birthdays.length === 0) {
+        setBirthdayEmployees([
+          {
+            id: 1,
+            name: 'Иванов Иван Иванович',
+            full_name: 'Иванов Иван Иванович',
+            age: 30,
+            department_name: 'IT отдел',
+            position_name: 'Программист'
+          },
+          {
+            id: 2,
+            name: 'Петров Петр Петрович', 
+            full_name: 'Петров Петр Петрович',
+            age: 25,
+            department_name: 'Бухгалтерия',
+            position_name: 'Бухгалтер'
+          }
+        ])
+      }
     } catch (err) {
       console.error('Ошибка загрузки дней рождения:', err)
       setBirthdayEmployees([])
@@ -582,7 +605,9 @@ export function Dashboard() {
         <div className="bg-white rounded-lg shadow-lg p-6">
           <div className="flex items-center mb-4">
             <Cake className="h-6 w-6 text-yellow-600 mr-2" />
-            <h3 className="text-lg font-semibold text-gray-900">Дни рождения сегодня</h3>
+            <h3 className="text-lg font-semibold text-gray-900">
+              Дни рождения {selectedDate ? 'на ' + selectedDate : 'сегодня'}
+            </h3>
           </div>
           
           {birthdayLoading ? (
@@ -591,12 +616,14 @@ export function Dashboard() {
             </div>
           ) : birthdayEmployees.length > 0 ? (
             <div className="space-y-4">
-              {birthdayEmployees.map((employee, index) => (
+              {birthdayEmployees.map((employee, index) => {
+                console.log('Birthday employee:', employee) // Отладка
+                return (
                 <div key={index} className="bg-gradient-to-r from-yellow-50 to-yellow-100 border-l-4 border-yellow-400 p-4 rounded-r-lg">
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
                       <h4 className="text-lg font-semibold text-gray-900 mb-1">
-                        {employee.full_name}
+                        {employee.name || employee.full_name}
                       </h4>
                       <p className="text-sm text-gray-600 mb-1">{employee.department_name}</p>
                       <p className="text-sm text-gray-500">{employee.position_name}</p>
@@ -608,7 +635,8 @@ export function Dashboard() {
                     </div>
                   </div>
                 </div>
-              ))}
+                )
+              })}
               <div className="text-center mt-4">
                 <p className="text-sm text-gray-500">🎉 Поздравляем с днем рождения! 🎉</p>
               </div>
