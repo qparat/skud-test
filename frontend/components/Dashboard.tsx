@@ -21,11 +21,13 @@ import { apiRequest } from '@/lib/api'
 interface PieChartProps {
   data: { name: string; value: number; color: string }[]
   size?: number
+  showPercentage?: boolean
 }
 
-function PieChart({ data, size = 200 }: PieChartProps) {
+function PieChart({ data, size = 200, showPercentage = false }: PieChartProps) {
   const total = data.reduce((sum, item) => sum + item.value, 0)
   let currentAngle = -90 // Начинаем сверху
+  const [hoveredSegment, setHoveredSegment] = useState<number | null>(null)
 
   if (total === 0) return null
 
@@ -63,19 +65,38 @@ function PieChart({ data, size = 200 }: PieChartProps) {
               key={index}
               d={pathData}
               fill={item.color}
-              className="transition-all duration-1000 ease-in-out hover:brightness-110"
+              className="transition-all duration-200 ease-in-out cursor-pointer"
               style={{
-                animation: `pieSlideIn 0.8s ease-out ${index * 0.1}s both`
+                animation: `pieSlideIn 0.8s ease-out ${index * 0.1}s both`,
+                filter: hoveredSegment === index ? 'brightness(1.1) drop-shadow(0 4px 8px rgba(0,0,0,0.2))' : 'none',
+                transform: hoveredSegment === index ? 'scale(1.02)' : 'scale(1)',
+                transformOrigin: `${centerX}px ${centerY}px`
               }}
+              onMouseEnter={() => setHoveredSegment(index)}
+              onMouseLeave={() => setHoveredSegment(null)}
             />
           )
         })}
       </svg>
       
       {/* Центральная статистика */}
-      <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-        <div className="text-2xl font-bold text-gray-900">{total}</div>
-        <div className="text-sm text-gray-500">Всего</div>
+      <div className="absolute inset-0 flex flex-col items-center justify-center text-center pointer-events-none">
+        {hoveredSegment !== null ? (
+          <>
+            <div className="text-2xl font-bold text-gray-900">
+              {showPercentage 
+                ? `${((data[hoveredSegment].value / total) * 100).toFixed(1)}%`
+                : data[hoveredSegment].value
+              }
+            </div>
+            <div className="text-sm text-gray-500">{data[hoveredSegment].name}</div>
+          </>
+        ) : (
+          <>
+            <div className="text-2xl font-bold text-gray-900">{total}</div>
+            <div className="text-sm text-gray-500">Всего</div>
+          </>
+        )}
       </div>
 
       <style jsx>{`
@@ -88,6 +109,15 @@ function PieChart({ data, size = 200 }: PieChartProps) {
             transform: scale(1);
             opacity: 1;
           }
+        }
+        
+        .pie-segment {
+          transition: all 0.2s ease-in-out;
+        }
+        
+        .pie-segment:hover {
+          filter: brightness(1.1) drop-shadow(0 4px 8px rgba(0,0,0,0.2));
+          transform: scale(1.02);
         }
       `}</style>
     </div>
@@ -636,7 +666,7 @@ export function Dashboard() {
             onClick={() => setShowPercentage(!showPercentage)}
             title="Нажмите для переключения между числами и процентами"
           >
-            <PieChart data={attendanceData} size={250} />
+            <PieChart data={attendanceData} size={250} showPercentage={showPercentage} />
           </div>
           <div className="mt-6 grid grid-cols-2 gap-4 text-center">
             {attendanceData.map((item, index) => (
