@@ -1,12 +1,16 @@
 ﻿'use client'
 
 import { useState, useEffect } from 'react'
-import { RefreshCw, Wifi, WifiOff, User, LogOut, Home } from 'lucide-react'
+import { RefreshCw, Wifi, WifiOff, User, LogOut, Home, HelpCircle } from 'lucide-react'
 import { useAuth, USER_ROLES, ROLE_NAMES } from './AuthProvider'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 
-export function Header() {
+interface HeaderProps {
+  onShowInstructions?: () => void
+}
+
+export function Header({ onShowInstructions }: HeaderProps = {}) {
   const [isOnline, setIsOnline] = useState(true)
   const [currentTime, setCurrentTime] = useState('')
   const [isClient, setIsClient] = useState(false)
@@ -69,6 +73,17 @@ export function Header() {
           >
             <RefreshCw className="h-4 w-4" />
           </button>
+          
+          {/* Кнопка справки */}
+          {onShowInstructions && (
+            <button
+              onClick={onShowInstructions}
+              className="p-2 text-gray-400 hover:text-blue-600 rounded-md hover:bg-blue-50"
+              title="Показать инструкцию"
+            >
+              <HelpCircle className="h-4 w-4" />
+            </button>
+          )}
           <span className="text-sm text-gray-600">
             {isClient ? currentTime : '--:--:--'}
           </span>

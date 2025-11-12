@@ -498,7 +498,7 @@ export default function ExceptionsPage() {
     <div className="">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">
-          Исключения для сотрудников
+          Исключения
         </h1>
         <p className="text-gray-600">
           Управление исключениями по датам (отсутствие проверки опозданий)

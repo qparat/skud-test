@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { Sidebar } from '@/components/Sidebar'
 import { Header } from '@/components/Header'
 import { useAuth } from '@/components/AuthProvider'
+import { InstructionModal, useInstructionModal } from '@/components/InstructionModal'
 
 interface LayoutWrapperProps {
   children: React.ReactNode
@@ -14,6 +15,7 @@ export function LayoutWrapper({ children }: LayoutWrapperProps) {
   const pathname = usePathname()
   const router = useRouter()
   const { isAuthenticated, loading } = useAuth()
+  const { showModal, closeModal, showInstructions } = useInstructionModal()
   
   // Публичные страницы, которые не требуют авторизации
   const publicPages = ['/login']
@@ -66,6 +68,8 @@ export function LayoutWrapper({ children }: LayoutWrapperProps) {
     return (
       <div className="min-h-screen bg-gray-50">
         {children}
+        {/* Модальное окно с инструкциями для страниц сотрудников */}
+        <InstructionModal isOpen={showModal} onClose={closeModal} />
       </div>
     )
   }
@@ -74,11 +78,13 @@ export function LayoutWrapper({ children }: LayoutWrapperProps) {
     <div className="flex h-screen bg-gray-100">
       <Sidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
-        <Header />
+        <Header onShowInstructions={showInstructions} />
         <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-2">
           {children}
         </main>
       </div>
+      {/* Модальное окно с инструкциями */}
+      <InstructionModal isOpen={showModal} onClose={closeModal} />
     </div>
   )
 }
