@@ -415,8 +415,8 @@ export function Dashboard() {
   if (!stats) return null
 
   const attendanceData = [
-    { name: 'Вовремя', value: stats.todayAttendance.onTime, color: '#10b981' },
-    { name: 'Опоздали', value: stats.todayAttendance.late, color: '#ea580c' }
+    { name: 'Опоздали', value: stats.todayAttendance.late, color: '#ea580c' },
+    { name: 'Вовремя', value: stats.todayAttendance.onTime, color: '#10b981' }
   ]
 
   const total = stats.todayAttendance.onTime + stats.todayAttendance.late
