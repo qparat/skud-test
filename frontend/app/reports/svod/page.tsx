@@ -408,7 +408,7 @@ export default function SvodReportPage() {
         // Первая строка заголовка - полужирная и по центру
         if (row === 0) {
           cellStyle = {
-            font: { name: 'Times New Roman', sz: 14, bold: 1 },
+            font: { name: 'Times New Roman', sz: 14, bold: true } as any,
             alignment: { horizontal: 'center', vertical: 'center', wrapText: true }
           }
         }
@@ -422,7 +422,7 @@ export default function SvodReportPage() {
         // Дата - полужирная и по центру
         else if (row === 6) {
           cellStyle = {
-            font: { name: 'Times New Roman', sz: 14, bold: 1 },
+            font: { name: 'Times New Roman', sz: 14, bold: true } as any,
             alignment: { horizontal: 'center', vertical: 'center', wrapText: true }
           }
         }
@@ -431,7 +431,7 @@ export default function SvodReportPage() {
                  ws[key].v === 'Ф.И.О.' || ws[key].v === 'Примечание' || 
                  ws[key].v === 'Дни рождения') {
           cellStyle = {
-            font: { name: 'Times New Roman', sz: 14, bold: 1 },
+            font: { name: 'Times New Roman', sz: 14, bold: true } as any,
             alignment: { horizontal: 'center', vertical: 'center', wrapText: true }
           }
         }
