@@ -3043,6 +3043,20 @@ async def get_dashboard_stats(date: str = None):
         exceptions_count = exceptions_result['exceptions_count'] if exceptions_result else 0
         print(f"Real exceptions count for {target_date}: {exceptions_count}")  # Отладка
         
+        # Количество дней рождений на сегодня
+        cursor.execute("""
+            SELECT COUNT(*) as birthdays_count
+            FROM employees e
+            WHERE e.is_active = true
+            AND e.birth_date IS NOT NULL
+            AND EXTRACT(MONTH FROM e.birth_date) = EXTRACT(MONTH FROM %s::date)
+            AND EXTRACT(DAY FROM e.birth_date) = EXTRACT(DAY FROM %s::date)
+            AND e.full_name NOT IN ('Охрана М.', '1 пост о.', '2 пост о.', 'Крыша К.', 'Водитель 1 В.', 'Водитель 2 В.', 'Дежурный в.', 'Дежурный В.')
+        """, (target_date, target_date))
+        birthdays_result = cursor.fetchone()
+        birthdays_count = birthdays_result['birthdays_count'] if birthdays_result else 0
+        print(f"Birthdays count for {target_date}: {birthdays_count}")  # Отладка
+        
         # Средняя посещаемость за неделю
         cursor.execute("""
             SELECT 
@@ -3068,7 +3082,8 @@ async def get_dashboard_stats(date: str = None):
             "recentActivity": {
                 "totalEntries": total_entries,
                 "activeEmployees": active_employees,
-                "exceptions": exceptions_count
+                "exceptions": exceptions_count,
+                "birthdays": birthdays_count
             }
         }
         
@@ -3272,5 +3287,68 @@ async def get_dashboard_employee_exceptions(
     except Exception as e:
         import traceback
         print(f"Ошибка получения исключений: {e}")
+        print(f"Полная ошибка: {traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=f"Ошибка получения данных: {str(e)}")
+
+@app.get("/dashboard-birthdays")
+async def get_dashboard_birthdays(
+    date: Optional[str] = Query(None), 
+    current_user: dict = Depends(get_current_user)
+):
+    """Получить список сотрудников с днями рождения на сегодня или указанную дату"""
+    try:
+        if date is None:
+            date = datetime.today().strftime('%Y-%m-%d')
+        
+        conn = get_db_connection()
+        
+        # Получаем сотрудников, у которых день рождения сегодня (по дню и месяцу)
+        birthdays_today = execute_query(
+            conn,
+            """
+            SELECT 
+                e.id,
+                e.full_name,
+                e.birth_date,
+                d.name as department_name,
+                p.name as position_name,
+                EXTRACT(YEAR FROM %s::date) - EXTRACT(YEAR FROM e.birth_date) as age
+            FROM employees e
+            LEFT JOIN departments d ON e.department_id = d.id
+            LEFT JOIN positions p ON e.position_id = p.id
+            WHERE e.is_active = true
+            AND e.birth_date IS NOT NULL
+            AND EXTRACT(MONTH FROM e.birth_date) = EXTRACT(MONTH FROM %s::date)
+            AND EXTRACT(DAY FROM e.birth_date) = EXTRACT(DAY FROM %s::date)
+            AND e.full_name NOT IN ('Охрана М.', '1 пост о.', '2 пост о.', 'Крыша К.', 'Водитель 1 В.', 'Водитель 2 В.', 'Дежурный в.', 'Дежурный В.')
+            ORDER BY e.full_name
+            """,
+            (date, date, date),
+            fetch_all=True
+        )
+        
+        conn.close()
+        
+        # Форматируем результат
+        birthdays_list = []
+        for emp in birthdays_today:
+            birthdays_list.append({
+                'id': emp['id'],
+                'name': emp['full_name'],
+                'birth_date': emp['birth_date'].strftime('%Y-%m-%d') if emp['birth_date'] else None,
+                'age': int(emp['age']) if emp['age'] else None,
+                'department_name': emp['department_name'],
+                'position_name': emp['position_name']
+            })
+        
+        return {
+            'date': date,
+            'birthdays': birthdays_list,
+            'total': len(birthdays_list)
+        }
+        
+    except Exception as e:
+        import traceback
+        print(f"Ошибка получения дней рождений: {e}")
         print(f"Полная ошибка: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=f"Ошибка получения данных: {str(e)}")

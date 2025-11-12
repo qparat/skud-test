@@ -12,7 +12,8 @@ import {
   UserCheck,
   File,
   ChevronUp,
-  ChevronDown
+  ChevronDown,
+  Cake
 } from 'lucide-react'
 import { apiRequest } from '@/lib/api'
 
@@ -107,6 +108,7 @@ interface DashboardStats {
     totalEntries: number
     activeEmployees: number
     exceptions: number
+    birthdays: number
   }
 }
 
@@ -126,9 +128,11 @@ export function Dashboard() {
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const [selectedDate, setSelectedDate] = useState('')
   const [showModal, setShowModal] = useState(false)
-  const [modalType, setModalType] = useState<'onTime' | 'late' | 'exceptions'>('onTime')
+  const [modalType, setModalType] = useState<'onTime' | 'late' | 'exceptions' | 'birthdays'>('onTime')
   const [employeeDetails, setEmployeeDetails] = useState<any[]>([])
   const [modalLoading, setModalLoading] = useState(false)
+  const [birthdayEmployees, setBirthdayEmployees] = useState<any[]>([])
+  const [birthdayLoading, setBirthdayLoading] = useState(false)
   
   // Получаем сегодняшнюю дату для ограничения выбора
   const today = formatDate(new Date())
@@ -136,6 +140,7 @@ export function Dashboard() {
   useEffect(() => {
     console.log('useEffect triggered, selectedDate:', selectedDate) // Отладка
     fetchDashboardStats(selectedDate)
+    fetchBirthdays(selectedDate)
   }, [selectedDate])
 
   // Закрытие календаря и модального окна при клике вне их области
@@ -193,7 +198,7 @@ export function Dashboard() {
   }
 
   // Получение детальной информации о сотрудниках (УСКОРЕННАЯ ВЕРСИЯ)
-  const fetchEmployeeDetails = async (type: 'onTime' | 'late' | 'exceptions') => {
+  const fetchEmployeeDetails = async (type: 'onTime' | 'late' | 'exceptions' | 'birthdays') => {
     try {
       setModalLoading(true)
       const targetDate = selectedDate || today
@@ -210,6 +215,25 @@ export function Dashboard() {
           return
         } catch (err) {
           console.error('Ошибка получения исключений:', err)
+          setEmployeeDetails([])
+          setModalType(type)
+          setShowModal(true)
+          return
+        }
+      }
+
+      // Для дней рождений используем специальный endpoint
+      if (type === 'birthdays') {
+        try {
+          const endpoint = `dashboard-birthdays?date=${targetDate}`
+          const response = await apiRequest(endpoint)
+          
+          setEmployeeDetails(response.birthdays || [])
+          setModalType(type)
+          setShowModal(true)
+          return
+        } catch (err) {
+          console.error('Ошибка получения дней рождений:', err)
           setEmployeeDetails([])
           setModalType(type)
           setShowModal(true)
@@ -324,6 +348,21 @@ export function Dashboard() {
     }
   }
 
+  // Функция для загрузки дней рождения
+  const fetchBirthdays = async (date?: string) => {
+    setBirthdayLoading(true)
+    try {
+      const endpoint = `/dashboard-birthdays${date ? `?date=${date}` : ''}`
+      const data = await apiRequest(endpoint)
+      setBirthdayEmployees(data.employees || [])
+    } catch (err) {
+      console.error('Ошибка загрузки дней рождения:', err)
+      setBirthdayEmployees([])
+    } finally {
+      setBirthdayLoading(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -432,7 +471,7 @@ export function Dashboard() {
       </div>
 
       {/* Основные метрики */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {/* Пришли вовремя */}
         <div 
           className="bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow duration-300 cursor-pointer hover:bg-green-50"
@@ -509,6 +548,26 @@ export function Dashboard() {
             </div>
             <div className="text-xs text-blue-600 font-medium mt-1">
               Нажмите для просмотра списка
+            </div>
+          </div>
+        </div>
+
+        {/* Дни рождения */}
+        <div className="bg-white rounded-lg shadow-lg p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Дни рождения</p>
+              <p className="text-3xl font-bold text-yellow-600 animate-pulse">
+                {stats.recentActivity.birthdays}
+              </p>
+            </div>
+            <div className="p-3 bg-yellow-100 rounded-full">
+              <Cake className="h-8 w-8 text-yellow-600" />
+            </div>
+          </div>
+          <div className="mt-4">
+            <div className="text-sm text-gray-500">
+              За выбранный день
             </div>
           </div>
         </div>
@@ -608,6 +667,35 @@ export function Dashboard() {
           </button>
         </div>
       </div>
+
+      {/* Блок дней рождения */}
+      {birthdayEmployees.length > 0 && (
+        <div className="bg-gradient-to-r from-yellow-400 to-yellow-500 rounded-lg shadow-lg p-6 text-white">
+          <div className="flex items-center mb-4">
+            <Cake className="h-8 w-8 text-white mr-3" />
+            <h3 className="text-xl font-bold">Сегодня день рождения! 🎉</h3>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {birthdayEmployees.map((employee, index) => (
+              <div key={index} className="bg-white/20 backdrop-blur-sm rounded-lg p-4">
+                <div className="flex items-center space-x-3">
+                  <div className="bg-white/30 rounded-full p-2">
+                    <Users className="h-6 w-6 text-white" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-white">{employee.full_name}</h4>
+                    <p className="text-yellow-100 text-sm">{employee.department_name}</p>
+                    <p className="text-yellow-100 text-sm">{employee.position_name}</p>
+                    <p className="text-white font-medium mt-1">
+                      {employee.age} {employee.age === 1 ? 'год' : employee.age < 5 ? 'года' : 'лет'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Модальное окно со списком сотрудников */}
       {showModal && (
