@@ -369,14 +369,6 @@ export function Dashboard() {
               <Calendar className="h-4 w-4 mr-2" />
               {selectedDate ? selectedDate : 'Выбрать дату'}
             </button>
-            {selectedDate && (
-              <button
-                onClick={() => setSelectedDate('')}
-                className="text-sm text-red-600 hover:text-red-800"
-              >
-                Сбросить
-              </button>
-            )}
             {showCalendar && (
               <div className="absolute top-full mt-2 z-[9999] bg-white border border-gray-200 rounded-lg shadow-xl p-4" style={{minWidth: '280px', right: 0}}>
                 {/* Заголовок календаря */}
