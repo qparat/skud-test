@@ -312,28 +312,49 @@ export default function SvodReportPage() {
           <head>
             <meta charset="utf-8">
             <style>
+              body { 
+                font-family: 'Times New Roman', serif; 
+                font-size: 14pt; 
+                margin: 0; 
+                padding: 20px; 
+              }
               table { 
                 font-family: 'Times New Roman', serif; 
                 font-size: 14pt; 
                 border-collapse: collapse; 
                 width: 100%; 
+                border: 2px solid black;
               }
               th, td { 
                 border: 1px solid black; 
                 padding: 8px; 
                 text-align: left; 
-                vertical-align: top; 
+                vertical-align: middle; 
+                font-family: 'Times New Roman', serif; 
+                font-size: 14pt;
               }
               .header { 
                 font-weight: bold; 
                 text-align: center; 
                 font-size: 14pt; 
+                font-family: 'Times New Roman', serif;
               }
               .center { 
                 text-align: center; 
+                font-family: 'Times New Roman', serif; 
+                font-size: 14pt;
               }
               .bold { 
                 font-weight: bold; 
+                font-family: 'Times New Roman', serif; 
+                font-size: 14pt;
+              }
+              .table-header {
+                background-color: #f0f0f0;
+                font-weight: bold;
+                text-align: center;
+                font-family: 'Times New Roman', serif; 
+                font-size: 14pt;
               }
             </style>
           </head>
@@ -356,10 +377,10 @@ export default function SvodReportPage() {
       // Заголовки основной таблицы
       htmlTable += `
         <tr>
-          <th class="header">п/п</th>
-          <th class="header">Наименование должности</th>
-          <th class="header">Ф.И.О.</th>
-          <th class="header">Примечание</th>
+          <th class="table-header">п/п</th>
+          <th class="table-header">Наименование должности</th>
+          <th class="table-header">Ф.И.О.</th>
+          <th class="table-header">Примечание</th>
         </tr>
       `
 
@@ -370,19 +391,19 @@ export default function SvodReportPage() {
           const emp = svodEmployees[i]
           htmlTable += `
             <tr>
-              <td class="center">${i + 1}</td>
-              <td>${emp.position}</td>
-              <td>${emp.full_name}</td>
-              <td>${emp.comment || ''}</td>
+              <td class="center" style="border: 1px solid black;">${i + 1}</td>
+              <td style="border: 1px solid black;">${emp.position}</td>
+              <td style="border: 1px solid black;">${emp.full_name}</td>
+              <td style="border: 1px solid black;">${emp.comment || ''}</td>
             </tr>
           `
         } else {
           htmlTable += `
             <tr>
-              <td class="center">${i + 1}</td>
-              <td></td>
-              <td></td>
-              <td></td>
+              <td class="center" style="border: 1px solid black;">${i + 1}</td>
+              <td style="border: 1px solid black;"></td>
+              <td style="border: 1px solid black;"></td>
+              <td style="border: 1px solid black;"></td>
             </tr>
           `
         }
@@ -390,13 +411,13 @@ export default function SvodReportPage() {
 
       // Секция "Дни рождения"
       htmlTable += `
-        <tr><td colspan="4">&nbsp;</td></tr>
+        <tr><td colspan="4" style="border: 1px solid black;">&nbsp;</td></tr>
         <tr><td colspan="4" class="header">Дни рождения</td></tr>
         <tr>
-          <th class="header">п/п</th>
-          <th class="header">Наименование должности</th>
-          <th class="header">Ф.И.О.</th>
-          <th class="header">Примечание</th>
+          <th class="table-header">п/п</th>
+          <th class="table-header">Наименование должности</th>
+          <th class="table-header">Ф.И.О.</th>
+          <th class="table-header">Примечание</th>
         </tr>
       `
 
@@ -404,20 +425,20 @@ export default function SvodReportPage() {
       if (birthdayEmployees.length === 0) {
         htmlTable += `
           <tr>
-            <td class="center">1</td>
-            <td></td>
-            <td></td>
-            <td></td>
+            <td class="center" style="border: 1px solid black;">1</td>
+            <td style="border: 1px solid black;"></td>
+            <td style="border: 1px solid black;"></td>
+            <td style="border: 1px solid black;"></td>
           </tr>
         `
       } else {
         birthdayEmployees.forEach((emp: any, idx: number) => {
           htmlTable += `
             <tr>
-              <td class="center">${idx + 1}</td>
-              <td>${emp.position}</td>
-              <td>${emp.full_name}</td>
-              <td>День рождения</td>
+              <td class="center" style="border: 1px solid black;">${idx + 1}</td>
+              <td style="border: 1px solid black;">${emp.position}</td>
+              <td style="border: 1px solid black;">${emp.full_name}</td>
+              <td style="border: 1px solid black;">День рождения</td>
             </tr>
           `
         })
