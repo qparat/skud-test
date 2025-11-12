@@ -147,19 +147,22 @@ export function EmployeeSchedule() {
     }
   }, [])
 
-  // Закрытие календаря при клике вне его
+  // Закрытие календаря и фильтра при клике вне их области
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Element;
-      // Для календаря
+      
+      // Проверяем календарь - закрываем только если клик не внутри календаря
       if (showCalendar && !target.closest('.calendar-container')) {
         setShowCalendar(false);
       }
-      // Для фильтра - проверяем, что клик не внутри filter-container (включая кнопку)
+      
+      // Проверяем фильтр - закрываем только если клик не внутри фильтра
       if (showFilter && !target.closest('.filter-container')) {
         setShowFilter(false);
       }
     };
+    
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showCalendar, showFilter]);
@@ -831,14 +834,17 @@ export function EmployeeSchedule() {
               {/* Кнопка фильтра и выпадающий список отделов */}
               <div className="filter-container">
                 <button
-                  onClick={() => setShowFilter(!showFilter)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowFilter(!showFilter);
+                  }}
                   className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                 >
                   Фильтр
                   <ChevronDown className="h-4 w-4 ml-2" />
                 </button>
                 {showFilter && (
-                  <div ref={filterRef} className="absolute mt-2 z-[10000] bg-white border border-gray-200 rounded-lg shadow-xl p-4" style={{ minWidth: '500px', top: 'auto', right: '1rem' }}>
+                  <div ref={filterRef} className="absolute mt-2 z-[10001] bg-white border border-gray-200 rounded-lg shadow-xl p-4" style={{ minWidth: '500px', top: 'auto', right: '1rem' }}>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Службы</label>
                     <input
                       type="text"
@@ -883,7 +889,10 @@ export function EmployeeSchedule() {
               </div>
               {/* ...existing calendar and export buttons... */}
               <button
-                onClick={() => setShowCalendar(!showCalendar)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowCalendar(!showCalendar);
+                }}
                 className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               >
                 <Calendar className="h-4 w-4 mr-2" />
@@ -906,7 +915,7 @@ export function EmployeeSchedule() {
               )}
               {/* ...existing calendar popup... */}
               {showCalendar && (
-                <div className="absolute top-full mt-2 z-[9999] bg-white border border-gray-200 rounded-lg shadow-xl p-4" style={{minWidth: '280px', right: 0}}>
+                <div className="absolute top-full mt-2 z-[10000] bg-white border border-gray-200 rounded-lg shadow-xl p-4" style={{minWidth: '280px', right: 0}}>
                   {/* Заголовок календаря */}
                   <div className="flex items-center justify-between mb-4">
                     <button
