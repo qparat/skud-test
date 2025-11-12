@@ -655,7 +655,7 @@ export function Dashboard() {
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-600"></div>
             </div>
           ) : birthdayEmployees.length > 0 ? (
-            <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
+            <div className="space-y-2 max-h-96 overflow-y-auto pr-1">
               {birthdayEmployees.map((employee, index) => {
                 console.log('Birthday employee:', employee) // Отладка
                 return (
