@@ -387,68 +387,6 @@ export function Dashboard() {
       const data = await apiRequest(endpoint)
       console.log('Birthday data received:', data) // Отладка
       setBirthdayEmployees(data.birthdays || [])
-      
-      // Временные mock данные для тестирования
-      if (!data.birthdays || data.birthdays.length === 0) {
-        setBirthdayEmployees([
-          {
-            id: 1,
-            name: 'Иванов Иван Иванович',
-            full_name: 'Иванов Иван Иванович',
-            age: 30,
-            department_name: 'IT отдел',
-            position_name: 'Программист'
-          },
-          {
-            id: 2,
-            name: 'Петров Петр Петрович', 
-            full_name: 'Петров Петр Петрович',
-            age: 25,
-            department_name: 'Бухгалтерия',
-            position_name: 'Бухгалтер'
-          },
-          {
-            id: 3,
-            name: 'Сидоров Сидор Сидорович',
-            full_name: 'Сидоров Сидор Сидорович',
-            age: 35,
-            department_name: 'Маркетинг',
-            position_name: 'Менеджер'
-          },
-          {
-            id: 4,
-            name: 'Козлов Козел Козлович',
-            full_name: 'Козлов Козел Козлович',
-            age: 28,
-            department_name: 'HR отдел',
-            position_name: 'HR специалист'
-          },
-          {
-            id: 5,
-            name: 'Васильев Василий Васильевич',
-            full_name: 'Васильев Василий Васильевич',
-            age: 42,
-            department_name: 'Финансы',
-            position_name: 'Финансовый аналитик'
-          },
-          {
-            id: 6,
-            name: 'Морозов Морозий Морозович',
-            full_name: 'Морозов Морозий Морозович',
-            age: 33,
-            department_name: 'Продажи',
-            position_name: 'Менеджер по продажам'
-          },
-          {
-            id: 7,
-            name: 'Кузнецов Кузьма Кузьмич',
-            full_name: 'Кузнецов Кузьма Кузьмич',
-            age: 29,
-            department_name: 'Производство',
-            position_name: 'Инженер'
-          }
-        ])
-      }
     } catch (err) {
       console.error('Ошибка загрузки дней рождения:', err)
       setBirthdayEmployees([])
