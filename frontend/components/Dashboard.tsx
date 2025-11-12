@@ -597,51 +597,48 @@ export function Dashboard() {
           </div>
         </div>
 
-        {/* Недельная статистика */}
+        {/* Дни рождения */}
         <div className="bg-white rounded-lg shadow-lg p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Недельная статистика</h3>
-          <div className="space-y-6">
-            
-            {/* Средняя посещаемость */}
-            <div>
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-sm font-medium text-gray-600">Средняя посещаемость</span>
-                <span className="text-sm font-bold text-green-600">{stats.weeklyTrend.averageAttendance}%</span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-3">
-                <div 
-                  className="bg-gradient-to-r from-green-400 to-green-600 h-3 rounded-full transition-all duration-1000 ease-out"
-                  style={{ width: `${stats.weeklyTrend.averageAttendance}%` }}
-                ></div>
-              </div>
-            </div>
-
-            {/* Процент опозданий */}
-            <div>
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-sm font-medium text-gray-600">Процент опозданий</span>
-                <span className="text-sm font-bold text-amber-600">{stats.weeklyTrend.latePercentage}%</span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-3">
-                <div 
-                  className="bg-gradient-to-r from-amber-400 to-amber-600 h-3 rounded-full transition-all duration-1000 ease-out"
-                  style={{ width: `${stats.weeklyTrend.latePercentage}%` }}
-                ></div>
-              </div>
-            </div>
-
-            {/* Дополнительная информация */}
-            <div className="bg-gray-50 rounded-lg p-4">
-              <h4 className="text-md font-semibold text-gray-800 mb-3">Дополнительная информация</h4>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Всего сотрудников</span>
-                  <span className="font-semibold text-gray-900">{stats.weeklyTrend.totalEmployees}</span>
-                </div>
-              </div>
-            </div>
-
+          <div className="flex items-center mb-4">
+            <Cake className="h-6 w-6 text-yellow-600 mr-2" />
+            <h3 className="text-lg font-semibold text-gray-900">Дни рождения сегодня</h3>
           </div>
+          
+          {birthdayLoading ? (
+            <div className="flex items-center justify-center h-32">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-600"></div>
+            </div>
+          ) : birthdayEmployees.length > 0 ? (
+            <div className="space-y-4">
+              {birthdayEmployees.map((employee, index) => (
+                <div key={index} className="bg-gradient-to-r from-yellow-50 to-yellow-100 border-l-4 border-yellow-400 p-4 rounded-r-lg">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <h4 className="text-lg font-semibold text-gray-900 mb-1">
+                        {employee.full_name}
+                      </h4>
+                      <p className="text-sm text-gray-600 mb-1">{employee.department_name}</p>
+                      <p className="text-sm text-gray-500">{employee.position_name}</p>
+                    </div>
+                    <div className="text-right">
+                      <div className="bg-yellow-400 text-white px-3 py-1 rounded-full text-sm font-medium">
+                        🎂 {employee.age} {employee.age === 1 ? 'год' : employee.age < 5 ? 'года' : 'лет'}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              <div className="text-center mt-4">
+                <p className="text-sm text-gray-500">🎉 Поздравляем с днем рождения! 🎉</p>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <Cake className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+              <p className="text-gray-500 text-lg">Сегодня нет дней рождения</p>
+              <p className="text-gray-400 text-sm mt-2">Выберите другую дату в календаре</p>
+            </div>
+          )}
         </div>
       </div>
 
@@ -668,34 +665,7 @@ export function Dashboard() {
         </div>
       </div>
 
-      {/* Блок дней рождения */}
-      {birthdayEmployees.length > 0 && (
-        <div className="bg-gradient-to-r from-yellow-400 to-yellow-500 rounded-lg shadow-lg p-6 text-white">
-          <div className="flex items-center mb-4">
-            <Cake className="h-8 w-8 text-white mr-3" />
-            <h3 className="text-xl font-bold">Сегодня день рождения! 🎉</h3>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {birthdayEmployees.map((employee, index) => (
-              <div key={index} className="bg-white/20 backdrop-blur-sm rounded-lg p-4">
-                <div className="flex items-center space-x-3">
-                  <div className="bg-white/30 rounded-full p-2">
-                    <Users className="h-6 w-6 text-white" />
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-white">{employee.full_name}</h4>
-                    <p className="text-yellow-100 text-sm">{employee.department_name}</p>
-                    <p className="text-yellow-100 text-sm">{employee.position_name}</p>
-                    <p className="text-white font-medium mt-1">
-                      {employee.age} {employee.age === 1 ? 'год' : employee.age < 5 ? 'года' : 'лет'}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+
 
       {/* Модальное окно со списком сотрудников */}
       {showModal && (
