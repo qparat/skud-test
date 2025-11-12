@@ -603,9 +603,9 @@ export function Dashboard() {
 
         {/* Дни рождения */}
         <div className="bg-white rounded-lg shadow-lg p-6">
-          <div className="flex items-center mb-4">
-            <Cake className="h-6 w-6 text-yellow-600 mr-2" />
-            <h3 className="text-lg font-semibold text-gray-900">
+          <div className="flex items-center mb-3">
+            <Cake className="h-5 w-5 text-yellow-600 mr-2" />
+            <h3 className="text-base font-semibold text-gray-900">
               Дни рождения {selectedDate ? 'на ' + selectedDate : 'сегодня'}
             </h3>
           </div>
@@ -615,24 +615,21 @@ export function Dashboard() {
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-600"></div>
             </div>
           ) : birthdayEmployees.length > 0 ? (
-            <div className="space-y-4">
+            <div className="space-y-2">
               {birthdayEmployees.map((employee, index) => {
                 console.log('Birthday employee:', employee) // Отладка
                 return (
-                <div key={index} className="bg-gradient-to-r from-yellow-50 to-yellow-100 border-l-4 border-yellow-400 p-4 rounded-r-lg">
+                <div key={index} className="bg-gradient-to-r from-yellow-50 to-yellow-100 border-l-3 border-yellow-400 p-3 rounded-r-lg">
                   <div>
-                    <h4 className="text-lg font-semibold text-gray-900 mb-1">
+                    <h4 className="text-sm font-semibold text-gray-900 mb-0.5">
                       {employee.name || employee.full_name}
                     </h4>
-                    <p className="text-sm text-gray-600 mb-1">{employee.department_name}</p>
-                    <p className="text-sm text-gray-500">{employee.position_name}</p>
+                    <p className="text-xs text-gray-600 mb-0.5">{employee.department_name}</p>
+                    <p className="text-xs text-gray-500">{employee.position_name}</p>
                   </div>
                 </div>
                 )
               })}
-              <div className="text-center mt-4">
-                <p className="text-sm text-gray-500">🎉 Поздравляем с днем рождения! 🎉</p>
-              </div>
             </div>
           ) : (
             <div className="text-center py-8">
