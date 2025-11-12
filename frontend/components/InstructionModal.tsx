@@ -185,7 +185,6 @@ export function InstructionModal({ isOpen, onClose }: InstructionModalProps) {
                   <li>Попробуйте обновить страницу (кнопка обновления в заголовке)</li>
                   <li>Проверьте подключение к интернету</li>
                   <li>Очистите кэш браузера</li>
-                  <li>Обратитесь к администратору системы</li>
                 </ol>
               </div>
             </div>
