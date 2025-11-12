@@ -30,7 +30,7 @@ export function InstructionModal({ isOpen, onClose }: InstructionModalProps) {
     >
       <div className="bg-white rounded-lg shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
         {/* Заголовок */}
-        <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-6 text-white">
+        <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-2 text-white">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <BookOpen className="h-8 w-8" />
