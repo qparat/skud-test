@@ -152,13 +152,13 @@ export function EmployeeSchedule() {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Element;
       
-      // Проверяем календарь - закрываем только если клик не внутри календаря
-      if (showCalendar && !target.closest('.calendar-container')) {
+      // Проверяем календарь - закрываем только если клик не внутри календаря И не внутри фильтра
+      if (showCalendar && !target.closest('.calendar-container') && !target.closest('.filter-container')) {
         setShowCalendar(false);
       }
       
-      // Проверяем фильтр - закрываем только если клик не внутри фильтра
-      if (showFilter && !target.closest('.filter-container')) {
+      // Проверяем фильтр - закрываем только если клик не внутри фильтра И не внутри календаря
+      if (showFilter && !target.closest('.filter-container') && !target.closest('.calendar-container')) {
         setShowFilter(false);
       }
     };
