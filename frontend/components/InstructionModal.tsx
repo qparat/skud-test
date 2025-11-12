@@ -193,9 +193,6 @@ export function InstructionModal({ isOpen, onClose }: InstructionModalProps) {
 
           <div className="text-center bg-gradient-to-r from-blue-50 to-green-50 p-6 rounded-lg">
             <h4 className="text-lg font-semibold text-gray-900 mb-2">Спасибо за внимание!</h4>
-            <p className="text-gray-600">
-              Эта инструкция появляется автоматически раз в месяц, но вы всегда можете вызвать её кнопкой "?" в заголовке.
-            </p>
           </div>
         </div>
       )
