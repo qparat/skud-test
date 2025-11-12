@@ -620,19 +620,12 @@ export function Dashboard() {
                 console.log('Birthday employee:', employee) // Отладка
                 return (
                 <div key={index} className="bg-gradient-to-r from-yellow-50 to-yellow-100 border-l-4 border-yellow-400 p-4 rounded-r-lg">
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <h4 className="text-lg font-semibold text-gray-900 mb-1">
-                        {employee.name || employee.full_name}
-                      </h4>
-                      <p className="text-sm text-gray-600 mb-1">{employee.department_name}</p>
-                      <p className="text-sm text-gray-500">{employee.position_name}</p>
-                    </div>
-                    <div className="text-right">
-                      <div className="bg-yellow-400 text-white px-3 py-1 rounded-full text-sm font-medium">
-                        🎂 {employee.age} {employee.age === 1 ? 'год' : employee.age < 5 ? 'года' : 'лет'}
-                      </div>
-                    </div>
+                  <div>
+                    <h4 className="text-lg font-semibold text-gray-900 mb-1">
+                      {employee.name || employee.full_name}
+                    </h4>
+                    <p className="text-sm text-gray-600 mb-1">{employee.department_name}</p>
+                    <p className="text-sm text-gray-500">{employee.position_name}</p>
                   </div>
                 </div>
                 )
