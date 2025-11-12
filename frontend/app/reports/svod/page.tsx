@@ -391,16 +391,27 @@ export default function SvodReportPage() {
         { wch: 30 }   // Примечание
       ]
       
-      // Стили для ячеек (центрирование заголовков)
-      const headerStyle = {
-        font: { bold: true },
+      // Стили для ячеек
+      const firstHeaderStyle = {
+        font: { bold: true, size: 12 },
+        alignment: { horizontal: 'center', vertical: 'center' }
+      }
+      
+      const regularHeaderStyle = {
+        font: { bold: false, size: 11 },
         alignment: { horizontal: 'center', vertical: 'center' }
       }
       
       // Применяем стили к заголовкам
-      for (let i = 0; i <= 4; i++) {
+      // Первая строка - полужирная
+      if (ws[XLSX.utils.encode_cell({ r: 0, c: 0 })]) {
+        ws[XLSX.utils.encode_cell({ r: 0, c: 0 })].s = firstHeaderStyle
+      }
+      
+      // Остальные строки заголовка - обычные
+      for (let i = 1; i <= 4; i++) {
         if (ws[XLSX.utils.encode_cell({ r: i, c: 0 })]) {
-          ws[XLSX.utils.encode_cell({ r: i, c: 0 })].s = headerStyle
+          ws[XLSX.utils.encode_cell({ r: i, c: 0 })].s = regularHeaderStyle
         }
       }
       
@@ -637,16 +648,12 @@ export default function SvodReportPage() {
             <div className="p-6 overflow-y-auto max-h-[calc(95vh-120px)]" style={{ fontFamily: 'Times New Roman, serif' }}>
               {/* Заголовок отчета */}
               <div className="text-center mb-8">
-                <div className="text-sm font-bold leading-relaxed">
-                  Сведения о местонахождении руководящего состава
-                  <br />
-                  РГП на ПХВ «Телерадиокомплекс
-                  <br />
-                  Президента Республики Казахстан»
-                  <br />
-                  Управление делами Президента
-                  <br />
-                  Республики Казахстан
+                <div className="text-sm leading-relaxed">
+                  <div className="font-bold">Сведения о местонахождении руководящего состава</div>
+                  <div>РГП на ПХВ «Телерадиокомплекс</div>
+                  <div>Президента Республики Казахстан»</div>
+                  <div>Управление делами Президента</div>
+                  <div>Республики Казахстан</div>
                 </div>
               </div>
 
