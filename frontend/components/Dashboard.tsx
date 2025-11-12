@@ -10,7 +10,9 @@ import {
   MapPin,
   Activity,
   UserCheck,
-  File
+  File,
+  ChevronUp,
+  ChevronDown
 } from 'lucide-react'
 import { apiRequest } from '@/lib/api'
 
@@ -362,29 +364,37 @@ export function Dashboard() {
           <div className="relative calendar-container">
             <button
               onClick={() => setShowCalendar(!showCalendar)}
-              className="inline-flex items-center px-4 py-2 bg-blue-500 hover:bg-blue-400 text-white text-sm font-medium rounded-md transition-colors duration-200"
+              className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             >
               <Calendar className="h-4 w-4 mr-2" />
               {selectedDate ? selectedDate : 'Выбрать дату'}
             </button>
+            {selectedDate && (
+              <button
+                onClick={() => setSelectedDate('')}
+                className="text-sm text-red-600 hover:text-red-800"
+              >
+                Сбросить
+              </button>
+            )}
             {showCalendar && (
-              <div className="absolute top-full mt-2 z-50 bg-white border border-gray-200 rounded-lg shadow-xl p-4" style={{minWidth: '280px', right: 0}}>
+              <div className="absolute top-full mt-2 z-[9999] bg-white border border-gray-200 rounded-lg shadow-xl p-4" style={{minWidth: '280px', right: 0}}>
                 {/* Заголовок календаря */}
                 <div className="flex items-center justify-between mb-4">
                   <button
                     onClick={goToPreviousMonth}
-                    className="p-1 hover:bg-gray-100 rounded text-gray-600"
+                    className="p-1 hover:bg-gray-100 rounded"
                   >
-                    ←
+                    <ChevronDown className="h-4 w-4 rotate-90" />
                   </button>
                   <h3 className="text-sm font-medium text-gray-900">
                     {currentMonth.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' })}
                   </h3>
                   <button
                     onClick={goToNextMonth}
-                    className="p-1 hover:bg-gray-100 rounded text-gray-600"
+                    className="p-1 hover:bg-gray-100 rounded"
                   >
-                    →
+                    <ChevronUp className="h-4 w-4 rotate-90" />
                   </button>
                 </div>
                 {/* Дни недели */}
