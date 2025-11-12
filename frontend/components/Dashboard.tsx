@@ -471,7 +471,7 @@ export function Dashboard() {
       </div>
 
       {/* Основные метрики */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {/* Пришли вовремя */}
         <div 
           className="bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow duration-300 cursor-pointer hover:bg-green-50"
@@ -552,25 +552,6 @@ export function Dashboard() {
           </div>
         </div>
 
-        {/* Дни рождения */}
-        <div className="bg-white rounded-lg shadow-lg p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Дни рождения</p>
-              <p className="text-3xl font-bold text-yellow-600 animate-pulse">
-                {stats.recentActivity.birthdays}
-              </p>
-            </div>
-            <div className="p-3 bg-yellow-100 rounded-full">
-              <Cake className="h-8 w-8 text-yellow-600" />
-            </div>
-          </div>
-          <div className="mt-4">
-            <div className="text-sm text-gray-500">
-              За выбранный день
-            </div>
-          </div>
-        </div>
       </div>
 
       {/* Графики и детальная статистика */}
