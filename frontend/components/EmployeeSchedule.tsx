@@ -89,6 +89,7 @@ export function EmployeeSchedule() {
   const [itemsPerPage, setItemsPerPage] = useState(50)
   const [totalPages, setTotalPages] = useState(1)
   const [currentViewDate, setCurrentViewDate] = useState('') // Для отслеживания текущей просматриваемой даты
+  const [lastOpenedElement, setLastOpenedElement] = useState<'calendar' | 'filter' | null>(null) // Для z-index управления
   
   // Получаем сегодняшнюю дату для ограничения выбора (без проблем с временной зоной)
   const today = formatDate(new Date())
@@ -165,6 +166,13 @@ export function EmployeeSchedule() {
     
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showCalendar, showFilter]);
+
+  // Сброс lastOpenedElement когда все элементы закрыты
+  useEffect(() => {
+    if (!showCalendar && !showFilter) {
+      setLastOpenedElement(null);
+    }
   }, [showCalendar, showFilter]);
 
   // Загрузка при изменении даты пользователем или страницы
@@ -836,7 +844,11 @@ export function EmployeeSchedule() {
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    setShowFilter(!showFilter);
+                    const newShowFilter = !showFilter;
+                    setShowFilter(newShowFilter);
+                    if (newShowFilter) {
+                      setLastOpenedElement('filter');
+                    }
                   }}
                   className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                 >
@@ -844,7 +856,16 @@ export function EmployeeSchedule() {
                   <ChevronDown className="h-4 w-4 ml-2" />
                 </button>
                 {showFilter && (
-                  <div ref={filterRef} className="absolute mt-2 z-[10001] bg-white border border-gray-200 rounded-lg shadow-xl p-4" style={{ minWidth: '500px', top: 'auto', right: '1rem' }}>
+                  <div 
+                    ref={filterRef} 
+                    className="absolute mt-2 bg-white border border-gray-200 rounded-lg shadow-xl p-4" 
+                    style={{ 
+                      minWidth: '500px', 
+                      top: 'auto', 
+                      right: '1rem',
+                      zIndex: lastOpenedElement === 'filter' ? 10001 : 10000
+                    }}
+                  >
                     <label className="block text-sm font-medium text-gray-700 mb-2">Службы</label>
                     <input
                       type="text"
@@ -891,7 +912,11 @@ export function EmployeeSchedule() {
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  setShowCalendar(!showCalendar);
+                  const newShowCalendar = !showCalendar;
+                  setShowCalendar(newShowCalendar);
+                  if (newShowCalendar) {
+                    setLastOpenedElement('calendar');
+                  }
                 }}
                 className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               >
@@ -915,7 +940,14 @@ export function EmployeeSchedule() {
               )}
               {/* ...existing calendar popup... */}
               {showCalendar && (
-                <div className="absolute top-full mt-2 z-[10000] bg-white border border-gray-200 rounded-lg shadow-xl p-4" style={{minWidth: '280px', right: 0}}>
+                <div 
+                  className="absolute top-full mt-2 bg-white border border-gray-200 rounded-lg shadow-xl p-4" 
+                  style={{
+                    minWidth: '280px', 
+                    right: 0,
+                    zIndex: lastOpenedElement === 'calendar' ? 10001 : 10000
+                  }}
+                >
                   {/* Заголовок календаря */}
                   <div className="flex items-center justify-between mb-4">
                     <button
