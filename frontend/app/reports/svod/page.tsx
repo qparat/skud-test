@@ -1,7 +1,7 @@
 'use client'
 import React, { useState, useEffect } from 'react'
 import { apiRequest } from '@/lib/api'
-import { Calendar, ChevronLeft, ChevronRight, GripVertical } from 'lucide-react'
+import { Calendar, ChevronLeft, ChevronRight, GripVertical, Plus, FileText, Trash2, X } from 'lucide-react'
 
 interface SvodEmployee {
   id: number
@@ -19,6 +19,14 @@ interface AllEmployee {
   department: string
 }
 
+interface BirthdayEmployee {
+  id: number
+  full_name: string
+  position: string
+  department: string
+  birth_date: string
+}
+
 // Функция для форматирования даты
 const formatDate = (date: Date) => {
   const year = date.getFullYear()
@@ -27,9 +35,20 @@ const formatDate = (date: Date) => {
   return `${year}-${month}-${day}`
 }
 
+// Функция для форматирования даты по-русски
+const formatDateRussian = (dateStr: string) => {
+  const date = new Date(dateStr)
+  const months = [
+    'января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
+    'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'
+  ]
+  return `${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()} года`
+}
+
 export default function SvodReportPage() {
   const [svodEmployees, setSvodEmployees] = useState<SvodEmployee[]>([])
   const [allEmployees, setAllEmployees] = useState<AllEmployee[]>([])
+  const [birthdayEmployees, setBirthdayEmployees] = useState<BirthdayEmployee[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [selectedDate, setSelectedDate] = useState(() => {
@@ -49,9 +68,10 @@ export default function SvodReportPage() {
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
 
-  // Загрузка сводной таблицы (только те кто в своде)
+  // Загрузка сводной таблицы и дней рождений
   useEffect(() => {
     loadSvodReport()
+    loadBirthdays()
   }, [selectedDate])
 
   const loadSvodReport = async () => {
@@ -67,6 +87,16 @@ export default function SvodReportPage() {
       console.error(err)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const loadBirthdays = async () => {
+    try {
+      const data = await apiRequest(`dashboard-birthdays?date=${selectedDate}`)
+      setBirthdayEmployees(data.birthdays || [])
+    } catch (err) {
+      console.error('Ошибка загрузки дней рождений:', err)
+      setBirthdayEmployees([])
     }
   }
 
@@ -87,14 +117,19 @@ export default function SvodReportPage() {
     setModalSearchQuery('')
   }
 
+  const closeModal = () => {
+    setShowModal(false)
+    setModalSearchQuery('')
+  }
+
   // Добавить сотрудника в свод
-  const addToSvod = async (employeeId: number) => {
-    setActionLoading(employeeId)
+  const addToSvod = async (employee: AllEmployee) => {
+    setActionLoading(employee.id)
     try {
       await apiRequest('svod-report/add-employee', {
         method: 'POST',
         body: JSON.stringify({
-          employee_id: employeeId,
+          employee_id: employee.id,
           report_date: selectedDate
         })
       })
@@ -212,8 +247,8 @@ export default function SvodReportPage() {
       updatedSvodEmployees = newEmployees
     } else {
       // При фильтрации обновляем только отфильтрованные элементы в правильном порядке
-      const filteredIds = newEmployees.map(emp => emp.id)
-      const nonFilteredEmployees = svodEmployees.filter(emp => !filteredIds.includes(emp.id))
+      const filteredIds = newEmployees.map((emp: SvodEmployee) => emp.id)
+      const nonFilteredEmployees = svodEmployees.filter((emp: SvodEmployee) => !filteredIds.includes(emp.id))
       updatedSvodEmployees = [...newEmployees, ...nonFilteredEmployees]
     }
     
@@ -222,7 +257,7 @@ export default function SvodReportPage() {
     
     // Сохраняем новый порядок на сервере
     try {
-      const orderData = updatedSvodEmployees.map((emp, index) => ({
+      const orderData = updatedSvodEmployees.map((emp: SvodEmployee, index: number) => ({
         employee_id: emp.id,
         order_index: index
       }))
@@ -250,19 +285,19 @@ export default function SvodReportPage() {
   }
 
   // Фильтрация по поиску в основной таблице
-  const filteredSvodEmployees = svodEmployees.filter(emp => 
+  const filteredSvodEmployees = svodEmployees.filter((emp: SvodEmployee) => 
     emp.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     emp.position.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
   // Фильтрация в модальном окне
-  const filteredModalEmployees = allEmployees.filter(emp => {
+  const filteredAllEmployees = allEmployees.filter((emp: AllEmployee) => {
     const matchesSearch = 
       emp.full_name.toLowerCase().includes(modalSearchQuery.toLowerCase()) ||
       emp.position.toLowerCase().includes(modalSearchQuery.toLowerCase())
     
     // Не показываем тех, кто уже в своде
-    const alreadyInSvod = svodEmployees.some(se => se.id === emp.id)
+    const alreadyInSvod = svodEmployees.some((se: SvodEmployee) => se.id === emp.id)
     
     return matchesSearch && !alreadyInSvod
   })
@@ -272,7 +307,7 @@ export default function SvodReportPage() {
     try {
       const XLSX = await import('xlsx')
       
-      const excelData = filteredSvodEmployees.map((emp, index) => ({
+      const excelData = filteredSvodEmployees.map((emp: SvodEmployee, index: number) => ({
         '№': index + 1,
         'Должность': emp.position,
         'ФИО': emp.full_name,
@@ -300,288 +335,335 @@ export default function SvodReportPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Свод ТРК</h1>
-        <button
-          onClick={openModal}
-          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          + Добавить сотрудника
-        </button>
-      </div>
-
-      <div className="bg-white rounded-lg shadow-sm border p-6">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center space-x-4">
-            <div className="calendar-container relative">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Дата отчета</label>
-              <button
-                type="button"
-                onClick={() => setShowCalendar(!showCalendar)}
-                className="inline-flex items-center justify-between px-3 py-2 border border-gray-300 rounded-lg shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                style={{ minWidth: '160px' }}
-              >
-                <div className="flex items-center">
-                  <Calendar className="h-4 w-4 mr-2" />
-                  {selectedDate}
-                </div>
-              </button>
-              
-              {/* Выпадающий календарь */}
-              {showCalendar && (
-                <div className="absolute top-full mt-2 z-[9999] bg-white border border-gray-200 rounded-lg shadow-xl p-4" style={{minWidth: '280px', left: 0}}>
-                  {/* Заголовок календаря */}
-                  <div className="flex items-center justify-between mb-4">
-                    <button
-                      type="button"
-                      onClick={goToPreviousMonth}
-                      className="p-1 hover:bg-gray-100 rounded"
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                    </button>
-                    <h3 className="text-sm font-medium">
-                      {currentMonth.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' })}
-                    </h3>
-                    <button
-                      type="button"
-                      onClick={goToNextMonth}
-                      className="p-1 hover:bg-gray-100 rounded"
-                    >
-                      <ChevronRight className="h-4 w-4" />
-                    </button>
-                  </div>
-                  
-                  {/* Дни недели */}
-                  <div className="grid grid-cols-7 gap-1 mb-2">
-                    {['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'].map(day => (
-                      <div key={day} className="text-xs text-center text-gray-500 font-medium py-1">{day}</div>
-                    ))}
-                  </div>
-                  
-                  {/* Дни месяца */}
-                  <div className="grid grid-cols-7 gap-1">
-                    {generateCalendar().map((date, index) => {
-                      const dateStr = formatDate(date)
-                      const isCurrentMonth = date.getMonth() === currentMonth.getMonth()
-                      const isToday = dateStr === formatDate(new Date())
-                      const isSelected = dateStr === selectedDate
-                      return (
-                        <button
-                          key={index}
-                          type="button"
-                          onClick={() => handleDateClick(dateStr)}
-                          className={`w-8 h-8 text-xs rounded-full flex items-center justify-center
-                            ${!isCurrentMonth ? 'text-gray-300' : ''}
-                            ${isToday ? 'bg-blue-100 text-blue-600 font-bold' : ''}
-                            ${isSelected ? 'bg-blue-600 text-white' : ''}
-                            ${!isSelected && !isToday && isCurrentMonth ? 'hover:bg-gray-100' : ''}`}
-                        >
-                          {date.getDate()}
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
-              )}
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Поиск</label>
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Поиск по ФИО или должности..."
-                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                style={{ minWidth: '300px' }}
-              />
+    <div className="min-h-screen bg-gray-50 p-4">
+      {/* Официальный отчет */}
+      <div className="bg-white rounded-lg shadow-sm border">
+        {/* Печатная версия отчета */}
+        <div className="p-8" style={{ fontFamily: 'Times New Roman, serif' }}>
+          {/* Заголовок */}
+          <div className="text-center mb-8">
+            <div className="text-sm font-bold leading-relaxed">
+              Сведения о местонахождении руководящего состава
+              <br />
+              РГП на ПХВ «Телерадиокомплекс
+              <br />
+              Президента Республики Казахстан»
+              <br />
+              Управление делами Президента
+              <br />
+              Республики Казахстан
             </div>
           </div>
-          
-          {svodEmployees.length > 0 && (
-            <button
-              onClick={exportToExcel}
-              className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
-            >
-              Выгрузить в Excel
-            </button>
+
+          {/* Дата */}
+          <div className="text-center mb-6 font-bold">
+            {formatDateRussian(selectedDate)}
+          </div>
+
+          {loading ? (
+            <div className="p-6 text-center text-gray-600">Загрузка данных...</div>
+          ) : error ? (
+            <div className="p-6 text-center text-red-600">{error}</div>
+          ) : (
+            <>
+              {/* Основная таблица */}
+              <div className="mb-8">
+                <table className="w-full border-collapse" style={{ border: '1px solid black' }}>
+                  <thead>
+                    <tr>
+                      <th className="border border-black p-2 text-sm font-bold" style={{ width: '60px' }}>
+                        п/п
+                      </th>
+                      <th className="border border-black p-2 text-sm font-bold" style={{ width: '40%' }}>
+                        Наименование должности
+                      </th>
+                      <th className="border border-black p-2 text-sm font-bold" style={{ width: '35%' }}>
+                        Ф.И.О.
+                      </th>
+                      <th className="border border-black p-2 text-sm font-bold">
+                        Примечание
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {svodEmployees.length === 0 ? (
+                      Array.from({ length: 10 }, (_, i) => (
+                        <tr key={i}>
+                          <td className="border border-black p-2 text-center text-sm">{i + 1}</td>
+                          <td className="border border-black p-2 text-sm"></td>
+                          <td className="border border-black p-2 text-sm"></td>
+                          <td className="border border-black p-2 text-sm"></td>
+                        </tr>
+                      ))
+                    ) : (
+                      <>
+                        {filteredSvodEmployees.map((emp, idx) => (
+                          <tr key={emp.id}>
+                            <td className="border border-black p-2 text-center text-sm">{idx + 1}</td>
+                            <td className="border border-black p-2 text-sm">{emp.position}</td>
+                            <td className="border border-black p-2 text-sm">{emp.full_name}</td>
+                            <td className="border border-black p-2 text-sm">{emp.comment || ''}</td>
+                          </tr>
+                        ))}
+                        {/* Добавляем пустые строки до 45 */}
+                        {Array.from({ length: Math.max(0, 45 - filteredSvodEmployees.length) }, (_, i) => (
+                          <tr key={`empty-${i}`}>
+                            <td className="border border-black p-2 text-center text-sm">{filteredSvodEmployees.length + i + 1}</td>
+                            <td className="border border-black p-2 text-sm"></td>
+                            <td className="border border-black p-2 text-sm"></td>
+                            <td className="border border-black p-2 text-sm"></td>
+                          </tr>
+                        ))}
+                      </>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Секция "Дни рождения" */}
+              <div>
+                <table className="w-full border-collapse" style={{ border: '1px solid black' }}>
+                  <thead>
+                    <tr>
+                      <td 
+                        className="border border-black p-2 text-center text-sm font-bold bg-gray-100" 
+                        colSpan={4}
+                      >
+                        Дни рождения
+                      </td>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td className="border border-black p-2 text-center text-sm font-bold" style={{ width: '60px' }}>
+                        п/п
+                      </td>
+                      <td className="border border-black p-2 text-sm font-bold" style={{ width: '40%' }}>
+                        Наименование должности
+                      </td>
+                      <td className="border border-black p-2 text-sm font-bold" style={{ width: '35%' }}>
+                        Ф.И.О.
+                      </td>
+                      <td className="border border-black p-2 text-sm font-bold">
+                        Примечание
+                      </td>
+                    </tr>
+                    {birthdayEmployees.length === 0 ? (
+                      <tr>
+                        <td className="border border-black p-2 text-center text-sm">1</td>
+                        <td className="border border-black p-2 text-sm"></td>
+                        <td className="border border-black p-2 text-sm"></td>
+                        <td className="border border-black p-2 text-sm"></td>
+                      </tr>
+                    ) : (
+                      birthdayEmployees.map((emp, idx) => (
+                        <tr key={emp.id}>
+                          <td className="border border-black p-2 text-center text-sm">{idx + 1}</td>
+                          <td className="border border-black p-2 text-sm">{emp.position}</td>
+                          <td className="border border-black p-2 text-sm">{emp.full_name}</td>
+                          <td className="border border-black p-2 text-sm">День рождения</td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
         </div>
 
-        {loading ? (
-          <div className="p-6 text-center text-gray-600">Загрузка данных...</div>
-        ) : error ? (
-          <div className="p-6 text-center text-red-600">{error}</div>
-        ) : svodEmployees.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-gray-500 text-lg mb-2">Список свода пуст</p>
-            <p className="text-gray-400 text-sm">Нажмите "Добавить сотрудника" для начала работы</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <div className="mb-4 flex justify-between items-center text-sm text-gray-600">
-              <div>
-                Всего сотрудников: <span className="font-semibold">{filteredSvodEmployees.length}</span>
-                {filteredSvodEmployees.filter(e => e.comment).length > 0 && (
-                  <span className="ml-4">
-                    С комментариями: <span className="font-semibold">{filteredSvodEmployees.filter(e => e.comment).length}</span>
-                  </span>
+        {/* Панель редактирования (только для интерактивного режима) */}
+        <div className="bg-gray-50 border-t p-4">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center space-x-4">
+              <div className="calendar-container relative">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Дата отчета</label>
+                <button
+                  type="button"
+                  onClick={() => setShowCalendar(!showCalendar)}
+                  className="inline-flex items-center justify-between px-3 py-2 border border-gray-300 rounded-lg shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50"
+                  style={{ minWidth: '160px' }}
+                >
+                  <Calendar className="h-4 w-4 mr-2" />
+                  {selectedDate}
+                </button>
+                
+                {/* Календарь */}
+                {showCalendar && (
+                  <div className="absolute top-full mt-2 z-[9999] bg-white border border-gray-200 rounded-lg shadow-xl p-4" style={{minWidth: '280px', left: 0}}>
+                    <div className="flex items-center justify-between mb-4">
+                      <button type="button" onClick={goToPreviousMonth} className="p-1 hover:bg-gray-100 rounded">
+                        <ChevronLeft className="h-4 w-4" />
+                      </button>
+                      <h3 className="text-sm font-medium">
+                        {currentMonth.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' })}
+                      </h3>
+                      <button type="button" onClick={goToNextMonth} className="p-1 hover:bg-gray-100 rounded">
+                        <ChevronRight className="h-4 w-4" />
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-7 gap-1 mb-2">
+                      {['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'].map(day => (
+                        <div key={day} className="text-xs text-center text-gray-500 font-medium py-1">{day}</div>
+                      ))}
+                    </div>
+                    <div className="grid grid-cols-7 gap-1">
+                      {generateCalendar().map((date, index) => {
+                        const dateStr = formatDate(date)
+                        const isCurrentMonth = date.getMonth() === currentMonth.getMonth()
+                        const isToday = dateStr === formatDate(new Date())
+                        const isSelected = dateStr === selectedDate
+                        return (
+                          <button
+                            key={index}
+                            type="button"
+                            onClick={() => handleDateClick(dateStr)}
+                            className={`w-8 h-8 text-xs rounded-full flex items-center justify-center
+                              ${!isCurrentMonth ? 'text-gray-300' : ''}
+                              ${isToday ? 'bg-blue-100 text-blue-600 font-bold' : ''}
+                              ${isSelected ? 'bg-blue-600 text-white' : ''}
+                              ${!isSelected && !isToday && isCurrentMonth ? 'hover:bg-gray-100' : ''}`}
+                          >
+                            {date.getDate()}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
                 )}
-              </div>
-              <div className="text-xs text-gray-500 flex items-center">
-                <GripVertical className="h-3 w-3 mr-1" />
-                Перетащите строки для изменения порядка
               </div>
             </div>
             
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-8"></th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">№</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Должность</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ФИО</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Комментарий</th>
-                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Действия</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+            <div className="flex space-x-2">
+              <button
+                onClick={openModal}
+                className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 flex items-center"
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                Добавить
+              </button>
+              {svodEmployees.length > 0 && (
+                <button
+                  onClick={exportToExcel}
+                  className="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 flex items-center"
+                >
+                  <FileText className="h-4 w-4 mr-1" />
+                  Excel
+                </button>
+              )}
+            </div>
+          </div>
+          
+          {/* Функции перетаскивания */}
+          {svodEmployees.length > 0 && (
+            <div>
+              <div className="text-xs text-gray-500 mb-2">Редактирование порядка (перетаскивание):</div>
+              <div className="space-y-1">
                 {filteredSvodEmployees.map((emp, idx) => (
-                  <tr 
-                    key={emp.id} 
+                  <div
+                    key={emp.id}
                     draggable
                     onDragStart={(e) => handleDragStart(e, idx)}
                     onDragOver={(e) => handleDragOver(e, idx)}
                     onDragLeave={handleDragLeave}
                     onDrop={(e) => handleDrop(e, idx)}
                     onDragEnd={handleDragEnd}
-                    className={`hover:bg-gray-50 cursor-move transition-colors duration-200
-                      ${emp.exception_type && emp.exception_type !== 'at_work' ? 'bg-blue-50' : ''}
+                    className={`flex items-center justify-between p-2 bg-white border rounded text-xs cursor-move
                       ${draggedIndex === idx ? 'opacity-50' : ''}
-                      ${dragOverIndex === idx ? 'border-t-2 border-blue-500' : ''}`}
+                      ${dragOverIndex === idx ? 'border-blue-500 bg-blue-50' : ''}`}
                   >
-                    <td className="px-2 py-3 text-center">
-                      <GripVertical className="h-4 w-4 text-gray-400 mx-auto" />
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-900">{idx + 1}</td>
-                    <td className="px-4 py-3 text-sm text-gray-900">{emp.position}</td>
-                    <td className="px-4 py-3 text-sm font-medium text-blue-700">{emp.full_name}</td>
-                    <td className="px-4 py-3 text-sm">
-                      {emp.comment ? (
-                        emp.exception_type === 'at_work' ? (
-                          <span className="text-gray-900">{emp.comment}</span>
-                        ) : (
-                          <span className="inline-flex items-center text-sm font-medium text-gray-900">
-                            🛡️ {emp.comment}
-                          </span>
-                        )
-                      ) : (
-                        <span className="text-gray-400">-</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <button
-                        onClick={() => removeFromSvod(emp.id)}
-                        disabled={actionLoading === emp.id}
-                        className="px-3 py-1 bg-red-500 text-white text-xs rounded hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {actionLoading === emp.id ? 'Удаление...' : 'Убрать'}
-                      </button>
-                    </td>
-                  </tr>
+                    <div className="flex items-center space-x-2">
+                      <GripVertical className="h-3 w-3 text-gray-400" />
+                      <span className="font-medium">{idx + 1}.</span>
+                      <span className="truncate">{emp.full_name}</span>
+                    </div>
+                    <button
+                      onClick={() => removeFromSvod(emp.id)}
+                      disabled={actionLoading === emp.id}
+                      className="px-2 py-1 bg-red-500 text-white text-xs rounded hover:bg-red-600 disabled:opacity-50 flex items-center"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                  </div>
                 ))}
-              </tbody>
-            </table>
-            
-            {filteredSvodEmployees.length === 0 && svodEmployees.length > 0 && (
-              <div className="text-center py-12">
-                <p className="text-gray-500">По запросу "{searchQuery}" ничего не найдено</p>
               </div>
-            )}
-          </div>
-        )}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Модальное окно для добавления сотрудников */}
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowModal(false)}>
-          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
-            {/* Заголовок */}
-            <div className="px-6 py-4 border-b flex items-center justify-between">
-              <h2 className="text-xl font-bold">Добавить сотрудника в свод</h2>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold">Добавить сотрудников в отчет</h3>
               <button
-                onClick={() => setShowModal(false)}
-                className="text-gray-500 hover:text-gray-700 text-2xl leading-none"
+                onClick={closeModal}
+                className="text-gray-500 hover:text-gray-700"
               >
-                ×
+                <X className="h-6 w-6" />
               </button>
             </div>
-
-            {/* Поиск */}
-            <div className="px-6 py-4 border-b">
+            
+            <div className="mb-4">
               <input
                 type="text"
                 value={modalSearchQuery}
                 onChange={(e) => setModalSearchQuery(e.target.value)}
-                placeholder="Поиск по ФИО или должности..."
+                placeholder="Поиск сотрудников..."
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                autoFocus
               />
             </div>
-
-            {/* Список сотрудников */}
-            <div className="flex-1 overflow-y-auto px-6 py-4">
-              {filteredModalEmployees.length === 0 ? (
-                <div className="text-center py-12">
-                  <p className="text-gray-500">
-                    {modalSearchQuery ? 'Нет результатов по запросу' : 'Все сотрудники уже добавлены в свод'}
-                  </p>
-                </div>
-              ) : (
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50 sticky top-0">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">№</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ФИО</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Должность</th>
-                      <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Действие</th>
+            
+            <div className="border rounded-lg max-h-96 overflow-y-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50 sticky top-0">
+                  <tr>
+                    <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">Выбрать</th>
+                    <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">ФИО</th>
+                    <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">Должность</th>
+                    <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">Отдел</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredAllEmployees.map((emp) => (
+                    <tr key={emp.id} className="border-b hover:bg-gray-50">
+                      <td className="px-4 py-2">
+                        <button
+                          onClick={() => addToSvod(emp)}
+                          disabled={actionLoading === emp.id}
+                          className={`px-3 py-1 text-sm rounded ${
+                            actionLoading === emp.id
+                              ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                              : 'bg-blue-600 text-white hover:bg-blue-700'
+                          }`}
+                        >
+                          {actionLoading === emp.id ? 'Добавление...' : 'Добавить'}
+                        </button>
+                      </td>
+                      <td className="px-4 py-2 text-sm">{emp.full_name}</td>
+                      <td className="px-4 py-2 text-sm">{emp.position || '-'}</td>
+                      <td className="px-4 py-2 text-sm">{emp.department || '-'}</td>
                     </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {filteredModalEmployees.map((emp, idx) => (
-                      <tr key={emp.id} className="hover:bg-gray-50">
-                        <td className="px-4 py-3 text-sm text-gray-900">{idx + 1}</td>
-                        <td className="px-4 py-3 text-sm font-medium text-gray-900">{emp.full_name}</td>
-                        <td className="px-4 py-3 text-sm text-gray-600">{emp.position}</td>
-                        <td className="px-4 py-3 text-center">
-                          <button
-                            onClick={() => addToSvod(emp.id)}
-                            disabled={actionLoading === emp.id}
-                            className="px-3 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            {actionLoading === emp.id ? 'Добавление...' : 'Добавить'}
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                  ))}
+                </tbody>
+              </table>
+              
+              {filteredAllEmployees.length === 0 && (
+                <div className="p-4 text-center text-gray-500">
+                  Сотрудники не найдены
+                </div>
               )}
             </div>
-
-            {/* Подвал */}
-            <div className="px-6 py-4 border-t bg-gray-50">
-              <div className="flex justify-between items-center">
-                <p className="text-sm text-gray-600">
-                  Найдено сотрудников: <span className="font-semibold">{filteredModalEmployees.length}</span>
-                </p>
-                <button
-                  onClick={() => setShowModal(false)}
-                  className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400"
-                >
-                  Закрыть
-                </button>
-              </div>
+            
+            <div className="mt-4 flex justify-end">
+              <button
+                onClick={closeModal}
+                className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400"
+              >
+                Закрыть
+              </button>
             </div>
           </div>
         </div>
