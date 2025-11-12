@@ -133,6 +133,7 @@ export function Dashboard() {
   const [modalLoading, setModalLoading] = useState(false)
   const [birthdayEmployees, setBirthdayEmployees] = useState<any[]>([])
   const [birthdayLoading, setBirthdayLoading] = useState(false)
+  const [showPercentage, setShowPercentage] = useState(false)
   
   // Получаем сегодняшнюю дату для ограничения выбора
   const today = formatDate(new Date())
@@ -621,8 +622,20 @@ export function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Круговая диаграмма посещаемости */}
         <div className="bg-white rounded-lg shadow-lg p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Распределение посещаемости</h3>
-          <div className="flex items-center justify-center">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-900">Распределение посещаемости</h3>
+            <button
+              onClick={() => setShowPercentage(!showPercentage)}
+              className="text-sm px-3 py-1 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-full transition-colors"
+            >
+              {showPercentage ? 'Показать числа' : 'Показать %'}
+            </button>
+          </div>
+          <div 
+            className="flex items-center justify-center cursor-pointer group"
+            onClick={() => setShowPercentage(!showPercentage)}
+            title="Нажмите для переключения между числами и процентами"
+          >
             <PieChart data={attendanceData} size={250} />
           </div>
           <div className="mt-6 grid grid-cols-2 gap-4 text-center">
@@ -635,7 +648,12 @@ export function Dashboard() {
                   ></div>
                   <span className="text-sm text-gray-600">{item.name}</span>
                 </div>
-                <div className="text-xl font-bold text-gray-900">{item.value}</div>
+                <div className="text-xl font-bold text-gray-900">
+                  {showPercentage 
+                    ? `${total > 0 ? ((item.value / total) * 100).toFixed(1) : 0}%`
+                    : item.value
+                  }
+                </div>
               </div>
             ))}
           </div>
