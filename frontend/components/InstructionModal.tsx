@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { X, BookOpen, CheckCircle, AlertCircle, Users, Calendar, ChevronLeft, ChevronRight } from 'lucide-react'
 
 interface InstructionModalProps {
@@ -11,8 +11,8 @@ interface InstructionModalProps {
 export function InstructionModal({ isOpen, onClose }: InstructionModalProps) {
   const [currentPage, setCurrentPage] = useState(0)
   
-  // Определяем страницы инструкции
-  const pages = [
+  // Определяем страницы инструкции (мемоизируем для стабильности ссылки)
+  const pages = useMemo(() => [
     {
       title: "Добро пожаловать в систему СКУД",
       content: (
@@ -196,7 +196,14 @@ export function InstructionModal({ isOpen, onClose }: InstructionModalProps) {
         </div>
       )
     }
-  ]
+  ], [])
+
+  const handleClose = useCallback(() => {
+    // Сохраняем текущую дату как дату последнего показа
+    localStorage.setItem('instructionLastShown', new Date().toISOString())
+    setCurrentPage(0) // Сбрасываем на первую страницу при закрытии
+    onClose()
+  }, [onClose])
 
   const nextPage = () => {
     if (currentPage < pages.length - 1) {
@@ -208,15 +215,6 @@ export function InstructionModal({ isOpen, onClose }: InstructionModalProps) {
     if (currentPage > 0) {
       setCurrentPage(currentPage - 1)
     }
-  }
-
-  if (!isOpen) return null
-
-  const handleClose = () => {
-    // Сохраняем текущую дату как дату последнего показа
-    localStorage.setItem('instructionLastShown', new Date().toISOString())
-    setCurrentPage(0) // Сбрасываем на первую страницу при закрытии
-    onClose()
   }
 
   // Добавляем поддержку клавиатурной навигации
@@ -252,7 +250,9 @@ export function InstructionModal({ isOpen, onClose }: InstructionModalProps) {
 
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [isOpen, currentPage, pages.length])
+  }, [isOpen, currentPage, pages.length, handleClose])
+
+  if (!isOpen) return null
 
   const handleBackdropClick = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget) {
