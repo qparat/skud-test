@@ -124,7 +124,7 @@ export function Dashboard() {
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const [selectedDate, setSelectedDate] = useState('')
   const [showModal, setShowModal] = useState(false)
-  const [modalType, setModalType] = useState<'onTime' | 'late'>('onTime')
+  const [modalType, setModalType] = useState<'onTime' | 'late' | 'exceptions'>('onTime')
   const [employeeDetails, setEmployeeDetails] = useState<any[]>([])
   const [modalLoading, setModalLoading] = useState(false)
   
@@ -191,12 +191,43 @@ export function Dashboard() {
   }
 
   // Получение детальной информации о сотрудниках (УСКОРЕННАЯ ВЕРСИЯ)
-  const fetchEmployeeDetails = async (type: 'onTime' | 'late') => {
+  const fetchEmployeeDetails = async (type: 'onTime' | 'late' | 'exceptions') => {
     try {
       setModalLoading(true)
       const targetDate = selectedDate || today
       
-      // Пробуем использовать новый быстрый API endpoint
+      // Для исключений используем отдельный endpoint
+      if (type === 'exceptions') {
+        try {
+          const endpoint = `employee-schedule?date=${targetDate}&per_page=1000&page=1`
+          const response = await apiRequest(endpoint)
+          
+          // Фильтруем сотрудников с исключениями
+          const employeesWithExceptions = response.employees?.filter((emp: any) => 
+            emp.exception && emp.exception.has_exception
+          ).map((emp: any) => ({
+            id: emp.employee_id,
+            name: emp.full_name,
+            first_entry: emp.first_entry,
+            is_late: emp.is_late,
+            exception_reason: emp.exception.reason,
+            exception_type: emp.exception.type
+          })) || []
+          
+          setEmployeeDetails(employeesWithExceptions)
+          setModalType(type)
+          setShowModal(true)
+          return
+        } catch (err) {
+          console.error('Ошибка получения исключений:', err)
+          setEmployeeDetails([])
+          setModalType(type)
+          setShowModal(true)
+          return
+        }
+      }
+      
+      // Пробуем использовать новый быстрый API endpoint для onTime/late
       try {
         const endpoint = `dashboard-employee-lists?date=${targetDate}`
         const response = await apiRequest(endpoint)
@@ -467,7 +498,10 @@ export function Dashboard() {
 
 
         {/* Исключения */}
-        <div className="bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow duration-300">
+        <div 
+          className="bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow duration-300 cursor-pointer hover:bg-blue-50"
+          onClick={() => fetchEmployeeDetails('exceptions')}
+        >
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Исключения</p>
@@ -482,6 +516,9 @@ export function Dashboard() {
           <div className="mt-4">
             <div className="text-sm text-gray-500">
               За выбранный день
+            </div>
+            <div className="text-xs text-blue-600 font-medium mt-1">
+              Нажмите для просмотра списка
             </div>
           </div>
         </div>
@@ -590,7 +627,9 @@ export function Dashboard() {
             <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-6 text-white">
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-bold">
-                  {modalType === 'onTime' ? 'Сотрудники, пришедшие вовремя' : 'Опоздавшие сотрудники'}
+                  {modalType === 'onTime' ? 'Сотрудники, пришедшие вовремя' : 
+                   modalType === 'late' ? 'Опоздавшие сотрудники' : 
+                   'Сотрудники с исключениями'}
                 </h2>
                 <button
                   onClick={() => setShowModal(false)}
@@ -639,6 +678,14 @@ export function Dashboard() {
                         {modalType === 'onTime' && (
                           <p className="text-xs text-green-600">Вовремя</p>
                         )}
+                        {modalType === 'exceptions' && (
+                          <div>
+                            <p className="text-xs text-blue-600">Исключение</p>
+                            {employee.exception_reason && (
+                              <p className="text-xs text-gray-500 mt-1">{employee.exception_reason}</p>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -648,7 +695,9 @@ export function Dashboard() {
                   <div className="text-gray-500">
                     {modalType === 'onTime' 
                       ? 'Нет сотрудников, пришедших вовремя' 
-                      : 'Нет опоздавших сотрудников'
+                      : modalType === 'late'
+                      ? 'Нет опоздавших сотрудников'
+                      : 'Нет сотрудников с исключениями'
                     }
                   </div>
                 </div>
