@@ -391,35 +391,100 @@ export default function SvodReportPage() {
         { wch: 30 }   // Примечание
       ]
       
-      // Стили для ячеек
+      // Базовый стиль Times New Roman 14
+      const baseStyle = {
+        font: { name: 'Times New Roman', size: 14 },
+        alignment: { horizontal: 'left', vertical: 'center' }
+      }
+      
+      // Стиль для первой строки заголовка - полужирная и по центру
       const firstHeaderStyle = {
-        font: { bold: true, size: 12 },
+        font: { name: 'Times New Roman', size: 14, bold: true },
         alignment: { horizontal: 'center', vertical: 'center' }
       }
       
+      // Стиль для остальных строк заголовка - по центру
       const regularHeaderStyle = {
-        font: { bold: false, size: 11 },
+        font: { name: 'Times New Roman', size: 14 },
         alignment: { horizontal: 'center', vertical: 'center' }
       }
       
-      // Применяем стили к заголовкам
-      // Первая строка - полужирная
-      if (ws[XLSX.utils.encode_cell({ r: 0, c: 0 })]) {
-        ws[XLSX.utils.encode_cell({ r: 0, c: 0 })].s = firstHeaderStyle
+      // Стиль для даты - полужирная и по центру
+      const dateStyle = {
+        font: { name: 'Times New Roman', size: 14, bold: true },
+        alignment: { horizontal: 'center', vertical: 'center' }
       }
       
-      // Остальные строки заголовка - обычные
-      for (let i = 1; i <= 4; i++) {
-        if (ws[XLSX.utils.encode_cell({ r: i, c: 0 })]) {
-          ws[XLSX.utils.encode_cell({ r: i, c: 0 })].s = regularHeaderStyle
+      // Стиль для заголовков таблицы - полужирные и по центру
+      const tableHeaderStyle = {
+        font: { name: 'Times New Roman', size: 14, bold: true },
+        alignment: { horizontal: 'center', vertical: 'center' }
+      }
+      
+      // Применяем базовый стиль ко всем ячейкам
+      const range = XLSX.utils.decode_range(ws['!ref'] || 'A1')
+      for (let R = range.s.r; R <= range.e.r; ++R) {
+        for (let C = range.s.c; C <= range.e.c; ++C) {
+          const cellAddress = XLSX.utils.encode_cell({ r: R, c: C })
+          if (ws[cellAddress]) {
+            ws[cellAddress].s = { ...baseStyle }
+          }
         }
       }
       
-      // Стиль для даты
-      if (ws[XLSX.utils.encode_cell({ r: 6, c: 0 })]) {
-        ws[XLSX.utils.encode_cell({ r: 6, c: 0 })].s = {
-          font: { bold: true },
-          alignment: { horizontal: 'center' }
+      // Первая строка заголовка - полужирная и по центру (применяем ко всем ячейкам в строке)
+      for (let C = 0; C <= 3; C++) {
+        const cellAddress = XLSX.utils.encode_cell({ r: 0, c: C })
+        if (ws[cellAddress]) {
+          ws[cellAddress].s = firstHeaderStyle
+        }
+      }
+      
+      // Остальные строки заголовка - по центру
+      for (let i = 1; i <= 4; i++) {
+        for (let C = 0; C <= 3; C++) {
+          const cellAddress = XLSX.utils.encode_cell({ r: i, c: C })
+          if (ws[cellAddress]) {
+            ws[cellAddress].s = regularHeaderStyle
+          }
+        }
+      }
+      
+      // Дата - полужирная и по центру
+      for (let C = 0; C <= 3; C++) {
+        const cellAddress = XLSX.utils.encode_cell({ r: 6, c: C })
+        if (ws[cellAddress]) {
+          ws[cellAddress].s = dateStyle
+        }
+      }
+      
+      // Заголовки основной таблицы - найдем строку с "п/п"
+      const mainTableHeaderRow = excelData.findIndex(row => row[0] === 'п/п')
+      if (mainTableHeaderRow !== -1) {
+        for (let C = 0; C <= 3; C++) {
+          const cellAddress = XLSX.utils.encode_cell({ r: mainTableHeaderRow, c: C })
+          if (ws[cellAddress]) {
+            ws[cellAddress].s = tableHeaderStyle
+          }
+        }
+      }
+      
+      // Заголовок "Дни рождения" - полужирный и по центру
+      const birthdayHeaderRow = excelData.findIndex(row => row[0] === 'Дни рождения')
+      if (birthdayHeaderRow !== -1) {
+        for (let C = 0; C <= 3; C++) {
+          const cellAddress = XLSX.utils.encode_cell({ r: birthdayHeaderRow, c: C })
+          if (ws[cellAddress]) {
+            ws[cellAddress].s = tableHeaderStyle
+          }
+        }
+        
+        // Заголовки таблицы дней рождения
+        for (let C = 0; C <= 3; C++) {
+          const cellAddress = XLSX.utils.encode_cell({ r: birthdayHeaderRow + 1, c: C })
+          if (ws[cellAddress]) {
+            ws[cellAddress].s = tableHeaderStyle
+          }
         }
       }
 
