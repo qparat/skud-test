@@ -125,10 +125,6 @@ export function InstructionModal({ isOpen, onClose }: InstructionModalProps) {
                 </li>
                 <li className="flex items-start">
                   <span className="w-2 h-2 bg-green-600 rounded-full mt-2 mr-3 flex-shrink-0"></span>
-                  Кликните по имени сотрудника для открытия его профиля в новой вкладке
-                </li>
-                <li className="flex items-start">
-                  <span className="w-2 h-2 bg-green-600 rounded-full mt-2 mr-3 flex-shrink-0"></span>
                   Используйте фильтры для поиска нужной информации
                 </li>
               </ul>
@@ -149,15 +145,7 @@ export function InstructionModal({ isOpen, onClose }: InstructionModalProps) {
             <ul className="space-y-3 text-amber-800">
               <li className="flex items-start">
                 <span className="w-2 h-2 bg-amber-600 rounded-full mt-2 mr-3 flex-shrink-0"></span>
-                <span>Данные обновляются в реальном времени каждые несколько минут</span>
-              </li>
-              <li className="flex items-start">
-                <span className="w-2 h-2 bg-amber-600 rounded-full mt-2 mr-3 flex-shrink-0"></span>
                 <span>При проблемах с подключением используйте кнопку обновления в заголовке</span>
-              </li>
-              <li className="flex items-start">
-                <span className="w-2 h-2 bg-amber-600 rounded-full mt-2 mr-3 flex-shrink-0"></span>
-                <span>Все времена отображаются в местном часовом поясе</span>
               </li>
               <li className="flex items-start">
                 <span className="w-2 h-2 bg-amber-600 rounded-full mt-2 mr-3 flex-shrink-0"></span>
