@@ -196,25 +196,13 @@ export function Dashboard() {
       setModalLoading(true)
       const targetDate = selectedDate || today
       
-      // Для исключений используем отдельный endpoint
+      // Для исключений используем специальный endpoint
       if (type === 'exceptions') {
         try {
-          const endpoint = `employee-schedule?date=${targetDate}&per_page=1000&page=1`
+          const endpoint = `dashboard-employee-exceptions?date=${targetDate}`
           const response = await apiRequest(endpoint)
           
-          // Фильтруем сотрудников с исключениями
-          const employeesWithExceptions = response.employees?.filter((emp: any) => 
-            emp.exception && emp.exception.has_exception
-          ).map((emp: any) => ({
-            id: emp.employee_id,
-            name: emp.full_name,
-            first_entry: emp.first_entry,
-            is_late: emp.is_late,
-            exception_reason: emp.exception.reason,
-            exception_type: emp.exception.type
-          })) || []
-          
-          setEmployeeDetails(employeesWithExceptions)
+          setEmployeeDetails(response.exceptions || [])
           setModalType(type)
           setShowModal(true)
           return

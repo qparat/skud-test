@@ -3168,3 +3168,92 @@ async def get_dashboard_employee_lists(
         print(f"Ошибка получения списков сотрудников: {e}")
         print(f"Полная ошибка: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=f"Ошибка получения данных: {str(e)}")
+
+@app.get("/dashboard-employee-exceptions")
+async def get_dashboard_employee_exceptions(
+    date: Optional[str] = Query(None), 
+    current_user: dict = Depends(get_current_user)
+):
+    """Получить список сотрудников с исключениями за конкретную дату для дашборда"""
+    try:
+        if date is None:
+            date = datetime.today().strftime('%Y-%m-%d')
+        
+        conn = get_db_connection()
+        
+        # Получаем сотрудников с исключениями за конкретную дату с их временем прихода
+        employees_with_exceptions = execute_query(
+            conn,
+            """
+            SELECT DISTINCT
+                e.id,
+                e.full_name,
+                ee.reason as exception_reason,
+                ee.exception_type,
+                wd.reason as dept_exception_reason,
+                wd.exception_type as dept_exception_type,
+                (
+                    SELECT MIN(CAST(al.access_datetime AS TIME))
+                    FROM access_logs al 
+                    WHERE al.employee_id = e.id 
+                    AND DATE(al.access_datetime) = %s
+                    AND (al.door_location NOT LIKE '%%выход%%' OR al.door_location IS NULL)
+                ) as first_entry
+            FROM employees e
+            LEFT JOIN employee_exceptions ee ON e.id = ee.employee_id AND ee.exception_date = %s
+            LEFT JOIN whitelist_departments wd ON e.department_id = wd.department_id
+            WHERE e.is_active = true
+            AND e.full_name NOT IN ('Охрана М.', '1 пост о.', '2 пост о.', 'Крыша К.', 'Водитель 1 В.', 'Водитель 2 В.', 'Дежурный в.', 'Дежурный В.')
+            AND (
+                -- Есть персональное исключение на эту дату
+                (ee.employee_id IS NOT NULL AND ee.exception_type IS NOT NULL)
+                OR
+                -- Есть исключение для отдела
+                (wd.department_id IS NOT NULL AND wd.exception_type IS NOT NULL)
+            )
+            -- Показываем только тех, кто реально был на работе в этот день
+            AND EXISTS (
+                SELECT 1 FROM access_logs al 
+                WHERE al.employee_id = e.id 
+                AND DATE(al.access_datetime) = %s
+                AND (al.door_location NOT LIKE '%%выход%%' OR al.door_location IS NULL)
+            )
+            ORDER BY e.full_name
+            """,
+            (date, date, date),
+            fetch_all=True
+        )
+        
+        conn.close()
+        
+        # Форматируем результат
+        exceptions_list = []
+        for emp in employees_with_exceptions:
+            # Определяем основную причину исключения (персональное приоритетнее отделового)
+            if emp['exception_reason']:
+                reason = emp['exception_reason']
+                exception_type = emp['exception_type']
+            else:
+                reason = emp['dept_exception_reason']
+                exception_type = emp['dept_exception_type']
+            
+            exceptions_list.append({
+                'id': emp['id'],
+                'name': emp['full_name'],
+                'first_entry': str(emp['first_entry']) if emp['first_entry'] else None,
+                'exception_reason': reason,
+                'exception_type': exception_type,
+                'is_late': False  # Сотрудники с исключениями не считаются опоздавшими
+            })
+        
+        return {
+            'date': date,
+            'exceptions': exceptions_list,
+            'total': len(exceptions_list)
+        }
+        
+    except Exception as e:
+        import traceback
+        print(f"Ошибка получения исключений: {e}")
+        print(f"Полная ошибка: {traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=f"Ошибка получения данных: {str(e)}")
