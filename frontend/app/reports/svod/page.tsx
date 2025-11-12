@@ -452,13 +452,13 @@ export default function SvodReportPage() {
 
       // Создаем Blob с HTML содержимым
       const blob = new Blob([htmlTable], { 
-        type: 'application/vnd.ms-excel;charset=utf-8' 
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=utf-8' 
       })
       
       // Создаем ссылку для скачивания
       const link = document.createElement('a')
       link.href = URL.createObjectURL(blob)
-      link.download = `Свод_ТРК_${selectedDate}.xls`
+      link.download = `Свод_ТРК_${selectedDate}.xlsx`
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
