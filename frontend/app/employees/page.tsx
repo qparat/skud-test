@@ -66,7 +66,7 @@ export default function EmployeesPage() {
   }
 
   const handleScheduleClick = () => {
-    router.push('/')
+    router.push('/schedule')
   }
 
   // Функция для получения ID департамента по названию
