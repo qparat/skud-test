@@ -3016,12 +3016,29 @@ async def get_dashboard_stats(date: str = None):
         # Общее количество входов за день (примерно в 1.5 раза больше уникальных сотрудников)
         total_entries = max(1, int(present_count * 1.5))
         
-        # Реальное количество исключений за день из базы данных
+        # Реальное количество исключений за день - считаем как в модальном окне
         cursor.execute("""
-            SELECT COUNT(*) as exceptions_count
-            FROM employee_exceptions 
-            WHERE exception_date = %s
-        """, (target_date,))
+            SELECT COUNT(DISTINCT e.id) as exceptions_count
+            FROM employees e
+            LEFT JOIN employee_exceptions ee ON e.id = ee.employee_id AND ee.exception_date = %s
+            LEFT JOIN whitelist_departments wd ON e.department_id = wd.department_id
+            WHERE e.is_active = true
+            AND e.full_name NOT IN ('Охрана М.', '1 пост о.', '2 пост о.', 'Крыша К.', 'Водитель 1 В.', 'Водитель 2 В.', 'Дежурный в.', 'Дежурный В.')
+            AND (
+                -- Есть персональное исключение на эту дату
+                (ee.employee_id IS NOT NULL AND ee.exception_type IS NOT NULL)
+                OR
+                -- Есть исключение для отдела
+                (wd.department_id IS NOT NULL AND wd.exception_type IS NOT NULL)
+            )
+            -- Показываем только тех, кто реально был на работе в этот день
+            AND EXISTS (
+                SELECT 1 FROM access_logs al 
+                WHERE al.employee_id = e.id 
+                AND DATE(al.access_datetime) = %s
+                AND (al.door_location NOT LIKE '%%выход%%' OR al.door_location IS NULL)
+            )
+        """, (target_date, target_date))
         exceptions_result = cursor.fetchone()
         exceptions_count = exceptions_result['exceptions_count'] if exceptions_result else 0
         print(f"Real exceptions count for {target_date}: {exceptions_count}")  # Отладка
