@@ -375,6 +375,46 @@ export function Dashboard() {
             age: 25,
             department_name: 'Бухгалтерия',
             position_name: 'Бухгалтер'
+          },
+          {
+            id: 3,
+            name: 'Сидоров Сидор Сидорович',
+            full_name: 'Сидоров Сидор Сидорович',
+            age: 35,
+            department_name: 'Маркетинг',
+            position_name: 'Менеджер'
+          },
+          {
+            id: 4,
+            name: 'Козлов Козел Козлович',
+            full_name: 'Козлов Козел Козлович',
+            age: 28,
+            department_name: 'HR отдел',
+            position_name: 'HR специалист'
+          },
+          {
+            id: 5,
+            name: 'Васильев Василий Васильевич',
+            full_name: 'Васильев Василий Васильевич',
+            age: 42,
+            department_name: 'Финансы',
+            position_name: 'Финансовый аналитик'
+          },
+          {
+            id: 6,
+            name: 'Морозов Морозий Морозович',
+            full_name: 'Морозов Морозий Морозович',
+            age: 33,
+            department_name: 'Продажи',
+            position_name: 'Менеджер по продажам'
+          },
+          {
+            id: 7,
+            name: 'Кузнецов Кузьма Кузьмич',
+            full_name: 'Кузнецов Кузьма Кузьмич',
+            age: 29,
+            department_name: 'Производство',
+            position_name: 'Инженер'
           }
         ])
       }
@@ -615,7 +655,7 @@ export function Dashboard() {
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-600"></div>
             </div>
           ) : birthdayEmployees.length > 0 ? (
-            <div className="space-y-2">
+            <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
               {birthdayEmployees.map((employee, index) => {
                 console.log('Birthday employee:', employee) // Отладка
                 return (
