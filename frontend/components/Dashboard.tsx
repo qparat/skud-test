@@ -383,7 +383,7 @@ export function Dashboard() {
                 <div className="flex items-center justify-between mb-4">
                   <button
                     onClick={goToPreviousMonth}
-                    className="p-1 hover:bg-gray-100 rounded"
+                    className="p-1 hover:bg-gray-100 rounded text-gray-600"
                   >
                     <ChevronDown className="h-4 w-4 rotate-90" />
                   </button>
@@ -392,7 +392,7 @@ export function Dashboard() {
                   </h3>
                   <button
                     onClick={goToNextMonth}
-                    className="p-1 hover:bg-gray-100 rounded"
+                    className="p-1 hover:bg-gray-100 rounded text-gray-600"
                   >
                     <ChevronUp className="h-4 w-4 rotate-90" />
                   </button>
