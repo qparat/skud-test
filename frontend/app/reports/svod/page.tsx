@@ -304,144 +304,146 @@ export default function SvodReportPage() {
   })
 
   // Экспорт в Excel
-  const exportToExcel = async () => {
+  const exportToExcel = () => {
     try {
-      const XLSX = await import('xlsx')
-      
-      // Создаем данные для экспорта
-      const excelData = []
-      
+      // Создаем HTML таблицу со стилями
+      let htmlTable = `
+        <html>
+          <head>
+            <meta charset="utf-8">
+            <style>
+              table { 
+                font-family: 'Times New Roman', serif; 
+                font-size: 14pt; 
+                border-collapse: collapse; 
+                width: 100%; 
+              }
+              th, td { 
+                border: 1px solid black; 
+                padding: 8px; 
+                text-align: left; 
+                vertical-align: top; 
+              }
+              .header { 
+                font-weight: bold; 
+                text-align: center; 
+                font-size: 14pt; 
+              }
+              .center { 
+                text-align: center; 
+              }
+              .bold { 
+                font-weight: bold; 
+              }
+            </style>
+          </head>
+          <body>
+            <table>
+      `
+
       // Заголовок организации
-      excelData.push(['Сведения о местонахождении руководящего состава'])
-      excelData.push(['РГП на ПХВ «Телерадиокомплекс'])
-      excelData.push(['Президента Республики Казахстан»'])
-      excelData.push(['Управление делами Президента'])
-      excelData.push(['Республики Казахстан'])
-      excelData.push([]) // пустая строка
-      
-      // Дата отчета
-      excelData.push([formatDateRussian(selectedDate)])
-      excelData.push([]) // пустая строка
-      
+      htmlTable += `
+        <tr><td colspan="4" class="header">Сведения о местонахождении руководящего состава</td></tr>
+        <tr><td colspan="4" class="center">РГП на ПХВ «Телерадиокомплекс</td></tr>
+        <tr><td colspan="4" class="center">Президента Республики Казахстан»</td></tr>
+        <tr><td colspan="4" class="center">Управление делами Президента</td></tr>
+        <tr><td colspan="4" class="center">Республики Казахстан</td></tr>
+        <tr><td colspan="4">&nbsp;</td></tr>
+        <tr><td colspan="4" class="header">${formatDateRussian(selectedDate)}</td></tr>
+        <tr><td colspan="4">&nbsp;</td></tr>
+      `
+
       // Заголовки основной таблицы
-      excelData.push(['п/п', 'Наименование должности', 'Ф.И.О.', 'Примечание'])
-      
+      htmlTable += `
+        <tr>
+          <th class="header">п/п</th>
+          <th class="header">Наименование должности</th>
+          <th class="header">Ф.И.О.</th>
+          <th class="header">Примечание</th>
+        </tr>
+      `
+
       // Данные сотрудников (минимум 45 строк)
       const maxRows = Math.max(45, svodEmployees.length)
       for (let i = 0; i < maxRows; i++) {
         if (i < svodEmployees.length) {
           const emp = svodEmployees[i]
-          excelData.push([
-            i + 1,
-            emp.position,
-            emp.full_name,
-            emp.comment || ''
-          ])
+          htmlTable += `
+            <tr>
+              <td class="center">${i + 1}</td>
+              <td>${emp.position}</td>
+              <td>${emp.full_name}</td>
+              <td>${emp.comment || ''}</td>
+            </tr>
+          `
         } else {
-          excelData.push([i + 1, '', '', ''])
+          htmlTable += `
+            <tr>
+              <td class="center">${i + 1}</td>
+              <td></td>
+              <td></td>
+              <td></td>
+            </tr>
+          `
         }
       }
-      
-      excelData.push([]) // пустая строка
-      
+
       // Секция "Дни рождения"
-      excelData.push(['Дни рождения', '', '', ''])
-      excelData.push(['п/п', 'Наименование должности', 'Ф.И.О.', 'Примечание'])
-      
+      htmlTable += `
+        <tr><td colspan="4">&nbsp;</td></tr>
+        <tr><td colspan="4" class="header">Дни рождения</td></tr>
+        <tr>
+          <th class="header">п/п</th>
+          <th class="header">Наименование должности</th>
+          <th class="header">Ф.И.О.</th>
+          <th class="header">Примечание</th>
+        </tr>
+      `
+
       // Данные дней рождения
       if (birthdayEmployees.length === 0) {
-        excelData.push([1, '', '', ''])
+        htmlTable += `
+          <tr>
+            <td class="center">1</td>
+            <td></td>
+            <td></td>
+            <td></td>
+          </tr>
+        `
       } else {
-        birthdayEmployees.forEach((emp, idx) => {
-          excelData.push([
-            idx + 1,
-            emp.position,
-            emp.full_name,
-            'День рождения'
-          ])
+        birthdayEmployees.forEach((emp: any, idx: number) => {
+          htmlTable += `
+            <tr>
+              <td class="center">${idx + 1}</td>
+              <td>${emp.position}</td>
+              <td>${emp.full_name}</td>
+              <td>День рождения</td>
+            </tr>
+          `
         })
       }
 
-      // Создаем рабочий лист
-      const ws = XLSX.utils.aoa_to_sheet(excelData)
-      
-      // Объединяем ячейки для заголовка
-      const merges = [
-        { s: { r: 0, c: 0 }, e: { r: 0, c: 3 } }, // Заголовок 1
-        { s: { r: 1, c: 0 }, e: { r: 1, c: 3 } }, // Заголовок 2
-        { s: { r: 2, c: 0 }, e: { r: 2, c: 3 } }, // Заголовок 3
-        { s: { r: 3, c: 0 }, e: { r: 3, c: 3 } }, // Заголовок 4
-        { s: { r: 4, c: 0 }, e: { r: 4, c: 3 } }, // Заголовок 5
-        { s: { r: 6, c: 0 }, e: { r: 6, c: 3 } }  // Дата
-      ]
-      
-      // Находим строку "Дни рождения" и объединяем ее
-      const birthdayRowIndex = excelData.findIndex(row => row[0] === 'Дни рождения')
-      if (birthdayRowIndex !== -1) {
-        merges.push({ s: { r: birthdayRowIndex, c: 0 }, e: { r: birthdayRowIndex, c: 3 } })
-      }
-      
-      ws['!merges'] = merges
-      
-      // Настраиваем ширину колонок
-      ws['!cols'] = [
-        { wch: 8 },   // п/п
-        { wch: 45 },  // Должность
-        { wch: 35 },  // ФИО
-        { wch: 30 }   // Примечание
-      ]
-      
-      // Применяем стили к конкретным ячейкам
-      Object.keys(ws).forEach(key => {
-        if (key[0] === '!' || !ws[key].v) return
-        
-        const cellRef = XLSX.utils.decode_cell(key)
-        const row = cellRef.r
-        const col = cellRef.c
-        
-        // Базовый стиль для всех ячеек
-        let cellStyle = {
-          font: { name: 'Times New Roman', sz: 14 },
-          alignment: { horizontal: 'left', vertical: 'center', wrapText: true }
-        }
-        
-        // Первая строка заголовка - полужирная и по центру
-        if (row === 0) {
-          cellStyle = {
-            font: { name: 'Times New Roman', sz: 14, b: true } as any,
-            alignment: { horizontal: 'center', vertical: 'center', wrapText: true }
-          }
-        }
-        // Строки 2-5 заголовка - по центру
-        else if (row >= 1 && row <= 4) {
-          cellStyle = {
-            font: { name: 'Times New Roman', sz: 14 },
-            alignment: { horizontal: 'center', vertical: 'center', wrapText: true }
-          }
-        }
-        // Дата - полужирная и по центру
-        else if (row === 6) {
-          cellStyle = {
-            font: { name: 'Times New Roman', sz: 14, b: true } as any,
-            alignment: { horizontal: 'center', vertical: 'center', wrapText: true }
-          }
-        }
-        // Заголовки таблиц - полужирные и по центру
-        else if (ws[key].v === 'п/п' || ws[key].v === 'Наименование должности' || 
-                 ws[key].v === 'Ф.И.О.' || ws[key].v === 'Примечание' || 
-                 ws[key].v === 'Дни рождения') {
-          cellStyle = {
-            font: { name: 'Times New Roman', sz: 14, b: true } as any,
-            alignment: { horizontal: 'center', vertical: 'center', wrapText: true }
-          }
-        }
-        
-        ws[key].s = cellStyle
-      })
+      htmlTable += `
+            </table>
+          </body>
+        </html>
+      `
 
-      const wb = XLSX.utils.book_new()
-      XLSX.utils.book_append_sheet(wb, ws, 'Свод ТРК')
-      XLSX.writeFile(wb, `Свод_ТРК_${selectedDate}.xlsx`)
+      // Создаем Blob с HTML содержимым
+      const blob = new Blob([htmlTable], { 
+        type: 'application/vnd.ms-excel;charset=utf-8' 
+      })
+      
+      // Создаем ссылку для скачивания
+      const link = document.createElement('a')
+      link.href = URL.createObjectURL(blob)
+      link.download = `Свод_ТРК_${selectedDate}.xls`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      
+      // Освобождаем память
+      URL.revokeObjectURL(link.href)
     } catch (err) {
       console.error('Ошибка экспорта:', err)
       alert('Ошибка при экспорте в Excel')
