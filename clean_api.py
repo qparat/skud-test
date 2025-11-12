@@ -2158,7 +2158,7 @@ async def get_svod_report(date: str = None):
                 comment = exception['reason']
                 exception_type = exception['exception_type']
             elif has_access:
-                comment = 'На рабочем месте'
+                comment = 'На работе'
                 exception_type = 'at_work'
             else:
                 comment = ''
