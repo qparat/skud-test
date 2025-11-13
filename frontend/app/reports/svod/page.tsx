@@ -379,21 +379,21 @@ export default function SvodReportPage() {
       // --- 3. Заполнение данных и применение стилей ---
       // Строка 1: Заголовок организации (колонка A пустая, B-C-D объединены)
       const row1 = worksheet.addRow(['', 'Сведения о местонахождении руководящего состава'])
-      row1.height = 40
+      row1.height = 45
       row1.getCell(1).style = headerCellStyle
       worksheet.mergeCells(row1.number, 2, row1.number, 4)
       row1.getCell(2).style = headerCellStyle
       
       // Строка 2: РГП (колонка A пустая, B-C-D объединены)
       const row2 = worksheet.addRow(['', 'РГП на ПХВ «Телерадиокомплекс Президента Республики Казахстан» Управление делами Президента Республики Казахстан'])
-      row2.height = 40
+      row2.height = 45
       row2.getCell(1).style = headerCellStyle
       worksheet.mergeCells(row2.number, 2, row2.number, 4)
       row2.getCell(2).style = headerCellStyle
       
       // Строка 3: Дата отчета (колонка A пустая, B-C-D объединены)
       const dateRow = worksheet.addRow(['', formatDateRussian(selectedDate)])
-      dateRow.height = 40
+      dateRow.height = 45
       dateRow.getCell(1).style = headerCellStyle
       worksheet.mergeCells(dateRow.number, 2, dateRow.number, 4)
       dateRow.getCell(2).style = headerCellStyle
