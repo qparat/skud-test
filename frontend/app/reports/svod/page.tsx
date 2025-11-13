@@ -433,9 +433,9 @@ export default function SvodReportPage() {
 
         const rowData = [
           i + 1,
-          isActualEmployee ? emp.position : '',
-          isActualEmployee ? emp.full_name : '',
-          isActualEmployee ? (emp.comment || '') : ''
+          emp ? emp.position : '',  // <--- ИСПРАВЛЕНО
+          emp ? emp.full_name : '', // <--- ИСПРАВЛЕНО
+          emp ? (emp.comment || '') : '' // <--- ИСПРАВЛЕНО
         ]
         
         const dataRow = worksheet.addRow(rowData)
