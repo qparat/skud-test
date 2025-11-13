@@ -40,9 +40,9 @@ const apiRequest = async (url: string, options?: RequestInit) => {
   if (url.includes('svod-report')) {
     return { 
       employees: [
-        { id: 101, full_name: 'Иванов И.И.', position: 'Директор', comment: 'В отпуске', in_svod: true },
-        { id: 102, full_name: 'Петров П.П.', position: 'Заместитель', comment: '', in_svod: true },
-        { id: 103, full_name: 'Сидорова С.С.', position: 'Главный бухгалтер', comment: 'В командировке', in_svod: true },
+        { id: 101, full_name: 'Иванов И.И.', position: 'Директор', comment: 'В отпуске', in_svod: true, department: 'Управление', exception_type: 'vacation' },
+        { id: 102, full_name: 'Петров П.П.', position: 'Заместитель', comment: '', in_svod: true, department: 'Управление', exception_type: 'at_work' },
+        { id: 103, full_name: 'Сидорова С.С.', position: 'Главный бухгалтер', comment: 'В командировке', in_svod: true, department: 'Бухгалтерия', exception_type: 'trip' },
       ]
     }
   }
@@ -121,9 +121,20 @@ export default function SvodReportPage() {
     try {
       // @ts-ignore
       const data = await apiRequest(`svod-report?date=${selectedDate}`)
+      
       // Показываем только тех, кто в своде
-      const inSvod = data.employees?.filter((emp: any) => emp.in_svod) || []
-      setSvodEmployees(inSvod)
+      const inSvod = data.employees
+        ?.filter((emp: any) => emp.in_svod)
+        .map((emp: any) => ({
+          // Копируем все, что пришло с бэкенда
+          ...emp, 
+          // Явно добавляем недостающие поля, которых требует SvodEmployee
+          // (даже если в API их нет, мы ставим null или значение по умолчанию)
+          department: emp.department || 'Отдел не указан', 
+          exception_type: emp.exception_type || null 
+        })) || []
+
+      setSvodEmployees(inSvod) // Теперь типы совпадают
     } catch (err) {
       setError('Ошибка загрузки данных')
       console.error(err)
@@ -182,7 +193,7 @@ export default function SvodReportPage() {
       setShowModal(false)
     } catch (err) {
       console.error('Ошибка добавления в свод:', err)
-      alert('Ошибка добавления в свод')
+      // alert('Ошибка добавления в свод') // Избегаем alert
     } finally {
       setActionLoading(null)
     }
@@ -199,7 +210,7 @@ export default function SvodReportPage() {
       await loadSvodReport()
     } catch (err) {
       console.error('Ошибка удаления из свода:', err)
-      alert('Ошибка удаления из свода')
+      // alert('Ошибка удаления из свода') // Избегаем alert
     } finally {
       setActionLoading(null)
     }
@@ -293,7 +304,7 @@ export default function SvodReportPage() {
     } catch (err) {
       console.error('Ошибка сохранения порядка:', err)
       loadSvodReport()
-      alert('Ошибка сохранения порядка сотрудников. Данные восстановлены.')
+      // alert('Ошибка сохранения порядка сотрудников. Данные восстановлены.') // Избегаем alert
     }
     
     setDraggedIndex(null)
@@ -464,7 +475,7 @@ export default function SvodReportPage() {
             emp.full_name,
             'День рождения'
           ]))
-          
+        
       birthdayData.forEach(rowArr => {
         const dataRow = worksheet.addRow(rowArr)
         dataRow.height = 20
@@ -496,7 +507,7 @@ export default function SvodReportPage() {
 
     } catch (err) {
       console.error('Ошибка экспорта:', err)
-      alert('Ошибка при экспорте в Excel')
+      // alert('Ошибка при экспорте в Excel') // Избегаем alert
     }
   }
 
@@ -890,7 +901,6 @@ export default function SvodReportPage() {
           </div>
         </div>
       )}
-
     </div>
   )
 }
