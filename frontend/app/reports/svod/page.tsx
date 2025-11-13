@@ -395,7 +395,7 @@ export default function SvodReportPage() {
       worksheet.columns = [
         { width: 9 },  // п/п
         { width: 75 }, // Должность
-        { width: 55 }, // ФИО
+        { width: 50 }, // ФИО
         { width: 55 }, // Примечание
       ]
       
@@ -429,7 +429,7 @@ export default function SvodReportPage() {
       
       // Заголовки основной таблицы
       const headerRow = worksheet.addRow(['п/п', 'Наименование должности', 'Ф.И.О.', 'Примечание'])
-      headerRow.height = 55
+      headerRow.height = 50
       headerRow.eachCell(cell => {
         cell.style = tableHeaderStyle
       })
