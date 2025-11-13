@@ -455,10 +455,13 @@ export default function SvodReportPage() {
         cell.style = tableHeaderStyle
       })
       
-      // Данные дней рождения
-      const birthdayData = birthdayEmployees.length === 0 
+      // Данные дней рождения - только те, кто есть в своде
+      const svodEmployeeIds = svodEmployees.map(emp => emp.id)
+      const filteredBirthdays = birthdayEmployees.filter(emp => svodEmployeeIds.includes(emp.id))
+      
+      const birthdayData = filteredBirthdays.length === 0 
         ? [[1, '', '', '']] 
-        : birthdayEmployees.map((emp, idx) => ([
+        : filteredBirthdays.map((emp, idx) => ([
             idx + 1,
             emp.position,
             emp.full_name,
@@ -814,23 +817,28 @@ export default function SvodReportPage() {
                         Примечание
                       </td>
                     </tr>
-                    {birthdayEmployees.length === 0 ? (
-                      <tr>
-                        <td className="border border-black p-2 text-center text-sm">1</td>
-                        <td className="border border-black p-2 text-sm"></td>
-                        <td className="border border-black p-2 text-sm"></td>
-                        <td className="border border-black p-2 text-sm"></td>
-                      </tr>
-                    ) : (
-                      birthdayEmployees.map((emp, idx) => (
-                        <tr key={emp.id}>
-                          <td className="border border-black p-2 text-center text-sm">{idx + 1}</td>
-                          <td className="border border-black p-2 text-sm">{emp.position}</td>
-                          <td className="border border-black p-2 text-sm">{emp.full_name}</td>
-                          <td className="border border-black p-2 text-sm">День рождения</td>
+                    {(() => {
+                      const svodEmployeeIds = svodEmployees.map((emp: SvodEmployee) => emp.id)
+                      const filteredBirthdays = birthdayEmployees.filter((emp: BirthdayEmployee) => svodEmployeeIds.includes(emp.id))
+                      
+                      return filteredBirthdays.length === 0 ? (
+                        <tr>
+                          <td className="border border-black p-2 text-center text-sm">1</td>
+                          <td className="border border-black p-2 text-sm"></td>
+                          <td className="border border-black p-2 text-sm"></td>
+                          <td className="border border-black p-2 text-sm"></td>
                         </tr>
-                      ))
-                    )}
+                      ) : (
+                        filteredBirthdays.map((emp: BirthdayEmployee, idx: number) => (
+                          <tr key={emp.id}>
+                            <td className="border border-black p-2 text-center text-sm">{idx + 1}</td>
+                            <td className="border border-black p-2 text-sm">{emp.position}</td>
+                            <td className="border border-black p-2 text-sm">{emp.full_name}</td>
+                            <td className="border border-black p-2 text-sm">День рождения</td>
+                          </tr>
+                        ))
+                      )
+                    })()}
                   </tbody>
                 </table>
               </div>
