@@ -365,7 +365,6 @@ export default function SvodReportPage() {
         font: { ...baseFont, bold: true },
         alignment: { vertical: 'middle' as const, horizontal: 'center' as const, wrapText: true },
         border: cellBorder,
-        fill: { type: 'pattern' as const, pattern: 'solid' as const, fgColor: { argb: 'FFE0E0E0' } },
       }
       
       // --- 2. Установка ширины колонок ---
@@ -379,7 +378,7 @@ export default function SvodReportPage() {
       // --- 3. Заполнение данных и применение стилей ---
       // Строка 1: Заголовок организации (колонка A пустая, B-C-D объединены)
       const row1 = worksheet.addRow(['', 'Сведения о местонахождении руководящего состава'])
-      row1.height = 45
+      row1.height = 4
       row1.getCell(1).style = headerCellStyle
       worksheet.mergeCells(row1.number, 2, row1.number, 4)
       row1.getCell(2).style = headerCellStyle
