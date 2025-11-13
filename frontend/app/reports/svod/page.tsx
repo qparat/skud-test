@@ -429,7 +429,7 @@ export default function SvodReportPage() {
       
       // Заголовки основной таблицы
       const headerRow = worksheet.addRow(['п/п', 'Наименование должности', 'Ф.И.О.', 'Примечание'])
-      headerRow.height = 60
+      headerRow.height = 55
       headerRow.eachCell(cell => {
         cell.style = tableHeaderStyle
       })
