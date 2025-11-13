@@ -370,7 +370,7 @@ export default function SvodReportPage() {
 
       const contentCellStyle = {
         font: baseFont,
-        alignment: { vertical: 'middle' as const, horizontal: 'left' as const, wrapText: true },
+        alignment: { vertical: 'middle' as const, horizontal: 'center' as const, wrapText: true },
         border: cellBorder,
       }
 
