@@ -50,14 +50,14 @@ const formatDateRussian = (dateStr: string) => {
   return `${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()} года`
 }
 
-// Функция для форматирования даты рождения (только день и месяц)
+// Функция для форматирования даты рождения (день, месяц и год)
 const formatBirthDate = (dateStr: string) => {
   const date = new Date(dateStr)
   const months = [
     'января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
     'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'
   ]
-  return `${date.getDate()} ${months[date.getMonth()]}`
+  return `${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()} г.`
 }
 
 // --- Основной компонент ---
