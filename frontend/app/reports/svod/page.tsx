@@ -109,7 +109,15 @@ export default function SvodReportPage() {
   const loadBirthdays = async () => {
     try {
       const data = await apiRequest(`dashboard-birthdays?date=${selectedDate}`)
-      setBirthdayEmployees(data.birthdays || [])
+      // Маппим поля из API в нужный формат
+      const birthdays = (data.birthdays || []).map((emp: any) => ({
+        id: emp.id,
+        full_name: emp.name || emp.full_name || '',
+        position: emp.position_name || emp.position || '',
+        department: emp.department_name || emp.department || '',
+        birth_date: emp.birth_date || ''
+      }))
+      setBirthdayEmployees(birthdays)
     } catch (err) {
       console.error('Ошибка загрузки дней рождений:', err)
       setBirthdayEmployees([])
