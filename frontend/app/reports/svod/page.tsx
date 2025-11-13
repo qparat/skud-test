@@ -338,9 +338,9 @@ export default function SvodReportPage() {
   const exportToExcel = async () => {
     try {
       const workbook = new ExcelJS.Workbook()
-      workbook.views = [{ x: 0, y: 0, zoomScale: 100 }]
       const worksheet = workbook.addWorksheet('Свод ТРК')
 
+      worksheet.views = [{ zoomScale: 100 }]
       // --- 1. Определение стилей (Times New Roman, 14pt) ---
       const baseFont = {
         name: 'Times New Roman',
