@@ -388,10 +388,10 @@ export default function SvodReportPage() {
       
       // --- 2. Установка ширины колонок ---
       worksheet.columns = [
-        { width: 8 },  // п/п
-        { width: 55 }, // Должность
-        { width: 45 }, // ФИО
-        { width: 40 }, // Примечание
+        { width: 15 },  // п/п
+        { width: 65 }, // Должность
+        { width: 65 }, // ФИО
+        { width: 65 }, // Примечание
       ]
       
       // --- 3. Заполнение данных и применение стилей ---
@@ -401,6 +401,8 @@ export default function SvodReportPage() {
       row1.getCell(1).style = headerCellStyle
       worksheet.mergeCells(row1.number, 2, row1.number, 4)
       row1.getCell(2).style = headerCellStyle
+      row1.getCell(3).style = headerCellStyle
+      row1.getCell(4).style = headerCellStyle
       
       // Строка 2: РГП (колонка A пустая, B-C-D объединены)
       const row2 = worksheet.addRow(['', 'РГП на ПХВ «Телерадиокомплекс Президента Республики Казахстан» Управление делами Президента Республики Казахстан'])
@@ -408,6 +410,8 @@ export default function SvodReportPage() {
       row2.getCell(1).style = headerCellStyle
       worksheet.mergeCells(row2.number, 2, row2.number, 4)
       row2.getCell(2).style = headerCellStyle
+      row2.getCell(3).style = headerCellStyle
+      row2.getCell(4).style = headerCellStyle
       
       // Строка 3: Дата отчета (колонка A пустая, B-C-D объединены)
       const dateRow = worksheet.addRow(['', formatDateRussian(selectedDate)])
@@ -415,6 +419,8 @@ export default function SvodReportPage() {
       dateRow.getCell(1).style = headerCellStyle
       worksheet.mergeCells(dateRow.number, 2, dateRow.number, 4)
       dateRow.getCell(2).style = headerCellStyle
+      dateRow.getCell(3).style = headerCellStyle
+      dateRow.getCell(4).style = headerCellStyle
       
       // Заголовки основной таблицы
       const headerRow = worksheet.addRow(['п/п', 'Наименование должности', 'Ф.И.О.', 'Примечание'])
