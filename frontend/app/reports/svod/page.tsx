@@ -93,7 +93,8 @@ export default function SvodReportPage() {
         .map((emp: any) => ({ // <-- Добавлено для соответствия типу
           ...emp,
           department: emp.department || 'Отдел не указан', 
-          exception_type: emp.exception_type || null
+          exception_type: emp.exception_type || null,
+          comment: emp.comment || ''
         })) || []
         
       setSvodEmployees(inSvod)
@@ -378,14 +379,14 @@ export default function SvodReportPage() {
       // --- 3. Заполнение данных и применение стилей ---
       // Строка 1: Заголовок организации (колонка A пустая, B-C-D объединены)
       const row1 = worksheet.addRow(['', 'Сведения о местонахождении руководящего состава'])
-      row1.height = 4
+      row1.height = 45
       row1.getCell(1).style = headerCellStyle
       worksheet.mergeCells(row1.number, 2, row1.number, 4)
       row1.getCell(2).style = headerCellStyle
       
       // Строка 2: РГП (колонка A пустая, B-C-D объединены)
       const row2 = worksheet.addRow(['', 'РГП на ПХВ «Телерадиокомплекс Президента Республики Казахстан» Управление делами Президента Республики Казахстан'])
-      row2.height = 45
+      row2.height = 75
       row2.getCell(1).style = headerCellStyle
       worksheet.mergeCells(row2.number, 2, row2.number, 4)
       row2.getCell(2).style = headerCellStyle
@@ -631,7 +632,7 @@ export default function SvodReportPage() {
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">№</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Должность</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ФИО</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Комментарий</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Примечание</th>
                   <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Действия</th>
                 </tr>
               </thead>
