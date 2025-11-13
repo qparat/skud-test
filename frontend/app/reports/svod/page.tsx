@@ -379,6 +379,12 @@ export default function SvodReportPage() {
         border: cellBorder,
       }
 
+      const leftAlignedCellStyle = {
+        font: baseFont,
+        alignment: { vertical: 'middle' as const, horizontal: 'left' as const, wrapText: true },
+        border: cellBorder,
+      }
+
       const centeredCellStyle = {
         font: baseFont,
         alignment: { vertical: 'middle' as const, horizontal: 'center' as const, wrapText: true },
@@ -455,6 +461,8 @@ export default function SvodReportPage() {
         dataRow.eachCell((cell, colNumber) => {
           if (colNumber === 1) {
             cell.style = centeredCellStyle
+          } else if (colNumber === 2) {
+            cell.style = leftAlignedCellStyle  // Должность - по левому краю
           } else {
             cell.style = contentCellStyle
           }
@@ -486,6 +494,8 @@ export default function SvodReportPage() {
         dataRow.eachCell((cell, colNumber) => {
           if (colNumber === 1) {
             cell.style = centeredCellStyle
+          } else if (colNumber === 2) {
+            cell.style = leftAlignedCellStyle  // Должность - по левому краю
           } else {
             cell.style = contentCellStyle
           }
