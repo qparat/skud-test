@@ -377,29 +377,26 @@ export default function SvodReportPage() {
       ]
       
       // --- 3. Заполнение данных и применение стилей ---
-      // Строка 1: Заголовок организации (колонки A и B раздельно)
-      const row1 = worksheet.addRow(['Сведения о местонахождении руководящего состава', ''])
+      // Строка 1: Заголовок организации (колонка A пустая, B-C-D объединены)
+      const row1 = worksheet.addRow(['', 'Сведения о местонахождении руководящего состава'])
       row1.height = 20
       row1.getCell(1).style = headerCellStyle
+      worksheet.mergeCells(row1.number, 2, row1.number, 4)
       row1.getCell(2).style = headerCellStyle
-      worksheet.mergeCells(row1.number, 3, row1.number, 4)
-      row1.getCell(3).style = headerCellStyle
       
-      // Строка 2: РГП (колонки A и B раздельно)
-      const row2 = worksheet.addRow(['РГП на ПХВ «Телерадиокомплекс Президента Республики Казахстан» Управление делами Президента Республики Казахстан', ''])
+      // Строка 2: РГП (колонка A пустая, B-C-D объединены)
+      const row2 = worksheet.addRow(['', 'РГП на ПХВ «Телерадиокомплекс Президента Республики Казахстан» Управление делами Президента Республики Казахстан'])
       row2.height = 20
       row2.getCell(1).style = headerCellStyle
+      worksheet.mergeCells(row2.number, 2, row2.number, 4)
       row2.getCell(2).style = headerCellStyle
-      worksheet.mergeCells(row2.number, 3, row2.number, 4)
-      row2.getCell(3).style = headerCellStyle
       
-      // Строка 3: Дата отчета (колонки A и B раздельно)
-      const dateRow = worksheet.addRow([formatDateRussian(selectedDate), ''])
+      // Строка 3: Дата отчета (колонка A пустая, B-C-D объединены)
+      const dateRow = worksheet.addRow(['', formatDateRussian(selectedDate)])
       dateRow.height = 20
       dateRow.getCell(1).style = headerCellStyle
+      worksheet.mergeCells(dateRow.number, 2, dateRow.number, 4)
       dateRow.getCell(2).style = headerCellStyle
-      worksheet.mergeCells(dateRow.number, 3, dateRow.number, 4)
-      dateRow.getCell(3).style = headerCellStyle
       
       // Заголовки основной таблицы
       const headerRow = worksheet.addRow(['п/п', 'Наименование должности', 'Ф.И.О.', 'Примечание'])
