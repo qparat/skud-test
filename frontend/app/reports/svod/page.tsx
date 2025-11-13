@@ -393,10 +393,10 @@ export default function SvodReportPage() {
       
       // --- 2. Установка ширины колонок ---
       worksheet.columns = [
-        { width: 10 },  // п/п
+        { width: 9 },  // п/п
         { width: 75 }, // Должность
-        { width: 60 }, // ФИО
-        { width: 65 }, // Примечание
+        { width: 55 }, // ФИО
+        { width: 55 }, // Примечание
       ]
       
       // --- 3. Заполнение данных и применение стилей ---
@@ -420,7 +420,7 @@ export default function SvodReportPage() {
       
       // Строка 3: Дата отчета (колонка A пустая, B-C-D объединены)
       const dateRow = worksheet.addRow(['', formatDateRussian(selectedDate)])
-      dateRow.height = 10
+      dateRow.height = 15
       dateRow.getCell(1).style = headerNoBorderStyle
       worksheet.mergeCells(dateRow.number, 2, dateRow.number, 4)
       dateRow.getCell(2).style = headerNoBorderStyle
