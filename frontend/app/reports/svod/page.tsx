@@ -377,35 +377,27 @@ export default function SvodReportPage() {
       ]
       
       // --- 3. Заполнение данных и применение стилей ---
-      // Заголовок организации - строка 1 (колонки A и B раздельно)
-      const row1 = worksheet.addRow(['Сведения о местонахождении руководящего состава', ''])
-      row1.height = 20
-      row1.getCell(1).style = headerCellStyle
-      row1.getCell(2).style = headerCellStyle
-      // Объединяем колонки C и D для строки 1
-      worksheet.mergeCells(row1.number, 3, row1.number, 4)
-      row1.getCell(3).style = headerCellStyle
+      // Заголовок организации
+      const titleRows = [
+        ['Сведения о местонахождении руководящего состава'],
+        ['РГП на ПХВ «Телерадиокомплекс Президента Республики Казахстан» Управление делами Президента Республики Казахстан'],
+      ]
       
-      // Строка 2 (колонки A и B раздельно)
-      const row2 = worksheet.addRow(['РГП на ПХВ «Телерадиокомплекс Президента Республики Казахстан» Управление делами Президента Республики Казахстан', ''])
-      row2.height = 20
-      row2.getCell(1).style = headerCellStyle
-      row2.getCell(2).style = headerCellStyle
-      // Объединяем колонки C и D для строки 2
-      worksheet.mergeCells(row2.number, 3, row2.number, 4)
-      row2.getCell(3).style = headerCellStyle
+      titleRows.forEach(rowArr => {
+        const row = worksheet.addRow(rowArr)
+        row.height = 20
+        worksheet.mergeCells(row.number, 1, row.number, 4)
+        row.getCell(1).style = headerCellStyle
+      })
 
-      // Пустая строка (строка 3)
+      // Пустая строка
       worksheet.addRow(['']).height = 5
       
-      // Дата отчета - строка 4 (колонки A и B раздельно)
-      const dateRow = worksheet.addRow([formatDateRussian(selectedDate), ''])
+      // Дата отчета
+      const dateRow = worksheet.addRow([formatDateRussian(selectedDate)])
       dateRow.height = 20
+      worksheet.mergeCells(dateRow.number, 1, dateRow.number, 4)
       dateRow.getCell(1).style = headerCellStyle
-      dateRow.getCell(2).style = headerCellStyle
-      // Объединяем колонки C и D для строки 4
-      worksheet.mergeCells(dateRow.number, 3, dateRow.number, 4)
-      dateRow.getCell(3).style = headerCellStyle
       
       // Пустая строка
       worksheet.addRow(['']).height = 5
