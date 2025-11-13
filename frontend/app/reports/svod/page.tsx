@@ -395,8 +395,8 @@ export default function SvodReportPage() {
       worksheet.columns = [
         { width: 9 },  // п/п
         { width: 81 }, // Должность
-        { width: 48 }, // ФИО
-        { width: 57 }, // Примечание
+        { width: 47 }, // ФИО
+        { width: 58 }, // Примечание
       ]
       
       // --- 3. Заполнение данных и применение стилей ---
@@ -429,7 +429,7 @@ export default function SvodReportPage() {
       
       // Заголовки основной таблицы
       const headerRow = worksheet.addRow(['п/п', 'Наименование должности', 'Ф.И.О.', 'Примечание'])
-      headerRow.height = 46
+      headerRow.height = 45
       headerRow.eachCell(cell => {
         cell.style = tableHeaderStyle
       })
@@ -449,7 +449,7 @@ export default function SvodReportPage() {
         ]
         
         const dataRow = worksheet.addRow(rowData)
-        dataRow.height = 60
+        dataRow.height = 50
 
         // Применение стилей к ячейкам
         dataRow.eachCell((cell, colNumber) => {
