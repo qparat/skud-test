@@ -368,6 +368,11 @@ export default function SvodReportPage() {
         border: cellBorder,
       }
 
+      const headerNoBorderStyle = {
+        font: { ...baseFont, bold: true },
+        alignment: { vertical: 'middle' as const, horizontal: 'center' as const, wrapText: true },
+      }
+
       const contentCellStyle = {
         font: baseFont,
         alignment: { vertical: 'middle' as const, horizontal: 'center' as const, wrapText: true },
@@ -388,39 +393,39 @@ export default function SvodReportPage() {
       
       // --- 2. Установка ширины колонок ---
       worksheet.columns = [
-        { width: 15 },  // п/п
-        { width: 65 }, // Должность
-        { width: 65 }, // ФИО
+        { width: 10 },  // п/п
+        { width: 75 }, // Должность
+        { width: 60 }, // ФИО
         { width: 65 }, // Примечание
       ]
       
       // --- 3. Заполнение данных и применение стилей ---
       // Строка 1: Заголовок организации (колонка A пустая, B-C-D объединены)
       const row1 = worksheet.addRow(['', 'Сведения о местонахождении руководящего состава'])
-      row1.height = 45
-      row1.getCell(1).style = headerCellStyle
+      row1.height = 20
+      row1.getCell(1).style = headerNoBorderStyle
       worksheet.mergeCells(row1.number, 2, row1.number, 4)
-      row1.getCell(2).style = headerCellStyle
-      row1.getCell(3).style = headerCellStyle
-      row1.getCell(4).style = headerCellStyle
+      row1.getCell(2).style = headerNoBorderStyle
+      row1.getCell(3).style = headerNoBorderStyle
+      row1.getCell(4).style = headerNoBorderStyle
       
       // Строка 2: РГП (колонка A пустая, B-C-D объединены)
       const row2 = worksheet.addRow(['', 'РГП на ПХВ «Телерадиокомплекс Президента Республики Казахстан» Управление делами Президента Республики Казахстан'])
-      row2.height = 75
-      row2.getCell(1).style = headerCellStyle
+      row2.height = 85
+      row2.getCell(1).style = headerNoBorderStyle
       worksheet.mergeCells(row2.number, 2, row2.number, 4)
-      row2.getCell(2).style = headerCellStyle
-      row2.getCell(3).style = headerCellStyle
-      row2.getCell(4).style = headerCellStyle
+      row2.getCell(2).style = headerNoBorderStyle
+      row2.getCell(3).style = headerNoBorderStyle
+      row2.getCell(4).style = headerNoBorderStyle
       
       // Строка 3: Дата отчета (колонка A пустая, B-C-D объединены)
       const dateRow = worksheet.addRow(['', formatDateRussian(selectedDate)])
-      dateRow.height = 45
-      dateRow.getCell(1).style = headerCellStyle
+      dateRow.height = 10
+      dateRow.getCell(1).style = headerNoBorderStyle
       worksheet.mergeCells(dateRow.number, 2, dateRow.number, 4)
-      dateRow.getCell(2).style = headerCellStyle
-      dateRow.getCell(3).style = headerCellStyle
-      dateRow.getCell(4).style = headerCellStyle
+      dateRow.getCell(2).style = headerNoBorderStyle
+      dateRow.getCell(3).style = headerNoBorderStyle
+      dateRow.getCell(4).style = headerNoBorderStyle
       
       // Заголовки основной таблицы
       const headerRow = worksheet.addRow(['п/п', 'Наименование должности', 'Ф.И.О.', 'Примечание'])
