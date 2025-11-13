@@ -389,9 +389,9 @@ export default function SvodReportPage() {
       // --- 2. Установка ширины колонок ---
       worksheet.columns = [
         { width: 8 },  // п/п
-        { width: 45 }, // Должность
-        { width: 35 }, // ФИО
-        { width: 30 }, // Примечание
+        { width: 55 }, // Должность
+        { width: 45 }, // ФИО
+        { width: 40 }, // Примечание
       ]
       
       // --- 3. Заполнение данных и применение стилей ---
@@ -438,7 +438,7 @@ export default function SvodReportPage() {
         ]
         
         const dataRow = worksheet.addRow(rowData)
-        dataRow.height = 20
+        dataRow.height = 40
 
         // Применение стилей к ячейкам
         dataRow.eachCell((cell, colNumber) => {
