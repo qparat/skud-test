@@ -394,8 +394,8 @@ export default function SvodReportPage() {
       // --- 2. Установка ширины колонок ---
       worksheet.columns = [
         { width: 9 },  // п/п
-        { width: 79 }, // Должность
-        { width: 51 }, // ФИО
+        { width: 81 }, // Должность
+        { width: 49 }, // ФИО
         { width: 56 }, // Примечание
       ]
       
