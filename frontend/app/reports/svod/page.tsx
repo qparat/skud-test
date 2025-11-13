@@ -408,7 +408,7 @@ export default function SvodReportPage() {
       // --- 3. Заполнение данных и применение стилей ---
       // Строка 1: Заголовок организации (колонка A пустая, B-C-D объединены)
       const row1 = worksheet.addRow(['', 'Сведения о местонахождении руководящего состава'])
-      row1.height = 20
+      row1.height = 19
       row1.getCell(1).style = headerNoBorderStyle
       worksheet.mergeCells(row1.number, 2, row1.number, 4)
       row1.getCell(2).style = headerNoBorderStyle
@@ -417,7 +417,7 @@ export default function SvodReportPage() {
       
       // Строка 2: РГП (колонка A пустая, B-C-D объединены)
       const row2 = worksheet.addRow(['', 'РГП на ПХВ «Телерадиокомплекс Президента Республики Казахстан» Управление делами Президента Республики Казахстан'])
-      row2.height = 90
+      row2.height = 92
       row2.getCell(1).style = headerNoBorderStyle
       worksheet.mergeCells(row2.number, 2, row2.number, 4)
       row2.getCell(2).style = headerNoBorderStyle
