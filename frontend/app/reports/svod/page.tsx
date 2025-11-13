@@ -303,183 +303,102 @@ export default function SvodReportPage() {
     return matchesSearch && !alreadyInSvod
   })
 
-  // Экспорт в Excel (с использованием HTML для сохранения стилей Times New Roman 14pt)
-  const exportToExcel = () => {
+  // Экспорт в Excel
+  const exportToExcel = async () => {
     try {
-      // Создаем HTML таблицу со стилями
-      let htmlTable = `
-        <html>
-          <head>
-            <meta charset="utf-8">
-            <style>
-              body { 
-                font-family: 'Times New Roman', serif; 
-                font-size: 14pt; 
-                margin: 0; 
-                padding: 20px; 
-              }
-              table { 
-                font-family: 'Times New Roman', serif; 
-                font-size: 14pt; 
-                border-collapse: collapse; 
-                width: 100%; 
-                border: 2px solid black;
-              }
-              th, td { 
-                border: 1px solid black; 
-                padding: 8px; 
-                text-align: left; 
-                vertical-align: middle; 
-                font-family: 'Times New Roman', serif; 
-                font-size: 14pt;
-              }
-              .header { 
-                font-weight: bold; 
-                text-align: center; 
-                font-size: 14pt; 
-                font-family: 'Times New Roman', serif;
-              }
-              .center { 
-                text-align: center; 
-                font-family: 'Times New Roman', serif; 
-                font-size: 14pt;
-              }
-              .bold { 
-                font-weight: bold; 
-                font-family: 'Times New Roman', serif; 
-                font-size: 14pt;
-              }
-              .table-header {
-                background-color: #f0f0f0;
-                font-weight: bold;
-                text-align: center;
-                font-family: 'Times New Roman', serif; 
-                font-size: 14pt;
-              }
-            </style>
-          </head>
-          <body>
-            <table>
-      `
-
+      const XLSX = await import('xlsx')
+      
+      // Создаем данные для экспорта
+      const excelData = []
+      
       // Заголовок организации
-      htmlTable += `
-        <tr><td colspan="4" class="header">Сведения о местонахождении руководящего состава</td></tr>
-        <tr><td colspan="4" class="center">РГП на ПХВ «Телерадиокомплекс</td></tr>
-        <tr><td colspan="4" class="center">Президента Республики Казахстан»</td></tr>
-        <tr><td colspan="4" class="center">Управление делами Президента</td></tr>
-        <tr><td colspan="4" class="center">Республики Казахстан</td></tr>
-        <tr><td colspan="4">&nbsp;</td></tr>
-        <tr><td colspan="4" class="header">${formatDateRussian(selectedDate)}</td></tr>
-        <tr><td colspan="4">&nbsp;</td></tr>
-      `
-
+      excelData.push(['Сведения о местонахождении руководящего состава'])
+      excelData.push(['РГП на ПХВ «Телерадиокомплекс'])
+      excelData.push(['Президента Республики Казахстан»'])
+      excelData.push(['Управление делами Президента'])
+      excelData.push(['Республики Казахстан'])
+      excelData.push([]) // пустая строка
+      
+      // Дата отчета
+      excelData.push([formatDateRussian(selectedDate)])
+      excelData.push([]) // пустая строка
+      
       // Заголовки основной таблицы
-      htmlTable += `
-        <tr>
-          <th class="table-header">п/п</th>
-          <th class="table-header">Наименование должности</th>
-          <th class="table-header">Ф.И.О.</th>
-          <th class="table-header">Примечание</th>
-        </tr>
-      `
-
+      excelData.push(['п/п', 'Наименование должности', 'Ф.И.О.', 'Примечание'])
+      
       // Данные сотрудников (минимум 45 строк)
       const maxRows = Math.max(45, svodEmployees.length)
       for (let i = 0; i < maxRows; i++) {
         if (i < svodEmployees.length) {
           const emp = svodEmployees[i]
-          htmlTable += `
-            <tr>
-              <td class="center" style="border: 1px solid black;">${i + 1}</td>
-              <td style="border: 1px solid black;">${emp.position}</td>
-              <td style="border: 1px solid black;">${emp.full_name}</td>
-              <td style="border: 1px solid black;">${emp.comment || ''}</td>
-            </tr>
-          `
+          excelData.push([
+            i + 1,
+            emp.position,
+            emp.full_name,
+            emp.comment || ''
+          ])
         } else {
-          htmlTable += `
-            <tr>
-              <td class="center" style="border: 1px solid black;">${i + 1}</td>
-              <td style="border: 1px solid black;"></td>
-              <td style="border: 1px solid black;"></td>
-              <td style="border: 1px solid black;"></td>
-            </tr>
-          `
+          excelData.push([i + 1, '', '', ''])
         }
       }
-
+      
+      excelData.push([]) // пустая строка
+      
       // Секция "Дни рождения"
-      htmlTable += `
-        <tr><td colspan="4" style="border: 1px solid black;">&nbsp;</td></tr>
-        <tr><td colspan="4" class="header">Дни рождения</td></tr>
-        <tr>
-          <th class="table-header">п/п</th>
-          <th class="table-header">Наименование должности</th>
-          <th class="table-header">Ф.И.О.</th>
-          <th class="table-header">Примечание</th>
-        </tr>
-      `
-
+      excelData.push(['Дни рождения', '', '', ''])
+      excelData.push(['п/п', 'Наименование должности', 'Ф.И.О.', 'Примечание'])
+      
       // Данные дней рождения
       if (birthdayEmployees.length === 0) {
-        htmlTable += `
-          <tr>
-            <td class="center" style="border: 1px solid black;">1</td>
-            <td style="border: 1px solid black;"></td>
-            <td style="border: 1px solid black;"></td>
-            <td style="border: 1px solid black;"></td>
-          </tr>
-        `
+        excelData.push([1, '', '', ''])
       } else {
         birthdayEmployees.forEach((emp: any, idx: number) => {
-          htmlTable += `
-            <tr>
-              <td class="center" style="border: 1px solid black;">${idx + 1}</td>
-              <td style="border: 1px solid black;">${emp.position}</td>
-              <td style="border: 1px solid black;">${emp.full_name}</td>
-              <td style="border: 1px solid black;">День рождения</td>
-            </tr>
-          `
+          excelData.push([
+            idx + 1,
+            emp.position,
+            emp.full_name,
+            'День рождения'
+          ])
         })
       }
 
-      htmlTable += `
-            </table>
-          </body>
-        </html>
-      `
+      // Создаем рабочий лист
+      const ws = XLSX.utils.aoa_to_sheet(excelData)
+      
+      // Объединяем ячейки для заголовка
+      const merges = [
+        { s: { r: 0, c: 0 }, e: { r: 0, c: 3 } }, // Заголовок 1
+        { s: { r: 1, c: 0 }, e: { r: 1, c: 3 } }, // Заголовок 2
+        { s: { r: 2, c: 0 }, e: { r: 2, c: 3 } }, // Заголовок 3
+        { s: { r: 3, c: 0 }, e: { r: 3, c: 3 } }, // Заголовок 4
+        { s: { r: 4, c: 0 }, e: { r: 4, c: 3 } }, // Заголовок 5
+        { s: { r: 6, c: 0 }, e: { r: 6, c: 3 } }  // Дата
+      ]
+      
+      // Находим строку "Дни рождения" и объединяем ее
+      const birthdayRowIndex = excelData.findIndex(row => row[0] === 'Дни рождения')
+      if (birthdayRowIndex !== -1) {
+        merges.push({ s: { r: birthdayRowIndex, c: 0 }, e: { r: birthdayRowIndex, c: 3 } })
+      }
+      
+      ws['!merges'] = merges
+      
+      // Настраиваем ширину колонок
+      ws['!cols'] = [
+        { wch: 8 },   // п/п
+        { wch: 45 },  // Должность
+        { wch: 35 },  // ФИО
+        { wch: 30 }   // Примечание
+      ]
 
-      // Создаем Blob с HTML содержимым
-      const blob = new Blob([htmlTable], { 
-        type: 'application/vnd.ms-excel;charset=utf-8' 
-      })
-      
-      // Создаем ссылку для скачивания
-      const link = document.createElement('a')
-      link.href = URL.createObjectURL(blob)
-      link.download = `Свод_ТРК_${selectedDate}.xls`
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      
-      // Освобождаем память
-      URL.revokeObjectURL(link.href)
+      const wb = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(wb, ws, 'Свод ТРК')
+      XLSX.writeFile(wb, `Свод_ТРК_${selectedDate}.xlsx`)
     } catch (err) {
       console.error('Ошибка экспорта:', err)
       alert('Ошибка при экспорте в Excel')
     }
   }
-
-  // Функции для модального окна (не изменялись)
-  const filterEmployee = (emp: AllEmployee) => {
-    const matchesSearch = 
-      emp.full_name.toLowerCase().includes(modalSearchQuery.toLowerCase()) ||
-      emp.position.toLowerCase().includes(modalSearchQuery.toLowerCase())
-    const alreadyInSvod = svodEmployees.some((se: SvodEmployee) => se.id === emp.id)
-    return matchesSearch && !alreadyInSvod
-  }
-
 
   return (
     <div className="min-h-screen bg-gray-50 p-4">
@@ -680,59 +599,6 @@ export default function SvodReportPage() {
         )}
       </div>
 
-      {/* Модальное окно добавления сотрудника */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg w-full max-w-xl max-h-[90vh] overflow-hidden flex flex-col">
-            <div className="flex justify-between items-center p-4 border-b">
-              <h3 className="text-lg font-semibold">Добавить сотрудника в свод</h3>
-              <button
-                onClick={closeModal}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                <X className="h-6 w-6" />
-              </button>
-            </div>
-            
-            <div className="p-4 border-b">
-              <input
-                type="text"
-                value={modalSearchQuery}
-                onChange={(e) => setModalSearchQuery(e.target.value)}
-                placeholder="Поиск по ФИО или должности..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            
-            <div className="overflow-y-auto flex-grow">
-              {filteredAllEmployees.length === 0 ? (
-                <div className="text-center p-8 text-gray-500">
-                  {allEmployees.length === 0 ? 'Загрузка списка сотрудников...' : 'Сотрудники не найдены или уже в своде.'}
-                </div>
-              ) : (
-                <ul className="divide-y divide-gray-100">
-                  {filteredAllEmployees.map((emp) => (
-                    <li key={emp.id} className="flex items-center justify-between p-3 hover:bg-gray-50">
-                      <div>
-                        <div className="font-medium text-gray-900">{emp.full_name}</div>
-                        <div className="text-sm text-gray-500">{emp.position}</div>
-                      </div>
-                      <button
-                        onClick={() => addToSvod(emp)}
-                        disabled={actionLoading === emp.id}
-                        className="px-3 py-1 bg-green-500 text-white text-sm rounded hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {actionLoading === emp.id ? 'Добавление...' : 'Добавить'}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Модальное окно просмотра отчета */}
       {showReportModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -750,7 +616,7 @@ export default function SvodReportPage() {
             <div className="p-6 overflow-y-auto max-h-[calc(95vh-120px)]" style={{ fontFamily: 'Times New Roman, serif' }}>
               {/* Заголовок отчета */}
               <div className="text-center mb-8">
-                <div className="text-sm leading-relaxed" style={{ fontSize: '14pt' }}>
+                <div className="text-sm leading-relaxed">
                   <div className="font-bold">Сведения о местонахождении руководящего состава</div>
                   <div>РГП на ПХВ «Телерадиокомплекс</div>
                   <div>Президента Республики Казахстан»</div>
@@ -760,25 +626,25 @@ export default function SvodReportPage() {
               </div>
 
               {/* Дата */}
-              <div className="text-center mb-6 font-bold" style={{ fontSize: '14pt' }}>
+              <div className="text-center mb-6 font-bold">
                 {formatDateRussian(selectedDate)}
               </div>
 
               {/* Основная таблица */}
               <div className="mb-8">
-                <table className="w-full border-collapse" style={{ border: '2px solid black', fontSize: '14pt' }}>
+                <table className="w-full border-collapse" style={{ border: '1px solid black' }}>
                   <thead>
                     <tr>
-                      <th className="border border-black p-2 text-sm font-bold bg-gray-100" style={{ width: '60px', fontSize: '14pt' }}>
+                      <th className="border border-black p-2 text-sm font-bold" style={{ width: '60px' }}>
                         п/п
                       </th>
-                      <th className="border border-black p-2 text-sm font-bold bg-gray-100" style={{ width: '40%', fontSize: '14pt' }}>
+                      <th className="border border-black p-2 text-sm font-bold" style={{ width: '40%' }}>
                         Наименование должности
                       </th>
-                      <th className="border border-black p-2 text-sm font-bold bg-gray-100" style={{ width: '35%', fontSize: '14pt' }}>
+                      <th className="border border-black p-2 text-sm font-bold" style={{ width: '35%' }}>
                         Ф.И.О.
                       </th>
-                      <th className="border border-black p-2 text-sm font-bold bg-gray-100" style={{ fontSize: '14pt' }}>
+                      <th className="border border-black p-2 text-sm font-bold">
                         Примечание
                       </th>
                     </tr>
@@ -787,29 +653,29 @@ export default function SvodReportPage() {
                     {svodEmployees.length === 0 ? (
                       Array.from({ length: 10 }, (_, i) => (
                         <tr key={i}>
-                          <td className="border border-black p-2 text-center text-sm" style={{ fontSize: '14pt' }}>{i + 1}</td>
-                          <td className="border border-black p-2 text-sm" style={{ fontSize: '14pt' }}></td>
-                          <td className="border border-black p-2 text-sm" style={{ fontSize: '14pt' }}></td>
-                          <td className="border border-black p-2 text-sm" style={{ fontSize: '14pt' }}></td>
+                          <td className="border border-black p-2 text-center text-sm">{i + 1}</td>
+                          <td className="border border-black p-2 text-sm"></td>
+                          <td className="border border-black p-2 text-sm"></td>
+                          <td className="border border-black p-2 text-sm"></td>
                         </tr>
                       ))
                     ) : (
                       <>
                         {svodEmployees.map((emp, idx) => (
                           <tr key={emp.id}>
-                            <td className="border border-black p-2 text-center text-sm" style={{ fontSize: '14pt' }}>{idx + 1}</td>
-                            <td className="border border-black p-2 text-sm" style={{ fontSize: '14pt' }}>{emp.position}</td>
-                            <td className="border border-black p-2 text-sm" style={{ fontSize: '14pt' }}>{emp.full_name}</td>
-                            <td className="border border-black p-2 text-sm" style={{ fontSize: '14pt' }}>{emp.comment || ''}</td>
+                            <td className="border border-black p-2 text-center text-sm">{idx + 1}</td>
+                            <td className="border border-black p-2 text-sm">{emp.position}</td>
+                            <td className="border border-black p-2 text-sm">{emp.full_name}</td>
+                            <td className="border border-black p-2 text-sm">{emp.comment || ''}</td>
                           </tr>
                         ))}
                         {/* Добавляем пустые строки до 45 */}
                         {Array.from({ length: Math.max(0, 45 - svodEmployees.length) }, (_, i) => (
                           <tr key={`empty-${i}`}>
-                            <td className="border border-black p-2 text-center text-sm" style={{ fontSize: '14pt' }}>{svodEmployees.length + i + 1}</td>
-                            <td className="border border-black p-2 text-sm" style={{ fontSize: '14pt' }}></td>
-                            <td className="border border-black p-2 text-sm" style={{ fontSize: '14pt' }}></td>
-                            <td className="border border-black p-2 text-sm" style={{ fontSize: '14pt' }}></td>
+                            <td className="border border-black p-2 text-center text-sm">{svodEmployees.length + i + 1}</td>
+                            <td className="border border-black p-2 text-sm"></td>
+                            <td className="border border-black p-2 text-sm"></td>
+                            <td className="border border-black p-2 text-sm"></td>
                           </tr>
                         ))}
                       </>
@@ -820,13 +686,12 @@ export default function SvodReportPage() {
 
               {/* Секция "Дни рождения" */}
               <div>
-                <table className="w-full border-collapse" style={{ border: '2px solid black', fontSize: '14pt' }}>
+                <table className="w-full border-collapse" style={{ border: '1px solid black' }}>
                   <thead>
                     <tr>
                       <td 
                         className="border border-black p-2 text-center text-sm font-bold bg-gray-100" 
                         colSpan={4}
-                        style={{ fontSize: '14pt' }}
                       >
                         Дни рождения
                       </td>
@@ -834,44 +699,165 @@ export default function SvodReportPage() {
                   </thead>
                   <tbody>
                     <tr>
-                      <td className="border border-black p-2 text-center text-sm font-bold bg-gray-100" style={{ width: '60px', fontSize: '14pt' }}>
+                      <td className="border border-black p-2 text-center text-sm font-bold" style={{ width: '60px' }}>
                         п/п
                       </td>
-                      <td className="border border-black p-2 text-sm font-bold bg-gray-100" style={{ width: '40%', fontSize: '14pt' }}>
+                      <td className="border border-black p-2 text-sm font-bold" style={{ width: '40%' }}>
                         Наименование должности
                       </td>
-                      <td className="border border-black p-2 text-sm font-bold bg-gray-100" style={{ width: '35%', fontSize: '14pt' }}>
+                      <td className="border border-black p-2 text-sm font-bold" style={{ width: '35%' }}>
                         Ф.И.О.
                       </td>
-                      <td className="border border-black p-2 text-sm font-bold bg-gray-100" style={{ fontSize: '14pt' }}>
+                      <td className="border border-black p-2 text-sm font-bold">
                         Примечание
                       </td>
                     </tr>
                     {birthdayEmployees.length === 0 ? (
                       <tr>
-                        <td className="border border-black p-2 text-center text-sm" style={{ fontSize: '14pt' }}>1</td>
-                        <td className="border border-black p-2 text-sm" style={{ fontSize: '14pt' }}></td>
-                        <td className="border border-black p-2 text-sm" style={{ fontSize: '14pt' }}></td>
-                        <td className="border border-black p-2 text-sm" style={{ fontSize: '14pt' }}></td>
+                        <td className="border border-black p-2 text-center text-sm">1</td>
+                        <td className="border border-black p-2 text-sm"></td>
+                        <td className="border border-black p-2 text-sm"></td>
+                        <td className="border border-black p-2 text-sm"></td>
                       </tr>
                     ) : (
                       birthdayEmployees.map((emp, idx) => (
                         <tr key={emp.id}>
-                          <td className="border border-black p-2 text-center text-sm" style={{ fontSize: '14pt' }}>{idx + 1}</td>
-                          <td className="border border-black p-2 text-sm" style={{ fontSize: '14pt' }}>{emp.position}</td>
-                          <td className="border border-black p-2 text-sm" style={{ fontSize: '14pt' }}>{emp.full_name}</td>
-                          <td className="border border-black p-2 text-sm" style={{ fontSize: '14pt' }}>День рождения</td>
+                          <td className="border border-black p-2 text-center text-sm">{idx + 1}</td>
+                          <td className="border border-black p-2 text-sm">{emp.position}</td>
+                          <td className="border border-black p-2 text-sm">{emp.full_name}</td>
+                          <td className="border border-black p-2 text-sm">День рождения</td>
                         </tr>
                       ))
                     )}
                   </tbody>
                 </table>
               </div>
+
+              {/* Управление из модального окна */}
+              {svodEmployees.length > 0 && (
+                <div className="mt-8 border-t pt-6">
+                  <h4 className="text-lg font-semibold mb-4">Управление отчетом:</h4>
+                  <div className="space-y-2">
+                    {svodEmployees.map((emp, idx) => (
+                      <div
+                        key={emp.id}
+                        className="flex items-center justify-between p-2 bg-gray-50 border rounded text-sm"
+                      >
+                        <div className="flex items-center space-x-2">
+                          <span className="font-medium text-gray-600">{idx + 1}.</span>
+                          <span className="text-gray-800">{emp.full_name}</span>
+                          <span className="text-gray-500 text-xs">({emp.position})</span>
+                        </div>
+                        <button
+                          onClick={() => removeFromSvod(emp.id)}
+                          disabled={actionLoading === emp.id}
+                          className="px-2 py-1 bg-red-500 text-white text-xs rounded hover:bg-red-600 disabled:opacity-50 flex items-center"
+                        >
+                          <Trash2 className="h-3 w-3 mr-1" />
+                          {actionLoading === emp.id ? 'Удаление...' : 'Удалить'}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            <div className="border-t p-4 flex justify-between">
+              <button
+                onClick={exportToExcel}
+                className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center"
+              >
+                <FileText className="h-4 w-4 mr-2" />
+                Экспорт Excel
+              </button>
+              <button
+                onClick={() => setShowReportModal(false)}
+                className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400"
+              >
+                Закрыть
+              </button>
             </div>
           </div>
         </div>
       )}
 
+      {/* Модальное окно для добавления сотрудников */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold">Добавить сотрудников в отчет</h3>
+              <button
+                onClick={closeModal}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+            
+            <div className="mb-4">
+              <input
+                type="text"
+                value={modalSearchQuery}
+                onChange={(e) => setModalSearchQuery(e.target.value)}
+                placeholder="Поиск сотрудников..."
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            
+            <div className="border rounded-lg max-h-96 overflow-y-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50 sticky top-0">
+                  <tr>
+                    <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">Выбрать</th>
+                    <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">ФИО</th>
+                    <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">Должность</th>
+                    <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">Отдел</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredAllEmployees.map((emp) => (
+                    <tr key={emp.id} className="border-b hover:bg-gray-50">
+                      <td className="px-4 py-2">
+                        <button
+                          onClick={() => addToSvod(emp)}
+                          disabled={actionLoading === emp.id}
+                          className={`px-3 py-1 text-sm rounded ${
+                            actionLoading === emp.id
+                              ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                              : 'bg-blue-600 text-white hover:bg-blue-700'
+                          }`}
+                        >
+                          {actionLoading === emp.id ? 'Добавление...' : 'Добавить'}
+                        </button>
+                      </td>
+                      <td className="px-4 py-2 text-sm">{emp.full_name}</td>
+                      <td className="px-4 py-2 text-sm">{emp.position || '-'}</td>
+                      <td className="px-4 py-2 text-sm">{emp.department || '-'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              
+              {filteredAllEmployees.length === 0 && (
+                <div className="p-4 text-center text-gray-500">
+                  Сотрудники не найдены
+                </div>
+              )}
+            </div>
+            
+            <div className="mt-4 flex justify-end">
+              <button
+                onClick={closeModal}
+                className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400"
+              >
+                Закрыть
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
