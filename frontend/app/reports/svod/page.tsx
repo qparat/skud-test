@@ -1,8 +1,11 @@
 'use client'
 import React, { useState, useEffect } from 'react'
 import { apiRequest } from '@/lib/api'
+// *** 1. ИМПОРТ EXCELJS ***
+import * as ExcelJS from 'exceljs' 
 import { Calendar, ChevronLeft, ChevronRight, GripVertical, Plus, FileText, Trash2, X } from 'lucide-react'
 
+// --- Типы данных (интерфейсы) ---
 interface SvodEmployee {
   id: number
   full_name: string
@@ -27,6 +30,8 @@ interface BirthdayEmployee {
   birth_date: string
 }
 
+// --- Вспомогательные функции ---
+
 // Функция для форматирования даты
 const formatDate = (date: Date) => {
   const year = date.getFullYear()
@@ -45,6 +50,7 @@ const formatDateRussian = (dateStr: string) => {
   return `${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()} года`
 }
 
+// --- Основной компонент ---
 export default function SvodReportPage() {
   const [svodEmployees, setSvodEmployees] = useState<SvodEmployee[]>([])
   const [allEmployees, setAllEmployees] = useState<AllEmployee[]>([])
@@ -75,8 +81,7 @@ export default function SvodReportPage() {
     loadBirthdays()
   }, [selectedDate])
 
-  // *** // *** ИСПРАВЛЕНИЕ ЗДЕСЬ (добавлен .map для соответствия типу SvodEmployee)
-  // ***
+  // *** 2. ИСПРАВЛЕНИЕ ОШИБКИ ТИПОВ ПРИ ЗАГРУЗКЕ ***
   const loadSvodReport = async () => {
     setLoading(true)
     setError(null)
@@ -85,13 +90,13 @@ export default function SvodReportPage() {
       // Показываем только тех, кто в своде
       const inSvod = data.employees
         ?.filter((emp: any) => emp.in_svod)
-        .map((emp: any) => ({ // <-- ДОБАВЛЕНО
+        .map((emp: any) => ({ // <-- Добавлено для соответствия типу
           ...emp,
           department: emp.department || 'Отдел не указан', 
           exception_type: emp.exception_type || null
         })) || []
         
-      setSvodEmployees(inSvod) // Теперь типы совпадают
+      setSvodEmployees(inSvod)
     } catch (err) {
       setError('Ошибка загрузки данных')
       console.error(err)
@@ -147,6 +152,7 @@ export default function SvodReportPage() {
       setShowModal(false)
     } catch (err) {
       console.error('Ошибка добавления в свод:', err)
+      // *** 4. ИСПРАВЛЕНИЕ: alert() закомментирован ***
       // alert('Ошибка добавления в свод')
     } finally {
       setActionLoading(null)
@@ -163,6 +169,7 @@ export default function SvodReportPage() {
       await loadSvodReport()
     } catch (err) {
       console.error('Ошибка удаления из свода:', err)
+      // *** 4. ИСПРАВЛЕНИЕ: alert() закомментирован ***
       // alert('Ошибка удаления из свода')
     } finally {
       setActionLoading(null)
@@ -282,6 +289,7 @@ export default function SvodReportPage() {
       console.error('Ошибка сохранения порядка:', err)
       // При ошибке перезагружаем данные с сервера
       loadSvodReport()
+      // *** 4. ИСПРАВЛЕНИЕ: alert() закомментирован ***
       // alert('Ошибка сохранения порядка сотрудников. Данные восстановлены.')
     }
     
@@ -312,174 +320,187 @@ export default function SvodReportPage() {
     return matchesSearch && !alreadyInSvod
   })
 
-  // Экспорт в Excel
-  const exportToExcel = () => {
+  // *** 3. ПОЛНОСТЬЮ ЗАМЕНЕННАЯ ФУНКЦИЯ ЭКСПОРТА НА XLSX ***
+  const exportToExcel = async () => {
     try {
-      // Создаем HTML таблицу со стилями
-      let htmlTable = `
-        <html>
-          <head>
-            <meta charset="utf-8">
-            <style>
-              body { 
-                font-family: 'Times New Roman', serif; 
-                font-size: 14pt; 
-                margin: 0; 
-                padding: 20px; 
-              }
-              table { 
-                font-family: 'Times New Roman', serif; 
-                font-size: 14pt; 
-                border-collapse: collapse; 
-                width: 100%; 
-                border: 2px solid black;
-              }
-              th, td { 
-                border: 1px solid black; 
-                padding: 8px; 
-                text-align: left; 
-                vertical-align: middle; 
-                font-family: 'Times New Roman', serif; 
-                font-size: 14pt;
-              }
-              .header { 
-                font-weight: bold; 
-                text-align: center; 
-                font-size: 14pt; 
-                font-family: 'Times New Roman', serif;
-              }
-              .center { 
-                text-align: center; 
-                font-family: 'Times New Roman', serif; 
-                font-size: 14pt;
-              }
-              .bold { 
-                font-weight: bold; 
-                font-family: 'Times New Roman', serif; 
-                font-size: 14pt;
-              }
-              .table-header {
-                background-color: #f0f0f0;
-                font-weight: bold;
-                text-align: center;
-                font-family: 'Times New Roman', serif; 
-                font-size: 14pt;
-              }
-            </style>
-          </head>
-          <body>
-            <table>
-      `
+      const workbook = new ExcelJS.Workbook()
+      const worksheet = workbook.addWorksheet('Свод ТРК')
 
+      // Исправление: zoomScale применяется к листу, а не к книге
+      worksheet.views = [{ zoomScale: 100 }]
+
+      // --- 1. Определение стилей (Times New Roman, 14pt) ---
+      const baseFont = {
+        name: 'Times New Roman',
+        size: 14,
+        family: 2, 
+      }
+
+      const cellBorder = {
+        top: { style: 'thin' as const, color: { argb: '000000' } },
+        left: { style: 'thin' as const, color: { argb: '000000' } },
+        bottom: { style: 'thin' as const, color: { argb: '000000' } },
+        right: { style: 'thin' as const, color: { argb: '000000' } },
+      }
+
+      const headerCellStyle = {
+        font: { ...baseFont, bold: true },
+        alignment: { vertical: 'middle' as const, horizontal: 'center' as const, wrapText: true },
+        border: cellBorder,
+      }
+
+      const contentCellStyle = {
+        font: baseFont,
+        alignment: { vertical: 'middle' as const, horizontal: 'left' as const, wrapText: true },
+        border: cellBorder,
+      }
+
+      const centeredCellStyle = {
+        font: baseFont,
+        alignment: { vertical: 'middle' as const, horizontal: 'center' as const, wrapText: true },
+        border: cellBorder,
+      }
+
+      const tableHeaderStyle = {
+        font: { ...baseFont, bold: true },
+        alignment: { vertical: 'middle' as const, horizontal: 'center' as const, wrapText: true },
+        border: cellBorder,
+        fill: { type: 'pattern' as const, pattern: 'solid' as const, fgColor: { argb: 'FFE0E0E0' } },
+      }
+      
+      // --- 2. Установка ширины колонок ---
+      worksheet.columns = [
+        { width: 8 },  // п/п
+        { width: 45 }, // Должность
+        { width: 35 }, // ФИО
+        { width: 30 }, // Примечание
+      ]
+      
+      // --- 3. Заполнение данных и применение стилей ---
       // Заголовок организации
-      htmlTable += `
-        <tr><td colspan="4" class="header">Сведения о местонахождении руководящего состава</td></tr>
-        <tr><td colspan="4" class="center">РГП на ПХВ «Телерадиокомплекс</td></tr>
-        <tr><td colspan="4" class="center">Президента Республики Казахстан»</td></tr>
-        <tr><td colspan="4" class="center">Управление делами Президента</td></tr>
-        <tr><td colspan="4" class="center">Республики Казахстан</td></tr>
-        <tr><td colspan="4">&nbsp;</td></tr>
-        <tr><td colspan="4" class="header">${formatDateRussian(selectedDate)}</td></tr>
-        <tr><td colspan="4">&nbsp;</td></tr>
-      `
+      const titleRows = [
+        ['Сведения о местонахождении руководящего состава'],
+        ['РГП на ПХВ «Телерадиокомплекс'],
+        ['Президента Республики Казахстан»'],
+        ['Управление делами Президента'],
+        ['Республики Казахстан'],
+      ]
+      
+      titleRows.forEach(rowArr => {
+        const row = worksheet.addRow(rowArr)
+        row.height = 20
+        worksheet.mergeCells(row.number, 1, row.number, 4)
+        row.getCell(1).style = headerCellStyle
+      })
 
+      // Пустая строка
+      worksheet.addRow(['']).height = 5
+      
+      // Дата отчета
+      const dateRow = worksheet.addRow([formatDateRussian(selectedDate)])
+      dateRow.height = 20
+      worksheet.mergeCells(dateRow.number, 1, dateRow.number, 4)
+      dateRow.getCell(1).style = headerCellStyle
+      
+      // Пустая строка
+      worksheet.addRow(['']).height = 5
+      
       // Заголовки основной таблицы
-      htmlTable += `
-        <tr>
-          <th class="table-header">п/п</th>
-          <th class="table-header">Наименование должности</th>
-          <th class="table-header">Ф.И.О.</th>
-          <th class="table-header">Примечание</th>
-        </tr>
-      `
-
+      const headerRow = worksheet.addRow(['п/п', 'Наименование должности', 'Ф.И.О.', 'Примечание'])
+      headerRow.height = 20
+      headerRow.eachCell(cell => {
+        cell.style = tableHeaderStyle
+      })
+      
       // Данные сотрудников (минимум 45 строк)
       const maxRows = Math.max(45, svodEmployees.length)
       for (let i = 0; i < maxRows; i++) {
-        if (i < svodEmployees.length) {
-          const emp = svodEmployees[i]
-          htmlTable += `
-            <tr>
-              <td class="center" style="border: 1px solid black;">${i + 1}</td>
-              <td style="border: 1px solid black;">${emp.position}</td>
-              <td style="border: 1px solid black;">${emp.full_name}</td>
-              <td style="border: 1px solid black;">${emp.comment || ''}</td>
-            </tr>
-          `
-        } else {
-          htmlTable += `
-            <tr>
-              <td class="center" style="border: 1px solid black;">${i + 1}</td>
-              <td style="border: 1px solid black;"></td>
-              <td style="border: 1px solid black;"></td>
-              <td style="border: 1px solid black;"></td>
-            </tr>
-          `
-        }
-      }
+        const isActualEmployee = i < svodEmployees.length
+        const emp = isActualEmployee ? svodEmployees[i] : null
 
-      // Секция "Дни рождения"
-      htmlTable += `
-        <tr><td colspan="4" style="border: 1px solid black;">&nbsp;</td></tr>
-        <tr><td colspan="4" class="header">Дни рождения</td></tr>
-        <tr>
-          <th class="table-header">п/п</th>
-          <th class="table-header">Наименование должности</th>
-          <th class="table-header">Ф.И.О.</th>
-          <th class="table-header">Примечание</th>
-        </tr>
-      `
+        // Исправление: Проверка 'emp' на null перед доступом к свойствам
+        const rowData = [
+          i + 1,
+          emp ? emp.position : '',
+          emp ? emp.full_name : '',
+          emp ? (emp.comment || '') : ''
+        ]
+        
+        const dataRow = worksheet.addRow(rowData)
+        dataRow.height = 20
 
-      // Данные дней рождения
-      if (birthdayEmployees.length === 0) {
-        htmlTable += `
-          <tr>
-            <td class="center" style="border: 1px solid black;">1</td>
-            <td style="border: 1px solid black;"></td>
-            <td style="border: 1px solid black;"></td>
-            <td style="border: 1px solid black;"></td>
-          </tr>
-        `
-      } else {
-        birthdayEmployees.forEach((emp: any, idx: number) => {
-          htmlTable += `
-            <tr>
-              <td class="center" style="border: 1px solid black;">${idx + 1}</td>
-              <td style="border: 1px solid black;">${emp.position}</td>
-              <td style="border: 1px solid black;">${emp.full_name}</td>
-              <td style="border: 1px solid black;">День рождения</td>
-            </tr>
-          `
+        // Применение стилей к ячейкам
+        dataRow.eachCell((cell, colNumber) => {
+          if (colNumber === 1) {
+            cell.style = centeredCellStyle
+          } else {
+            cell.style = contentCellStyle
+          }
         })
       }
+      
+      // Пустая строка
+      worksheet.addRow(['']).height = 5
+      
+      // Секция "Дни рождения"
+      const birthdayTitleRow = worksheet.addRow(['Дни рождения'])
+      birthdayTitleRow.height = 20
+      worksheet.mergeCells(birthdayTitleRow.number, 1, birthdayTitleRow.number, 4)
+      birthdayTitleRow.getCell(1).style = headerCellStyle
+      
+      const birthdayHeaderRow = worksheet.addRow(['п/п', 'Наименование должности', 'Ф.И.О.', 'Примечание'])
+      birthdayHeaderRow.height = 20
+      birthdayHeaderRow.eachCell(cell => {
+        cell.style = tableHeaderStyle
+      })
+      
+      // Данные дней рождения
+      const birthdayData = birthdayEmployees.length === 0 
+        ? [[1, '', '', '']] 
+        : birthdayEmployees.map((emp, idx) => ([
+            idx + 1,
+            emp.position,
+            emp.full_name,
+            'День рождения'
+          ]))
+        
+      birthdayData.forEach(rowArr => {
+        const dataRow = worksheet.addRow(rowArr)
+        dataRow.height = 20
+        dataRow.eachCell((cell, colNumber) => {
+          if (colNumber === 1) {
+            cell.style = centeredCellStyle
+          } else {
+            cell.style = contentCellStyle
+          }
+        })
+      })
 
-      htmlTable += `
-            </table>
-          </body>
-        </html>
-      `
-
-      // Создаем Blob с HTML содержимым
-      const blob = new Blob([htmlTable], { 
-        type: 'application/vnd.ms-excel;charset=utf-8' 
+      // --- 4. Сохранение файла (формат XLSX) ---
+      const buffer = await workbook.xlsx.writeBuffer()
+      const blob = new Blob([buffer], { 
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
       })
       
       // Создаем ссылку для скачивания
       const link = document.createElement('a')
       link.href = URL.createObjectURL(blob)
-      link.download = `Свод_ТРК_${selectedDate}.xls`
+      link.download = `Свод_ТРК_${selectedDate}.xlsx` // <--- ИМЯ ФАЙЛА .xlsx
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
       
       // Освобождаем память
       URL.revokeObjectURL(link.href)
+
     } catch (err) {
       console.error('Ошибка экспорта:', err)
+      // *** 4. ИСПРАВЛЕНИЕ: alert() закомментирован ***
       // alert('Ошибка при экспорте в Excel')
     }
   }
 
+  // --- (ОСТАЛЬНОЙ КОД JSX ОСТАЕТСЯ БЕЗ ИЗМЕНЕНИЙ) ---
   return (
     <div className="min-h-screen bg-gray-50 p-4">
       {/* Панель управления */}
