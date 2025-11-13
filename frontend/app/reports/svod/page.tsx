@@ -50,6 +50,16 @@ const formatDateRussian = (dateStr: string) => {
   return `${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()} года`
 }
 
+// Функция для форматирования даты рождения (только день и месяц)
+const formatBirthDate = (dateStr: string) => {
+  const date = new Date(dateStr)
+  const months = [
+    'января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
+    'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'
+  ]
+  return `${date.getDate()} ${months[date.getMonth()]}`
+}
+
 // --- Основной компонент ---
 export default function SvodReportPage() {
   const [svodEmployees, setSvodEmployees] = useState<SvodEmployee[]>([])
@@ -459,7 +469,7 @@ export default function SvodReportPage() {
             idx + 1,
             emp.position,
             emp.full_name,
-            'День рождения'
+            emp.birth_date ? formatBirthDate(emp.birth_date) : ''
           ]))
         
       birthdayData.forEach(rowArr => {
@@ -814,7 +824,7 @@ export default function SvodReportPage() {
                             <td className="border border-black p-2 text-center text-sm">{idx + 1}</td>
                             <td className="border border-black p-2 text-sm">{emp.position}</td>
                             <td className="border border-black p-2 text-sm">{emp.full_name}</td>
-                            <td className="border border-black p-2 text-sm">День рождения</td>
+                            <td className="border border-black p-2 text-sm">{emp.birth_date ? formatBirthDate(emp.birth_date) : ''}</td>
                           </tr>
                         ))
                       )
