@@ -1,7 +1,7 @@
 'use client'
 import React, { useState, useEffect } from 'react'
 // Импортируем ExcelJS для работы с XLSX
-import ExcelJS from 'exceljs' 
+import * as ExcelJS from 'exceljs' 
 import { Calendar, ChevronLeft, ChevronRight, GripVertical, Plus, FileText, Trash2, X } from 'lucide-react'
 
 // --- Типы данных (интерфейсы) ---
