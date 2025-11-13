@@ -458,7 +458,7 @@ export default function SvodReportPage() {
       // Создаем ссылку для скачивания
       const link = document.createElement('a')
       link.href = URL.createObjectURL(blob)
-      link.download = `Свод_ТРК_${selectedDate}.xls`
+      link.download = `Свод_ТРК_${selectedDate}.xlsx`
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
