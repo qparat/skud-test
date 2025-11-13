@@ -450,9 +450,6 @@ export default function SvodReportPage() {
         })
       }
       
-      // Пустая строка
-      worksheet.addRow(['']).height = 5
-      
       // Секция "Дни рождения"
       const birthdayTitleRow = worksheet.addRow(['Дни рождения'])
       birthdayTitleRow.height = 20
