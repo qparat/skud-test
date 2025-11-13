@@ -449,12 +449,6 @@ export default function SvodReportPage() {
       worksheet.mergeCells(birthdayTitleRow.number, 1, birthdayTitleRow.number, 4)
       birthdayTitleRow.getCell(1).style = headerCellStyle
       
-      const birthdayHeaderRow = worksheet.addRow(['п/п', 'Наименование должности', 'Ф.И.О.', 'Примечание'])
-      birthdayHeaderRow.height = 20
-      birthdayHeaderRow.eachCell(cell => {
-        cell.style = tableHeaderStyle
-      })
-      
       // Данные дней рождения - только те, кто есть в своде
       const svodEmployeeIds = svodEmployees.map(emp => emp.id)
       const filteredBirthdays = birthdayEmployees.filter(emp => svodEmployeeIds.includes(emp.id))
@@ -803,20 +797,6 @@ export default function SvodReportPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    <tr>
-                      <td className="border border-black p-2 text-center text-sm font-bold" style={{ width: '60px' }}>
-                        п/п
-                      </td>
-                      <td className="border border-black p-2 text-sm font-bold" style={{ width: '40%' }}>
-                        Наименование должности
-                      </td>
-                      <td className="border border-black p-2 text-sm font-bold" style={{ width: '35%' }}>
-                        Ф.И.О.
-                      </td>
-                      <td className="border border-black p-2 text-sm font-bold">
-                        Примечание
-                      </td>
-                    </tr>
                     {(() => {
                       const svodEmployeeIds = svodEmployees.map((emp: SvodEmployee) => emp.id)
                       const filteredBirthdays = birthdayEmployees.filter((emp: BirthdayEmployee) => svodEmployeeIds.includes(emp.id))
