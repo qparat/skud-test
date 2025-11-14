@@ -639,8 +639,13 @@ export function EmployeeSchedule() {
       }
       
       // Загружаем все страницы
-      const perPage = 1000 // Используем разумный размер страницы
+      // ВАЖНО: Сервер ограничивает per_page до 100 для employee-schedule-range (см. clean_api.py:1092)
+      // и до 1000 для employee-schedule (см. clean_api.py)
+      const maxPerPage = startDate && endDate ? 100 : 1000
+      const perPage = Math.min(maxPerPage, 100) // Используем 100 как безопасное значение для обоих endpoints
       const totalPages = Math.ceil(totalCount / perPage)
+      
+      console.log(`[EXPORT] Using per_page: ${perPage} (max allowed: ${maxPerPage})`)
       
       console.log(`[EXPORT] Starting export: ${totalPages} pages, ${totalCount} total records`)
       console.log(`[EXPORT] Base endpoint: ${baseEndpoint}`)
