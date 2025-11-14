@@ -496,6 +496,14 @@ def create_svod_report_employees_table():
             # Колонка уже существует
             pass
         
+        # Делаем report_date опциональным (может быть NULL, так как свод общий для всех дат)
+        try:
+            cursor.execute("ALTER TABLE svod_report_employees ALTER COLUMN report_date DROP NOT NULL")
+            cursor.execute("ALTER TABLE svod_report_employees ALTER COLUMN report_date DROP DEFAULT")
+        except Exception:
+            # Уже изменено
+            pass
+        
         # Делаем employee_id опциональным (может быть NULL для записей с только должностью)
         try:
             cursor.execute("ALTER TABLE svod_report_employees ALTER COLUMN employee_id DROP NOT NULL")
