@@ -82,6 +82,7 @@ export default function SvodReportPage() {
   })
   const [searchQuery, setSearchQuery] = useState('')
   const [modalSearchQuery, setModalSearchQuery] = useState('')
+  const [positionSearchQuery, setPositionSearchQuery] = useState('')
   const [showModal, setShowModal] = useState(false)
   const [showReportModal, setShowReportModal] = useState(false)
   const [showPositionModal, setShowPositionModal] = useState(false)
@@ -427,6 +428,11 @@ export default function SvodReportPage() {
     return matchesSearch && !alreadyInSvod
   })
 
+  // Фильтрация должностей
+  const filteredPositions = allPositions.filter((pos: Position) =>
+    pos.name.toLowerCase().includes(positionSearchQuery.toLowerCase())
+  )
+
   // *** 3. ПОЛНОСТЬЮ ЗАМЕНЕННАЯ ФУНКЦИЯ ЭКСПОРТА НА XLSX ***
   const exportToExcel = async () => {
     try {
@@ -717,6 +723,7 @@ export default function SvodReportPage() {
             <button
               onClick={() => {
                 setShowSelectPositionModal(true)
+                setPositionSearchQuery('')
                 loadAllPositions()
               }}
               className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 flex items-center"
@@ -1100,11 +1107,24 @@ export default function SvodReportPage() {
             <div className="flex justify-between items-center p-4 border-b">
               <h3 className="text-lg font-semibold">Выбрать должность из справочника</h3>
               <button
-                onClick={() => setShowSelectPositionModal(false)}
+                onClick={() => {
+                  setShowSelectPositionModal(false)
+                  setPositionSearchQuery('')
+                }}
                 className="text-gray-500 hover:text-gray-700"
               >
                 <X className="h-6 w-6" />
               </button>
+            </div>
+            
+            <div className="p-4 border-b">
+              <input
+                type="text"
+                value={positionSearchQuery}
+                onChange={(e) => setPositionSearchQuery(e.target.value)}
+                placeholder="Поиск должности..."
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+              />
             </div>
             
             <div className="overflow-y-auto flex-grow">
@@ -1112,9 +1132,13 @@ export default function SvodReportPage() {
                 <div className="text-center p-8 text-gray-500">
                   Загрузка списка должностей...
                 </div>
+              ) : filteredPositions.length === 0 ? (
+                <div className="text-center p-8 text-gray-500">
+                  По запросу "{positionSearchQuery}" ничего не найдено
+                </div>
               ) : (
                 <ul className="divide-y divide-gray-100">
-                  {allPositions.map((pos) => (
+                  {filteredPositions.map((pos) => (
                     <li key={pos.id} className="flex items-center justify-between p-3 hover:bg-gray-50">
                       <div className="font-medium text-gray-900">{pos.name}</div>
                       <button
