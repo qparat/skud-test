@@ -783,22 +783,38 @@ export default function SvodReportPage() {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredSvodEmployees.map((emp, idx) => (
-                  <tr 
-                    key={emp.svod_id || emp.id} 
-                    draggable
-                    onDragStart={(e) => handleDragStart(e, idx)}
-                    onDragOver={(e) => handleDragOver(e, idx)}
-                    onDragLeave={handleDragLeave}
-                    onDrop={(e) => handleDrop(e, idx)}
-                    onDragEnd={handleDragEnd}
-                    className={`hover:bg-gray-50 cursor-move transition-colors duration-200
-                      ${emp.exception_type && emp.exception_type !== 'at_work' ? 'bg-blue-50' : ''}
-                      ${draggedIndex === idx ? 'opacity-50' : ''}
-                      ${dragOverIndex === idx ? 'border-t-2 border-blue-500' : ''}`}
-                  >
-                    <td className="px-2 py-3 text-center">
-                      <GripVertical className="h-4 w-4 text-gray-400 mx-auto" />
-                    </td>
+                  <React.Fragment key={emp.svod_id || emp.id}>
+                    {/* Индикатор места вставки сверху */}
+                    {dragOverIndex === idx && draggedIndex !== null && draggedIndex !== idx && draggedIndex > idx && (
+                      <tr className="h-1 relative">
+                        <td colSpan={6} className="p-0">
+                          <div className="absolute inset-x-0 h-1 bg-blue-500 animate-pulse shadow-lg" 
+                               style={{ 
+                                 boxShadow: '0 0 10px rgba(59, 130, 246, 0.5)',
+                                 animation: 'pulse 1s ease-in-out infinite'
+                               }}
+                          />
+                        </td>
+                      </tr>
+                    )}
+                    
+                    <tr 
+                      draggable
+                      onDragStart={(e) => handleDragStart(e, idx)}
+                      onDragOver={(e) => handleDragOver(e, idx)}
+                      onDragLeave={handleDragLeave}
+                      onDrop={(e) => handleDrop(e, idx)}
+                      onDragEnd={handleDragEnd}
+                      className={`hover:bg-gray-50 cursor-move transition-all duration-200
+                        ${emp.exception_type && emp.exception_type !== 'at_work' ? 'bg-blue-50' : ''}
+                        ${draggedIndex === idx ? 'opacity-30 scale-[0.98] bg-gray-100' : ''}
+                        ${dragOverIndex === idx && draggedIndex !== idx ? 'bg-blue-50 shadow-md' : ''}`}
+                    >
+                      <td className="px-2 py-3 text-center">
+                        <GripVertical className={`h-4 w-4 mx-auto transition-colors duration-200 ${
+                          draggedIndex === idx ? 'text-blue-500' : 'text-gray-400'
+                        }`} />
+                      </td>
                     <td className="px-4 py-3 text-sm text-gray-900">{idx + 1}</td>
                     <td className="px-4 py-3 text-sm text-gray-900">{emp.position}</td>
                     <td className="px-4 py-3 text-sm font-medium">
@@ -854,6 +870,21 @@ export default function SvodReportPage() {
                       )}
                     </td>
                   </tr>
+                  
+                  {/* Индикатор места вставки снизу */}
+                  {dragOverIndex === idx && draggedIndex !== null && draggedIndex !== idx && draggedIndex < idx && (
+                    <tr className="h-1 relative">
+                      <td colSpan={6} className="p-0">
+                        <div className="absolute inset-x-0 h-1 bg-blue-500 animate-pulse shadow-lg" 
+                             style={{ 
+                               boxShadow: '0 0 10px rgba(59, 130, 246, 0.5)',
+                               animation: 'pulse 1s ease-in-out infinite'
+                             }}
+                        />
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
                 ))}
               </tbody>
             </table>
