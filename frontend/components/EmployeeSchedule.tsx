@@ -642,45 +642,63 @@ export function EmployeeSchedule() {
       const perPage = 1000 // Используем разумный размер страницы
       const totalPages = Math.ceil(totalCount / perPage)
       
-      console.log(`Fetching all data for export: ${totalPages} pages, ${totalCount} total records`)
+      console.log(`[EXPORT] Starting export: ${totalPages} pages, ${totalCount} total records`)
+      console.log(`[EXPORT] Base endpoint: ${baseEndpoint}`)
+      console.log(`[EXPORT] Search param: ${searchParam}`)
+      console.log(`[EXPORT] Department param: ${departmentParam}`)
       
       for (let page = 1; page <= totalPages; page++) {
-        const endpoint = `${baseEndpoint}&page=${page}&per_page=${perPage}${searchParam}${departmentParam}`
-        console.log(`Fetching page ${page}/${totalPages}:`, endpoint)
-        
-        const pageData: ScheduleData = await apiRequest(endpoint)
-        
-        // Сохраняем первую страницу целиком для метаданных
-        if (page === 1) {
-          allData = { ...pageData }
-          allEmployees = [...pageData.employees]
-        } else {
-          // Добавляем сотрудников с последующих страниц
-          allEmployees = [...allEmployees, ...pageData.employees]
+        try {
+          const endpoint = `${baseEndpoint}&page=${page}&per_page=${perPage}${searchParam}${departmentParam}`
+          console.log(`[EXPORT] Fetching page ${page}/${totalPages}:`, endpoint)
+          
+          const pageData: ScheduleData = await apiRequest(endpoint)
+          console.log(`[EXPORT] Page ${page} received: ${pageData.employees.length} employees`)
+          
+          // Сохраняем первую страницу целиком для метаданных
+          if (page === 1) {
+            allData = { ...pageData }
+            allEmployees = [...pageData.employees]
+          } else {
+            // Добавляем сотрудников с последующих страниц
+            allEmployees = [...allEmployees, ...pageData.employees]
+          }
+        } catch (pageError) {
+          console.error(`[EXPORT] Error fetching page ${page}:`, pageError)
+          throw new Error(`Ошибка загрузки страницы ${page}: ${pageError instanceof Error ? pageError.message : String(pageError)}`)
         }
       }
       
       // Обновляем allData со всеми сотрудниками
       if (allData) {
         allData.employees = allEmployees
+        console.log(`[EXPORT] Total employees collected: ${allEmployees.length}`)
       }
       
     } catch (err) {
+      console.error('[EXPORT] Fatal error:', err)
       setLoading(false)
-      alert('Ошибка загрузки данных для экспорта: ' + (err instanceof Error ? err.message : String(err)))
+      const errorMessage = err instanceof Error ? err.message : String(err)
+      alert(`Ошибка загрузки данных для экспорта:\n\n${errorMessage}\n\nПроверьте консоль браузера (F12) для подробностей.`)
       return
     }
 
     if (!allData || !allData.employees.length) {
+      console.warn('[EXPORT] No data to export')
       setLoading(false)
       alert('Нет данных для экспорта')
       return
     }
 
+    console.log('[EXPORT] Starting Excel generation...')
+    
     // Используем все загруженные данные вместо getSortedEmployees()
     const sortedData = allData.employees
     let excelData: any[] = []
     const isRangeData = sortedData.length > 0 && 'days' in sortedData[0]
+    
+    console.log(`[EXPORT] Data type: ${isRangeData ? 'Range' : 'Single day'}`)
+    console.log(`[EXPORT] Processing ${sortedData.length} records`)
 
     if (isRangeData) {
       // Для диапазона дат - преобразуем EmployeeWithDays в плоский список
@@ -795,11 +813,23 @@ export function EmployeeSchedule() {
       fileName = `Расписание_сотрудников_${start}_${end}.xlsx`
     }
     
+    console.log(`[EXPORT] Excel file ready: ${fileName}`)
+    console.log(`[EXPORT] Total rows in Excel: ${excelData.length}`)
+    
     // Скачиваем файл
-    XLSX.writeFile(wb, fileName)
+    try {
+      XLSX.writeFile(wb, fileName)
+      console.log('[EXPORT] File download successful!')
+    } catch (writeError) {
+      console.error('[EXPORT] Error writing Excel file:', writeError)
+      setLoading(false)
+      alert(`Ошибка сохранения Excel файла:\n\n${writeError instanceof Error ? writeError.message : String(writeError)}`)
+      return
+    }
     
     // Скрываем индикатор загрузки
     setLoading(false)
+    console.log('[EXPORT] Export completed successfully')
   }
 
   // Загрузка отделов (приоритет - ответ от сервера, если нет - из данных расписания)
