@@ -95,7 +95,7 @@ export function EmployeeSchedule() {
   const [currentViewDate, setCurrentViewDate] = useState('') // Для отслеживания текущей просматриваемой даты
   const [lastOpenedElement, setLastOpenedElement] = useState<'calendar' | 'filter' | null>(null) // Для z-index управления
   const [showExportModal, setShowExportModal] = useState(false) // Модальное окно выбора типа экспорта
-  const [exportSortType, setExportSortType] = useState<'alphabet' | 'department'>('alphabet') // Тип сортировки для экспорта
+  const [exportSortType, setExportSortType] = useState<'alphabet' | 'department' | 'department-detailed'>('alphabet') // Тип сортировки для экспорта
   
   // Получаем сегодняшнюю дату для ограничения выбора (без проблем с временной зоной)
   const today = formatDate(new Date())
@@ -747,11 +747,122 @@ export function EmployeeSchedule() {
       })
       const sortedDates = Object.keys(grouped).sort()
       
-      sortedDates.forEach(date => {
-        const dayEmployees = grouped[date]
+      // Проверка на новый формат "department-detailed" - он работает иначе
+      if (exportSortType === 'department-detailed') {
+        console.log('[EXPORT] Using department-detailed format (Service -> Employee -> Dates)')
         
-        // Сортировка в зависимости от выбранного типа
-        if (exportSortType === 'department') {
+        // Группируем сначала по отделам, потом по сотрудникам
+        const byDepartment = {} as Record<string, Record<number, (Employee & { date: string })[]>>
+        
+        flatData.forEach(emp => {
+          const deptName = emp.department_name || 'Без отдела'
+          if (!byDepartment[deptName]) byDepartment[deptName] = {}
+          if (!byDepartment[deptName][emp.employee_id]) byDepartment[deptName][emp.employee_id] = []
+          byDepartment[deptName][emp.employee_id].push(emp)
+        })
+        
+        // Сортируем названия отделов
+        const sortedDeptNames = Object.keys(byDepartment).sort((a, b) => a.localeCompare(b, 'ru'))
+        
+        let globalRowIndex = 1
+        
+        // Для каждого отдела
+        sortedDeptNames.forEach(deptName => {
+          // Заголовок отдела (СЛУЖБА)
+          excelData.push({
+            '№': '',
+            'ФИО/Должность': `СЛУЖБА: ${deptName}`,
+            'Дата': '',
+            'Пришел': '',
+            'Ушел': '',
+            'Часы работы': '',
+            'Статус': '',
+            'Опоздание (мин)': '',
+            'Исключение': ''
+          })
+          
+          // Получаем всех сотрудников этого отдела
+          const employeesInDept = byDepartment[deptName]
+          const sortedEmployeeIds = Object.keys(employeesInDept)
+            .map(id => parseInt(id))
+            .sort((a, b) => {
+              const aName = employeesInDept[a][0].full_name
+              const bName = employeesInDept[b][0].full_name
+              return aName.localeCompare(bName, 'ru')
+            })
+          
+          // Для каждого сотрудника в отделе
+          sortedEmployeeIds.forEach(employeeId => {
+            const employeeDays = employeesInDept[employeeId]
+            const firstDay = employeeDays[0]
+            
+            // Строка с ФИО сотрудника и должностью (если есть)
+            // TODO: Добавить должность когда API будет возвращать position_name
+            excelData.push({
+              '№': '',
+              'ФИО/Должность': `    ${firstDay.full_name}`, // TODO: добавить " - Должность" когда API вернет
+              'Дата': '',
+              'Пришел': '',
+              'Ушел': '',
+              'Часы работы': '',
+              'Статус': '',
+              'Опоздание (мин)': '',
+              'Исключение': ''
+            })
+            
+            // Сортируем даты
+            employeeDays.sort((a, b) => a.date.localeCompare(b.date))
+            
+            // Строки с данными по датам
+            employeeDays.forEach(day => {
+              excelData.push({
+                '№': globalRowIndex++,
+                'ФИО/Должность': '',
+                'Дата': day.date,
+                'Пришел': day.first_entry || '-',
+                'Ушел': day.last_exit || '-',
+                'Часы работы': day.work_hours !== null && day.work_hours !== undefined ? `${day.work_hours.toFixed(1)} ч` : '-',
+                'Статус': day.status || (day.is_late ? 'Опоздал' : 'В норме'),
+                'Опоздание (мин)': day.is_late ? day.late_minutes : 0,
+                'Исключение': day.exception?.has_exception ? day.exception.reason : '-'
+              })
+            })
+            
+            // Пустая строка после сотрудника
+            excelData.push({
+              '№': '',
+              'ФИО/Должность': '',
+              'Дата': '',
+              'Пришел': '',
+              'Ушел': '',
+              'Часы работы': '',
+              'Статус': '',
+              'Опоздание (мин)': '',
+              'Исключение': ''
+            })
+          })
+          
+          // Дополнительная пустая строка после отдела
+          excelData.push({
+            '№': '',
+            'ФИО/Должность': '',
+            'Дата': '',
+            'Пришел': '',
+            'Ушел': '',
+            'Часы работы': '',
+            'Статус': '',
+            'Опоздание (мин)': '',
+            'Исключение': ''
+          })
+        })
+        
+      } else {
+        // Существующие форматы (по дате с группировкой)
+        sortedDates.forEach(date => {
+          const dayEmployees = grouped[date]
+          
+          // Сортировка в зависимости от выбранного типа
+          if (exportSortType === 'department') {
           console.log(`[EXPORT] Sorting by departments for date ${date}`)
           // Группируем по отделам
           const byDepartment = {} as Record<string, (Employee & { date: string })[]>
@@ -847,18 +958,19 @@ export function EmployeeSchedule() {
           })
         }
         
-        // Пустая строка после данных за дату
-        excelData.push({
-          '№': '',
-          'ФИО': '',
-          'Пришел': '',
-          'Ушел': '',
-          'Часы работы': '',
-          'Статус': '',
-          'Опоздание (мин)': '',
-          'Исключение': ''
+          // Пустая строка после данных за дату
+          excelData.push({
+            '№': '',
+            'ФИО': '',
+            'Пришел': '',
+            'Ушел': '',
+            'Часы работы': '',
+            'Статус': '',
+            'Опоздание (мин)': '',
+            'Исключение': ''
+          })
         })
-      })
+      }
     } else {
       // Обычный экспорт для одной даты
       const employees = sortedData as Employee[]
@@ -1608,6 +1720,21 @@ export function EmployeeSchedule() {
                 <div className="ml-3">
                   <span className="text-sm font-medium text-gray-900">По службам</span>
                   <p className="text-xs text-gray-500">Сотрудники сгруппированы по отделам</p>
+                </div>
+              </label>
+
+              <label className="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+                <input
+                  type="radio"
+                  name="exportType"
+                  value="department-detailed"
+                  checked={exportSortType === 'department-detailed'}
+                  onChange={(e) => setExportSortType('department-detailed')}
+                  className="form-radio h-4 w-4 text-blue-600"
+                />
+                <div className="ml-3">
+                  <span className="text-sm font-medium text-gray-900">По службам детально</span>
+                  <p className="text-xs text-gray-500">Служба → Сотрудник → Даты построчно (только для диапазона)</p>
                 </div>
               </label>
             </div>
