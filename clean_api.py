@@ -481,6 +481,33 @@ def create_svod_report_employees_table():
         except Exception:
             # Колонка уже существует, это нормально
             pass
+        
+        # Добавляем колонку position_override для хранения должности без сотрудника
+        try:
+            cursor.execute("ALTER TABLE svod_report_employees ADD COLUMN position_override VARCHAR(255)")
+        except Exception:
+            # Колонка уже существует
+            pass
+        
+        # Добавляем колонку report_date для привязки к дате
+        try:
+            cursor.execute("ALTER TABLE svod_report_employees ADD COLUMN report_date DATE DEFAULT CURRENT_DATE")
+        except Exception:
+            # Колонка уже существует
+            pass
+        
+        # Делаем employee_id опциональным (может быть NULL для записей с только должностью)
+        try:
+            cursor.execute("ALTER TABLE svod_report_employees ALTER COLUMN employee_id DROP NOT NULL")
+        except Exception:
+            # Уже изменено
+            pass
+        
+        # Удаляем старый unique constraint на employee_id, если он есть
+        try:
+            cursor.execute("ALTER TABLE svod_report_employees DROP CONSTRAINT IF EXISTS svod_report_employees_employee_id_key")
+        except Exception:
+            pass
             
         conn.commit()
         conn.close()
@@ -2086,17 +2113,18 @@ async def get_svod_report(date: str = None):
             conn,
             """
             SELECT e.id, e.full_name, 
-                   p.name as position_name,
+                   COALESCE(sre.position_override, p.name) as position_name,
                    d.name as department_name,
-                   sre.order_index
+                   sre.order_index,
+                   sre.employee_id
             FROM svod_report_employees sre
-            JOIN employees e ON sre.employee_id = e.id
+            LEFT JOIN employees e ON sre.employee_id = e.id
             LEFT JOIN positions p ON e.position_id = p.id
             LEFT JOIN departments d ON e.department_id = d.id
-            WHERE e.is_active = %s
+            WHERE sre.report_date = %s AND (e.is_active = %s OR e.id IS NULL)
             ORDER BY sre.order_index ASC, sre.id ASC
             """,
-            (True,),
+            (date, True),
             fetch_all=True
         )
         
@@ -2147,32 +2175,46 @@ async def get_svod_report(date: str = None):
         # Формируем результат
         result = []
         for emp in employees_data:
-            exception = exceptions_dict.get(emp['id'])
-            has_access = emp['id'] in employees_with_access
-            
-            # Определяем комментарий по приоритету:
-            # 1. Если есть исключение - показываем исключение
-            # 2. Если есть вход - показываем "На рабочем месте"
-            # 3. Иначе - пусто (будет показан прочерк)
-            if exception:
-                comment = exception['reason']
-                exception_type = exception['exception_type']
-            elif has_access:
-                comment = 'На работе'
-                exception_type = 'at_work'
+            # Проверяем, есть ли employee_id (может быть NULL для записей с только должностью)
+            if emp['employee_id'] is None:
+                # Это запись только с должностью, без сотрудника
+                result.append({
+                    'id': emp['id'] if emp.get('id') else -(emp['order_index'] + 1),  # Используем отрицательный id для записей без сотрудника
+                    'full_name': '',
+                    'position': emp.get('position_name') or '',
+                    'department': '',
+                    'comment': '',
+                    'exception_type': None,
+                    'in_svod': True
+                })
             else:
-                comment = ''
-                exception_type = None
-            
-            result.append({
-                'id': emp['id'],
-                'full_name': emp['full_name'],
-                'position': emp.get('position_name') or 'Не указана должность',
-                'department': emp.get('department_name') or 'Не указан отдел',
-                'comment': comment,
-                'exception_type': exception_type,
-                'in_svod': True  # Всегда True, т.к. показываем только тех кто в своде
-            })
+                # Это запись с сотрудником
+                exception = exceptions_dict.get(emp['id'])
+                has_access = emp['id'] in employees_with_access
+                
+                # Определяем комментарий по приоритету:
+                # 1. Если есть исключение - показываем исключение
+                # 2. Если есть вход - показываем "На рабочем месте"
+                # 3. Иначе - пусто (будет показан прочерк)
+                if exception:
+                    comment = exception['reason']
+                    exception_type = exception['exception_type']
+                elif has_access:
+                    comment = 'На работе'
+                    exception_type = 'at_work'
+                else:
+                    comment = ''
+                    exception_type = None
+                
+                result.append({
+                    'id': emp['id'],
+                    'full_name': emp['full_name'],
+                    'position': emp.get('position_name') or 'Не указана должность',
+                    'department': emp.get('department_name') or 'Не указан отдел',
+                    'comment': comment,
+                    'exception_type': exception_type,
+                    'in_svod': True  # Всегда True, т.к. показываем только тех кто в своде
+                })
         
         return {
             'date': date,
@@ -2240,6 +2282,51 @@ async def add_employee_to_svod(data: dict):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка добавления в свод: {str(e)}")
+
+@app.post("/svod-report/add-position")
+async def add_position_to_svod(data: dict):
+    """Добавить должность (без сотрудника) в свод ТРК с привязкой к дате"""
+    try:
+        position = data.get('position')
+        report_date = data.get('report_date')
+        
+        if not position or not position.strip():
+            raise HTTPException(status_code=400, detail="Необходимо указать название должности")
+        
+        if not report_date:
+            raise HTTPException(status_code=400, detail="Необходимо указать report_date")
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Получаем максимальный order_index для этой даты
+        cursor.execute("""
+            SELECT COALESCE(MAX(order_index), -1) + 1
+            FROM svod_report_employees 
+            WHERE report_date = %s
+        """, (report_date,))
+        next_order_index = cursor.fetchone()[0]
+        
+        # Добавляем запись с должностью, но без сотрудника (employee_id = NULL)
+        cursor.execute("""
+            INSERT INTO svod_report_employees (employee_id, report_date, order_index, position_override)
+            VALUES (NULL, %s, %s, %s)
+        """, (report_date, next_order_index, position.strip()))
+        conn.commit()
+        
+        conn.close()
+        
+        return {
+            "message": f"Должность '{position}' добавлена в свод на {report_date}",
+            "position": position,
+            "report_date": report_date,
+            "order_index": next_order_index
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка добавления должности: {str(e)}")
 
 @app.delete("/svod-report/remove-employee")
 async def remove_employee_from_svod(employee_id: int, report_date: str = None):
