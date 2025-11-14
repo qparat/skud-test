@@ -1710,7 +1710,7 @@ async def get_all_positions():
             })
         
         conn.close()
-        return positions
+        return {'positions': positions}
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка получения списка должностей: {str(e)}")
