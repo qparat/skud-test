@@ -164,11 +164,9 @@ export default function SvodReportPage() {
   // Загрузка всех должностей
   const loadAllPositions = async () => {
     try {
-      console.log('Загрузка должностей...')
       const data = await apiRequest('positions')
-      console.log('Полученные данные должностей:', data)
-      setAllPositions(data.positions || [])
-      console.log('Количество должностей:', data.positions?.length || 0)
+      // API возвращает массив напрямую
+      setAllPositions(Array.isArray(data) ? data : [])
     } catch (err) {
       console.error('Ошибка загрузки списка должностей:', err)
     }
