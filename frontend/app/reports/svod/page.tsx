@@ -784,7 +784,7 @@ export default function SvodReportPage() {
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredSvodEmployees.map((emp, idx) => (
                   <tr 
-                    key={emp.id} 
+                    key={emp.svod_id || emp.id} 
                     draggable
                     onDragStart={(e) => handleDragStart(e, idx)}
                     onDragOver={(e) => handleDragOver(e, idx)}

@@ -2131,17 +2131,18 @@ async def get_svod_report(date: str = None):
             LEFT JOIN employees e ON sre.employee_id = e.id
             LEFT JOIN positions p ON e.position_id = p.id
             LEFT JOIN departments d ON e.department_id = d.id
-            WHERE e.is_active = %s OR e.id IS NULL
+            WHERE sre.employee_id IS NULL OR e.is_active = %s
             ORDER BY sre.order_index ASC, sre.id ASC
             """,
             (True,),
             fetch_all=True
         )
         
-        svod_employee_ids = [emp['id'] for emp in employees_data]
+        # Получаем только ID сотрудников (исключая записи с только должностью)
+        svod_employee_ids = [emp['id'] for emp in employees_data if emp['id'] is not None]
         
         # Если список пуст, возвращаем пустой результат
-        if not svod_employee_ids:
+        if not employees_data:
             conn.close()
             return {
                 'date': date,
@@ -2150,29 +2151,33 @@ async def get_svod_report(date: str = None):
                 'svod_count': 0
             }
         
-        # Получаем исключения за выбранную дату
-        exceptions_data = execute_query(
-            conn,
-            """
-            SELECT employee_id, reason, exception_type
-            FROM employee_exceptions
-            WHERE exception_date = %s
-            """,
-            (date,),
-            fetch_all=True
-        )
+        # Получаем исключения за выбранную дату (только если есть сотрудники)
+        exceptions_data = []
+        if svod_employee_ids:
+            exceptions_data = execute_query(
+                conn,
+                """
+                SELECT employee_id, reason, exception_type
+                FROM employee_exceptions
+                WHERE exception_date = %s
+                """,
+                (date,),
+                fetch_all=True
+            )
         
-        # Получаем данные о входах за выбранную дату
-        access_data = execute_query(
-            conn,
-            """
-            SELECT DISTINCT employee_id
-            FROM access_logs
-            WHERE DATE(access_datetime) = %s
-            """,
-            (date,),
-            fetch_all=True
-        )
+        # Получаем данные о входах за выбранную дату (только если есть сотрудники)
+        access_data = []
+        if svod_employee_ids:
+            access_data = execute_query(
+                conn,
+                """
+                SELECT DISTINCT employee_id
+                FROM access_logs
+                WHERE DATE(access_datetime) = %s
+                """,
+                (date,),
+                fetch_all=True
+            )
         
         conn.close()
         
