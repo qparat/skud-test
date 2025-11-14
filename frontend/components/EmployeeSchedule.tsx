@@ -735,7 +735,7 @@ export function EmployeeSchedule() {
         grouped[emp.date].push(emp)
       })
       const sortedDates = Object.keys(grouped).sort()
-      let rowIndex = 1
+      
       sortedDates.forEach(date => {
         // Первая строка — только дата
         excelData.push({
@@ -748,10 +748,12 @@ export function EmployeeSchedule() {
           'Опоздание (мин)': '',
           'Исключение': ''
         })
+        // Счетчик начинается заново для каждого дня
+        let dayRowIndex = 1
         // Данные сотрудников за эту дату (без столбца 'Дата')
         grouped[date].forEach(emp => {
           excelData.push({
-            '№': rowIndex++,
+            '№': dayRowIndex++,
             'ФИО': emp.full_name,
             'Пришел': emp.first_entry || '-',
             'Ушел': emp.last_exit || '-',
