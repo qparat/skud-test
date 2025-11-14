@@ -608,21 +608,73 @@ export function EmployeeSchedule() {
     }
   }
 
-  const exportToExcel = () => {
+  const exportToExcel = async () => {
 
     if (!scheduleData || !scheduleData.employees.length) {
       alert('Нет данных для экспорта')
       return
     }
 
-    const sortedData = getSortedEmployees()
+    // Загружаем ВСЕ данные без пагинации для экспорта
+    let allData: ScheduleData | null = null
+    try {
+      let endpoint = 'employee-schedule'
+      
+      // Добавляем search и department фильтры, но БЕЗ пагинации (или с очень большим per_page)
+      const searchParam = searchQuery.trim() ? `&search=${encodeURIComponent(searchQuery.trim())}` : ''
+      const departmentParam = selectedDepartment.length > 0 ? `&department_ids=${selectedDepartment.join(',')}` : ''
+      
+      if (startDate && endDate) {
+        endpoint = `employee-schedule-range?start_date=${startDate}&end_date=${endDate}&page=1&per_page=999999${searchParam}${departmentParam}`
+      } else if (currentViewDate) {
+        endpoint = `employee-schedule?date=${currentViewDate}&page=1&per_page=999999${searchParam}${departmentParam}`
+      } else {
+        endpoint = `${endpoint}?page=1&per_page=999999${searchParam}${departmentParam}`
+      }
+      
+      console.log('Fetching all data for export:', endpoint)
+      allData = await apiRequest(endpoint)
+    } catch (err) {
+      alert('Ошибка загрузки данных для экспорта: ' + (err instanceof Error ? err.message : String(err)))
+      return
+    }
+
+    if (!allData || !allData.employees.length) {
+      alert('Нет данных для экспорта')
+      return
+    }
+
+    // Используем все загруженные данные вместо getSortedEmployees()
+    const sortedData = allData.employees
     let excelData: any[] = []
-    const isRangeData = sortedData.length > 0 && 'date' in sortedData[0]
+    const isRangeData = sortedData.length > 0 && 'days' in sortedData[0]
 
     if (isRangeData) {
+      // Для диапазона дат - преобразуем EmployeeWithDays в плоский список
+      const flatData: (Employee & { date: string })[] = []
+      
+      ;(sortedData as EmployeeWithDays[]).forEach(emp => {
+        emp.days.forEach(day => {
+          flatData.push({
+            employee_id: emp.employee_id,
+            full_name: emp.full_name,
+            date: day.date,
+            first_entry: day.first_entry,
+            last_exit: day.last_exit,
+            first_entry_door: day.first_entry_door,
+            last_exit_door: day.last_exit_door,
+            is_late: day.is_late,
+            late_minutes: day.late_minutes,
+            work_hours: day.work_hours,
+            status: day.status,
+            exception: day.exception
+          })
+        })
+      })
+
       // Группировка по датам и пустые строки — только для диапазона
       const grouped = {} as Record<string, (Employee & { date: string })[]>
-      (sortedData as (Employee & { date: string })[]).forEach((emp: Employee & { date: string }) => {
+      flatData.forEach((emp: Employee & { date: string }) => {
         if (!grouped[emp.date]) grouped[emp.date] = []
         grouped[emp.date].push(emp)
       })
@@ -703,10 +755,10 @@ export function EmployeeSchedule() {
     // Генерируем имя файла с датой
     let fileName: string
     if (!isRangeData) {
-      fileName = `Расписание_сотрудников_${scheduleData.date}.xlsx`
+      fileName = `Расписание_сотрудников_${allData.date}.xlsx`
     } else {
-      const start = scheduleData.start_date || startDate
-      const end = scheduleData.end_date || endDate
+      const start = allData.start_date || startDate
+      const end = allData.end_date || endDate
       fileName = `Расписание_сотрудников_${start}_${end}.xlsx`
     }
     
