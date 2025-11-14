@@ -771,17 +771,23 @@ export default function ExceptionsPage() {
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Причина исключения
               </label>
-              <select
+              <input
+                list="reason-options"
                 value={formData.reason}
-                onChange={(e: ChangeEvent<HTMLSelectElement>) => setFormData({...formData, reason: e.target.value})}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => setFormData({...formData, reason: e.target.value})}
+                placeholder="Выберите из списка или введите свою причину"
                 className="w-full p-2 border border-gray-300 rounded-lg"
                 required
-              >
-                <option value="">Выберите причину</option>
-                <option value="Отпуск">Отпуск</option>
-                <option value="Больничный">Больничный</option>
-                <option value="Командировка">Командировка</option>
-              </select>
+              />
+              <datalist id="reason-options">
+                <option value="Отпуск" />
+                <option value="Больничный" />
+                <option value="Командировка" />
+                <option value="Выходной" />
+                <option value="Удаленная работа" />
+                <option value="Учебный отпуск" />
+                <option value="Отгул" />
+              </datalist>
             </div>
 
             <div className="md:col-span-2 flex gap-2">
