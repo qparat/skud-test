@@ -420,8 +420,10 @@ export default function SvodReportPage() {
       emp.full_name.toLowerCase().includes(modalSearchQuery.toLowerCase()) ||
       emp.position.toLowerCase().includes(modalSearchQuery.toLowerCase())
     
-    // Не показываем тех, кто уже в своде
-    const alreadyInSvod = svodEmployees.some((se: SvodEmployee) => se.id === emp.id)
+    // Не показываем тех, кто уже в своде (проверяем только записи с сотрудниками, не должности)
+    const alreadyInSvod = svodEmployees.some((se: SvodEmployee) => 
+      !se.is_position_only && se.id === emp.id
+    )
     
     return matchesSearch && !alreadyInSvod
   })
