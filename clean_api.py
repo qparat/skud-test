@@ -516,6 +516,8 @@ def create_svod_report_employees_table():
             cursor.execute("ALTER TABLE svod_report_employees DROP CONSTRAINT IF EXISTS svod_report_employees_employee_id_key")
         except Exception:
             pass
+        
+        # Примечание: svod_id = id (первичный ключ таблицы), используется в запросах как алиас
             
         conn.commit()
         conn.close()
@@ -2434,10 +2436,10 @@ async def update_svod_order(order_data: dict, current_user: dict = Depends(get_c
         if not order_list:
             raise HTTPException(status_code=400, detail="Не переданы данные о порядке")
         
-        # Проверим, что все svod_id существуют в своде
+        # Проверим, что все svod_id существуют в своде (svod_id это id таблицы)
         svod_ids = [item['svod_id'] for item in order_list]
         placeholders = ','.join(['%s'] * len(svod_ids))
-        cursor.execute(f"SELECT svod_id FROM svod_report_employees WHERE svod_id IN ({placeholders})", svod_ids)
+        cursor.execute(f"SELECT id FROM svod_report_employees WHERE id IN ({placeholders})", svod_ids)
         existing_ids = [row[0] for row in cursor.fetchall()]
         
         # Проверяем, что все переданные ID существуют в своде
@@ -2453,7 +2455,7 @@ async def update_svod_order(order_data: dict, current_user: dict = Depends(get_c
             # Колонка уже существует, это нормально
             pass
         
-        # Обновляем порядок для каждой записи
+        # Обновляем порядок для каждой записи (svod_id это id таблицы)
         for item in order_list:
             svod_id = item['svod_id']
             order_index = item['order_index']
@@ -2461,7 +2463,7 @@ async def update_svod_order(order_data: dict, current_user: dict = Depends(get_c
             cursor.execute("""
                 UPDATE svod_report_employees 
                 SET order_index = %s 
-                WHERE svod_id = %s
+                WHERE id = %s
             """, (order_index, svod_id))
         
         conn.commit()
