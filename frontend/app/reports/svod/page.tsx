@@ -381,7 +381,7 @@ export default function SvodReportPage() {
     // Сохраняем новый порядок на сервере
     try {
       const orderData = updatedSvodEmployees.map((emp: SvodEmployee, index: number) => ({
-        employee_id: emp.id,
+        svod_id: emp.svod_id,
         order_index: index
       }))
       
@@ -395,8 +395,6 @@ export default function SvodReportPage() {
       console.error('Ошибка сохранения порядка:', err)
       // При ошибке перезагружаем данные с сервера
       loadSvodReport()
-      // *** 4. ИСПРАВЛЕНИЕ: alert() закомментирован ***
-      // alert('Ошибка сохранения порядка сотрудников. Данные восстановлены.')
     }
     
     setDraggedIndex(null)

@@ -2387,7 +2387,7 @@ async def remove_employee_from_svod(svod_id: int = None, employee_id: int = None
 
 @app.post("/svod-report/update-order")
 async def update_svod_order(order_data: dict, current_user: dict = Depends(get_current_user)):
-    """Обновить порядок сотрудников в своде ТРК"""
+    """Обновить порядок записей в своде ТРК"""
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -2397,16 +2397,16 @@ async def update_svod_order(order_data: dict, current_user: dict = Depends(get_c
         if not order_list:
             raise HTTPException(status_code=400, detail="Не переданы данные о порядке")
         
-        # Проверим, что все employee_id существуют в своде
-        employee_ids = [item['employee_id'] for item in order_list]
-        placeholders = ','.join(['%s'] * len(employee_ids))
-        cursor.execute(f"SELECT employee_id FROM svod_report_employees WHERE employee_id IN ({placeholders})", employee_ids)
+        # Проверим, что все svod_id существуют в своде
+        svod_ids = [item['svod_id'] for item in order_list]
+        placeholders = ','.join(['%s'] * len(svod_ids))
+        cursor.execute(f"SELECT svod_id FROM svod_report_employees WHERE svod_id IN ({placeholders})", svod_ids)
         existing_ids = [row[0] for row in cursor.fetchall()]
         
         # Проверяем, что все переданные ID существуют в своде
-        missing_ids = set(employee_ids) - set(existing_ids)
+        missing_ids = set(svod_ids) - set(existing_ids)
         if missing_ids:
-            raise HTTPException(status_code=400, detail=f"Сотрудники с ID {missing_ids} не найдены в своде")
+            raise HTTPException(status_code=400, detail=f"Записи с ID {missing_ids} не найдены в своде")
         
         # Добавляем колонку order_index в таблицу, если её нет
         try:
@@ -2416,22 +2416,22 @@ async def update_svod_order(order_data: dict, current_user: dict = Depends(get_c
             # Колонка уже существует, это нормально
             pass
         
-        # Обновляем порядок для каждого сотрудника
+        # Обновляем порядок для каждой записи
         for item in order_list:
-            employee_id = item['employee_id']
+            svod_id = item['svod_id']
             order_index = item['order_index']
             
             cursor.execute("""
                 UPDATE svod_report_employees 
                 SET order_index = %s 
-                WHERE employee_id = %s
-            """, (order_index, employee_id))
+                WHERE svod_id = %s
+            """, (order_index, svod_id))
         
         conn.commit()
         conn.close()
         
         return {
-            "message": "Порядок сотрудников в своде обновлен",
+            "message": "Порядок записей в своде обновлен",
             "updated_count": len(order_list)
         }
         
