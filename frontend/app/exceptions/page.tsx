@@ -783,10 +783,6 @@ export default function ExceptionsPage() {
                 <option value="Отпуск" />
                 <option value="Больничный" />
                 <option value="Командировка" />
-                <option value="Выходной" />
-                <option value="Удаленная работа" />
-                <option value="Учебный отпуск" />
-                <option value="Отгул" />
               </datalist>
             </div>
 
