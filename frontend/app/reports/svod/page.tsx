@@ -823,17 +823,26 @@ export default function SvodReportPage() {
                     </td>
                     <td className="px-4 py-3 text-center">
                       {emp.is_position_only ? (
-                        <button
-                          onClick={() => {
-                            setSelectedSvodEntry(emp)
-                            setShowAssignEmployeeModal(true)
-                            loadAllEmployees()
-                          }}
-                          disabled={actionLoading === emp.svod_id}
-                          className="px-3 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          Назначить сотрудника
-                        </button>
+                        <div className="flex items-center justify-center gap-2">
+                          <button
+                            onClick={() => {
+                              setSelectedSvodEntry(emp)
+                              setShowAssignEmployeeModal(true)
+                              loadAllEmployees()
+                            }}
+                            disabled={actionLoading === emp.svod_id}
+                            className="px-3 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            Назначить сотрудника
+                          </button>
+                          <button
+                            onClick={() => removeFromSvod(emp)}
+                            disabled={actionLoading === emp.svod_id}
+                            className="px-3 py-1 bg-red-500 text-white text-xs rounded hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {actionLoading === emp.svod_id ? 'Удаление...' : 'Убрать'}
+                          </button>
+                        </div>
                       ) : (
                         <button
                           onClick={() => removeFromSvod(emp)}
