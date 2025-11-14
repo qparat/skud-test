@@ -104,15 +104,21 @@ export function EmployeeSchedule() {
       // Build the base endpoint with pagination parameters
       const pageParams = `page=${currentPage}&per_page=${itemsPerPage}`
       
+      // Add search parameter
+      const searchParam = searchQuery.trim() ? `&search=${encodeURIComponent(searchQuery.trim())}` : ''
+      
+      // Add department filter parameter
+      const departmentParam = selectedDepartment.length > 0 ? `&department_ids=${selectedDepartment.join(',')}` : ''
+      
       if (start && end) {
-        endpoint = `employee-schedule-range?start_date=${start}&end_date=${end}&${pageParams}`
+        endpoint = `employee-schedule-range?start_date=${start}&end_date=${end}&${pageParams}${searchParam}${departmentParam}`
       } else if (date) {
-        endpoint = `employee-schedule?date=${date}&${pageParams}`
+        endpoint = `employee-schedule?date=${date}&${pageParams}${searchParam}${departmentParam}`
       } else {
-        endpoint = `${endpoint}?${pageParams}`
+        endpoint = `${endpoint}?${pageParams}${searchParam}${departmentParam}`
       }
       
-      console.log('Fetching schedule:', { endpoint, currentPage, itemsPerPage, date, start, end })
+      console.log('Fetching schedule:', { endpoint, currentPage, itemsPerPage, date, start, end, search: searchQuery, departments: selectedDepartment })
         
       const data = await apiRequest(endpoint)
       console.log('scheduleData:', data)
@@ -175,7 +181,14 @@ export function EmployeeSchedule() {
     }
   }, [showCalendar, showFilter]);
 
-  // Загрузка при изменении даты пользователем или страницы
+  // Сброс страницы при изменении поиска или фильтра
+  useEffect(() => {
+    if (initialized) {
+      setCurrentPage(1)
+    }
+  }, [searchQuery, selectedDepartment, initialized])
+
+  // Загрузка при изменении даты пользователем, страницы, поиска или фильтра
   useEffect(() => {
     if (initialized) {
       if (startDate && endDate) {
@@ -186,7 +199,7 @@ export function EmployeeSchedule() {
         fetchSchedule(currentViewDate)
       }
     }
-  }, [startDate, endDate, currentPage, initialized, currentViewDate]) // Добавляем currentViewDate в зависимости
+  }, [startDate, endDate, currentPage, initialized, currentViewDate, searchQuery, selectedDepartment]) // Добавляем searchQuery и selectedDepartment
 
   const handleEmployeeClick = (employeeId: number) => {
     router.push(`/employees/${employeeId}`)
@@ -440,46 +453,8 @@ export function EmployeeSchedule() {
     // Проверяем, работаем ли мы с диапазоном дат (EmployeeWithDays) или одной датой (Employee)
     const isRangeData = employees.length > 0 && 'days' in employees[0]
 
-    // Фильтрация по ФИО (case-insensitive)
-    const search = searchQuery.trim().toLowerCase()
-    let filteredEmployees: (Employee | EmployeeWithDays)[] = employees
-    if (search) {
-      if (isRangeData) {
-        filteredEmployees = (employees as EmployeeWithDays[]).filter(e =>
-          e.full_name.toLowerCase().includes(search)
-        )
-      } else {
-        filteredEmployees = (employees as Employee[]).filter(e =>
-          e.full_name.toLowerCase().includes(search)
-        )
-      }
-    }
-
-    // Фильтрация по отделам (мультивыбор)
-    if (selectedDepartment.length > 0) {
-      if (isRangeData) {
-        filteredEmployees = (filteredEmployees as EmployeeWithDays[]).filter(e => {
-          // Если department_id есть на верхнем уровне
-          if ((e as any).department_id !== undefined) {
-            return selectedDepartment.includes((e as any).department_id)
-          }
-          // Если department_id есть в days
-          if (Array.isArray((e as any).days)) {
-            return (e as any).days.some((d: any) => selectedDepartment.includes(d.department_id))
-          }
-          // Если нет department_id, не исключаем сотрудника
-          return true
-        })
-      } else {
-        filteredEmployees = (filteredEmployees as Employee[]).filter(e => {
-          if ((e as any).department_id !== undefined) {
-            return selectedDepartment.includes((e as any).department_id)
-          }
-          // Если нет department_id, не исключаем сотрудника
-          return true
-        })
-      }
-    }
+    // Фильтрация теперь выполняется на сервере, просто используем полученные данные
+    const filteredEmployees = employees
 
     if (!isRangeData) {
       // Логика для одной даты (как было раньше)

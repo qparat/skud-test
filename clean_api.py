@@ -854,6 +854,8 @@ async def get_employee_schedule(
     date: Optional[str] = Query(None), 
     page: int = Query(1, ge=1, description="Номер страницы"),
     per_page: int = Query(50, ge=1, le=100, description="Количество записей на странице"),
+    search: Optional[str] = Query(None, description="Поиск по ФИО"),
+    department_ids: Optional[str] = Query(None, description="ID отделов через запятую"),
     current_user: dict = Depends(get_current_user)
 ):
     """Расписание всех сотрудников за день с временем прихода/ухода"""
@@ -1046,6 +1048,20 @@ async def get_employee_schedule(
         # Сортируем по имени
         employees_schedule.sort(key=lambda x: x['full_name'])
         
+        # Применяем фильтрацию по поиску
+        if search and search.strip():
+            search_lower = search.strip().lower()
+            employees_schedule = [e for e in employees_schedule if search_lower in e['full_name'].lower()]
+        
+        # Применяем фильтрацию по отделам
+        if department_ids:
+            try:
+                dept_ids = [int(dept_id.strip()) for dept_id in department_ids.split(',') if dept_id.strip()]
+                if dept_ids:
+                    employees_schedule = [e for e in employees_schedule if e.get('department_id') in dept_ids]
+            except ValueError:
+                pass  # Игнорируем некорректные ID отделов
+        
         # Применяем пагинацию
         total_count = len(employees_schedule)
         start_idx = (page - 1) * per_page
@@ -1073,6 +1089,8 @@ async def get_employee_schedule_range(
     end_date: str = Query(...),
     page: int = Query(1, ge=1, description="Номер страницы"),
     per_page: int = Query(50, ge=1, le=100, description="Количество записей на странице"),
+    search: Optional[str] = Query(None, description="Поиск по ФИО"),
+    department_ids: Optional[str] = Query(None, description="ID отделов через запятую"),
     current_user: dict = Depends(get_current_user)
 ):
     """Расписание всех сотрудников за диапазон дат с детализацией по дням"""
@@ -1228,6 +1246,20 @@ async def get_employee_schedule_range(
                 })
         # Сортируем по имени
         employees_with_days.sort(key=lambda x: x['full_name'])
+        
+        # Применяем фильтрацию по поиску
+        if search and search.strip():
+            search_lower = search.strip().lower()
+            employees_with_days = [e for e in employees_with_days if search_lower in e['full_name'].lower()]
+        
+        # Применяем фильтрацию по отделам
+        if department_ids:
+            try:
+                dept_ids = [int(dept_id.strip()) for dept_id in department_ids.split(',') if dept_id.strip()]
+                if dept_ids:
+                    employees_with_days = [e for e in employees_with_days if e.get('department_id') in dept_ids]
+            except ValueError:
+                pass  # Игнорируем некорректные ID отделов
         
         # Применяем пагинацию (по сотрудникам, а не по дням)
         total_count = len(employees_with_days)
