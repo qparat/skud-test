@@ -615,31 +615,64 @@ export function EmployeeSchedule() {
       return
     }
 
-    // Загружаем ВСЕ данные без пагинации для экспорта
+    // Показываем индикатор загрузки
+    setLoading(true)
+    setError(null)
+
+    // Загружаем ВСЕ данные постранично для экспорта
+    let allEmployees: any[] = []
+    let totalCount = scheduleData.total_count
     let allData: ScheduleData | null = null
+    
     try {
-      let endpoint = 'employee-schedule'
-      
-      // Добавляем search и department фильтры, но БЕЗ пагинации (или с очень большим per_page)
       const searchParam = searchQuery.trim() ? `&search=${encodeURIComponent(searchQuery.trim())}` : ''
       const departmentParam = selectedDepartment.length > 0 ? `&department_ids=${selectedDepartment.join(',')}` : ''
       
+      // Определяем базовый endpoint
+      let baseEndpoint = ''
       if (startDate && endDate) {
-        endpoint = `employee-schedule-range?start_date=${startDate}&end_date=${endDate}&page=1&per_page=999999${searchParam}${departmentParam}`
+        baseEndpoint = `employee-schedule-range?start_date=${startDate}&end_date=${endDate}`
       } else if (currentViewDate) {
-        endpoint = `employee-schedule?date=${currentViewDate}&page=1&per_page=999999${searchParam}${departmentParam}`
+        baseEndpoint = `employee-schedule?date=${currentViewDate}`
       } else {
-        endpoint = `${endpoint}?page=1&per_page=999999${searchParam}${departmentParam}`
+        baseEndpoint = `employee-schedule`
       }
       
-      console.log('Fetching all data for export:', endpoint)
-      allData = await apiRequest(endpoint)
+      // Загружаем все страницы
+      const perPage = 1000 // Используем разумный размер страницы
+      const totalPages = Math.ceil(totalCount / perPage)
+      
+      console.log(`Fetching all data for export: ${totalPages} pages, ${totalCount} total records`)
+      
+      for (let page = 1; page <= totalPages; page++) {
+        const endpoint = `${baseEndpoint}&page=${page}&per_page=${perPage}${searchParam}${departmentParam}`
+        console.log(`Fetching page ${page}/${totalPages}:`, endpoint)
+        
+        const pageData: ScheduleData = await apiRequest(endpoint)
+        
+        // Сохраняем первую страницу целиком для метаданных
+        if (page === 1) {
+          allData = { ...pageData }
+          allEmployees = [...pageData.employees]
+        } else {
+          // Добавляем сотрудников с последующих страниц
+          allEmployees = [...allEmployees, ...pageData.employees]
+        }
+      }
+      
+      // Обновляем allData со всеми сотрудниками
+      if (allData) {
+        allData.employees = allEmployees
+      }
+      
     } catch (err) {
+      setLoading(false)
       alert('Ошибка загрузки данных для экспорта: ' + (err instanceof Error ? err.message : String(err)))
       return
     }
 
     if (!allData || !allData.employees.length) {
+      setLoading(false)
       alert('Нет данных для экспорта')
       return
     }
@@ -764,6 +797,9 @@ export function EmployeeSchedule() {
     
     // Скачиваем файл
     XLSX.writeFile(wb, fileName)
+    
+    // Скрываем индикатор загрузки
+    setLoading(false)
   }
 
   // Загрузка отделов (приоритет - ответ от сервера, если нет - из данных расписания)
