@@ -781,6 +781,8 @@ export default function ExceptionsPage() {
               />
               <datalist id="reason-options">
                 <option value="Отпуск" />
+                <option value="Отпуск без сохранения заработной платы" />
+                <option value="ОтгулЫ" />
                 <option value="Больничный" />
                 <option value="Командировка" />
               </datalist>
