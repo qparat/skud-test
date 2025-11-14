@@ -2108,7 +2108,8 @@ async def get_svod_report(date: str = None):
         
         conn = get_db_connection()
         
-        # Получаем сотрудников из свода в правильном порядке
+        # Получаем сотрудников из свода в правильном порядке (БЕЗ фильтрации по дате)
+        # Дата используется только для получения исключений
         employees_data = execute_query(
             conn,
             """
@@ -2116,15 +2117,16 @@ async def get_svod_report(date: str = None):
                    COALESCE(sre.position_override, p.name) as position_name,
                    d.name as department_name,
                    sre.order_index,
-                   sre.employee_id
+                   sre.employee_id,
+                   sre.id as svod_id
             FROM svod_report_employees sre
             LEFT JOIN employees e ON sre.employee_id = e.id
             LEFT JOIN positions p ON e.position_id = p.id
             LEFT JOIN departments d ON e.department_id = d.id
-            WHERE sre.report_date = %s AND (e.is_active = %s OR e.id IS NULL)
+            WHERE e.is_active = %s OR e.id IS NULL
             ORDER BY sre.order_index ASC, sre.id ASC
             """,
-            (date, True),
+            (True,),
             fetch_all=True
         )
         
@@ -2179,13 +2181,15 @@ async def get_svod_report(date: str = None):
             if emp['employee_id'] is None:
                 # Это запись только с должностью, без сотрудника
                 result.append({
-                    'id': emp['id'] if emp.get('id') else -(emp['order_index'] + 1),  # Используем отрицательный id для записей без сотрудника
+                    'id': emp['svod_id'],  # Используем svod_id для записей без сотрудника
+                    'svod_id': emp['svod_id'],
                     'full_name': '',
                     'position': emp.get('position_name') or '',
                     'department': '',
                     'comment': '',
                     'exception_type': None,
-                    'in_svod': True
+                    'in_svod': True,
+                    'is_position_only': True  # Флаг для фронтенда
                 })
             else:
                 # Это запись с сотрудником
@@ -2208,12 +2212,14 @@ async def get_svod_report(date: str = None):
                 
                 result.append({
                     'id': emp['id'],
+                    'svod_id': emp['svod_id'],
                     'full_name': emp['full_name'],
                     'position': emp.get('position_name') or 'Не указана должность',
                     'department': emp.get('department_name') or 'Не указан отдел',
                     'comment': comment,
                     'exception_type': exception_type,
-                    'in_svod': True  # Всегда True, т.к. показываем только тех кто в своде
+                    'in_svod': True,  # Всегда True, т.к. показываем только тех кто в своде
+                    'is_position_only': False
                 })
         
         return {
@@ -2228,16 +2234,13 @@ async def get_svod_report(date: str = None):
 
 @app.post("/svod-report/add-employee")
 async def add_employee_to_svod(data: dict):
-    """Добавить сотрудника в свод ТРК с привязкой к дате"""
+    """Добавить сотрудника в свод ТРК"""
     try:
         employee_id = data.get('employee_id')
-        report_date = data.get('report_date')
+        svod_id = data.get('svod_id')  # ID записи в svod_report_employees для назначения сотрудника
         
         if not employee_id:
             raise HTTPException(status_code=400, detail="Необходимо указать employee_id")
-        
-        if not report_date:
-            raise HTTPException(status_code=400, detail="Необходимо указать report_date")
         
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -2248,20 +2251,37 @@ async def add_employee_to_svod(data: dict):
         if not employee:
             raise HTTPException(status_code=404, detail="Сотрудник не найден")
         
-        # Получаем максимальный order_index для этой даты
+        # Если указан svod_id - назначаем сотрудника на существующую должность
+        if svod_id:
+            cursor.execute("""
+                UPDATE svod_report_employees
+                SET employee_id = %s, position_override = NULL
+                WHERE id = %s AND employee_id IS NULL
+            """, (employee_id, svod_id))
+            if cursor.rowcount == 0:
+                raise HTTPException(status_code=400, detail="Должность уже занята или не найдена")
+            conn.commit()
+            conn.close()
+            return {
+                "message": f"Сотрудник {employee[0]} назначен на должность",
+                "employee_id": employee_id,
+                "svod_id": svod_id
+            }
+        
+        # Иначе добавляем нового сотрудника в свод
+        # Получаем максимальный order_index
         cursor.execute("""
             SELECT COALESCE(MAX(order_index), -1) + 1
-            FROM svod_report_employees 
-            WHERE report_date = %s
-        """, (report_date,))
+            FROM svod_report_employees
+        """)
         next_order_index = cursor.fetchone()[0]
         
         # Добавляем в свод (если уже есть - игнорируем)
         try:
             cursor.execute("""
-                INSERT INTO svod_report_employees (employee_id, report_date, order_index)
-                VALUES (%s, %s, %s)
-            """, (employee_id, report_date, next_order_index))
+                INSERT INTO svod_report_employees (employee_id, order_index)
+                VALUES (%s, %s)
+            """, (employee_id, next_order_index))
             conn.commit()
         except Exception as e:
             if "duplicate key value violates unique constraint" in str(e):
@@ -2272,9 +2292,8 @@ async def add_employee_to_svod(data: dict):
         conn.close()
         
         return {
-            "message": f"Сотрудник {employee[0]} добавлен в свод на {report_date}",
+            "message": f"Сотрудник {employee[0]} добавлен в свод",
             "employee_id": employee_id,
-            "report_date": report_date,
             "order_index": next_order_index
         }
         
@@ -2285,41 +2304,36 @@ async def add_employee_to_svod(data: dict):
 
 @app.post("/svod-report/add-position")
 async def add_position_to_svod(data: dict):
-    """Добавить должность (без сотрудника) в свод ТРК с привязкой к дате"""
+    """Добавить должность (без сотрудника) в свод ТРК"""
     try:
         position = data.get('position')
-        report_date = data.get('report_date')
         
         if not position or not position.strip():
             raise HTTPException(status_code=400, detail="Необходимо указать название должности")
         
-        if not report_date:
-            raise HTTPException(status_code=400, detail="Необходимо указать report_date")
-        
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # Получаем максимальный order_index для этой даты
+        # Получаем максимальный order_index
         cursor.execute("""
             SELECT COALESCE(MAX(order_index), -1) + 1
-            FROM svod_report_employees 
-            WHERE report_date = %s
-        """, (report_date,))
+            FROM svod_report_employees
+        """)
         next_order_index = cursor.fetchone()[0]
         
         # Добавляем запись с должностью, но без сотрудника (employee_id = NULL)
+        # report_date оставляем NULL, так как это общий свод
         cursor.execute("""
-            INSERT INTO svod_report_employees (employee_id, report_date, order_index, position_override)
-            VALUES (NULL, %s, %s, %s)
-        """, (report_date, next_order_index, position.strip()))
+            INSERT INTO svod_report_employees (employee_id, order_index, position_override)
+            VALUES (NULL, %s, %s)
+        """, (next_order_index, position.strip()))
         conn.commit()
         
         conn.close()
         
         return {
-            "message": f"Должность '{position}' добавлена в свод на {report_date}",
+            "message": f"Должность '{position}' добавлена в свод",
             "position": position,
-            "report_date": report_date,
             "order_index": next_order_index
         }
         
@@ -2329,38 +2343,33 @@ async def add_position_to_svod(data: dict):
         raise HTTPException(status_code=500, detail=f"Ошибка добавления должности: {str(e)}")
 
 @app.delete("/svod-report/remove-employee")
-async def remove_employee_from_svod(employee_id: int, report_date: str = None):
-    """Убрать сотрудника из свода ТРК с привязкой к дате"""
+async def remove_employee_from_svod(svod_id: int = None, employee_id: int = None):
+    """Убрать сотрудника или должность из свода ТРК"""
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # Проверяем существование сотрудника
-        cursor.execute("SELECT full_name FROM employees WHERE id = %s", (employee_id,))
-        employee = cursor.fetchone()
-        if not employee:
-            raise HTTPException(status_code=404, detail="Сотрудник не найден")
-        
-        # Удаляем из свода
-        if report_date:
+        # Удаляем запись по svod_id или employee_id
+        if svod_id:
             cursor.execute("""
                 DELETE FROM svod_report_employees
-                WHERE employee_id = %s AND report_date = %s
-            """, (employee_id, report_date))
-        else:
-            # Если дата не указана, удаляем все записи для этого сотрудника
+                WHERE id = %s
+            """, (svod_id,))
+        elif employee_id:
             cursor.execute("""
                 DELETE FROM svod_report_employees
                 WHERE employee_id = %s
             """, (employee_id,))
+        else:
+            raise HTTPException(status_code=400, detail="Необходимо указать svod_id или employee_id")
         
         conn.commit()
         conn.close()
         
         return {
-            "message": f"Сотрудник {employee[0]} убран из свода",
-            "employee_id": employee_id,
-            "report_date": report_date
+            "message": "Запись удалена из свода",
+            "svod_id": svod_id,
+            "employee_id": employee_id
         }
         
     except HTTPException:

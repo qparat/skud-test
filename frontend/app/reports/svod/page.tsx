@@ -1,18 +1,21 @@
 'use client'
 import React, { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { apiRequest } from '@/lib/api'
 // *** 1. ИМПОРТ EXCELJS ***
 import * as ExcelJS from 'exceljs' 
-import { Calendar, ChevronLeft, ChevronRight, GripVertical, Plus, FileText, Trash2, X } from 'lucide-react'
+import { Calendar, ChevronLeft, ChevronRight, GripVertical, Plus, FileText, Trash2, X, ArrowLeft } from 'lucide-react'
 
 // --- Типы данных (интерфейсы) ---
 interface SvodEmployee {
   id: number
+  svod_id: number
   full_name: string
   position: string
   department: string
   comment: string
   exception_type: string | null
+  is_position_only?: boolean  // Флаг: true если это только должность без сотрудника
 }
 
 interface AllEmployee {
@@ -28,6 +31,11 @@ interface BirthdayEmployee {
   position: string
   department: string
   birth_date: string
+}
+
+interface Position {
+  id: number
+  name: string
 }
 
 // --- Вспомогательные функции ---
@@ -62,6 +70,7 @@ const formatBirthDate = (dateStr: string) => {
 
 // --- Основной компонент ---
 export default function SvodReportPage() {
+  const router = useRouter()
   const [svodEmployees, setSvodEmployees] = useState<SvodEmployee[]>([])
   const [allEmployees, setAllEmployees] = useState<AllEmployee[]>([])
   const [birthdayEmployees, setBirthdayEmployees] = useState<BirthdayEmployee[]>([])
@@ -76,7 +85,12 @@ export default function SvodReportPage() {
   const [showModal, setShowModal] = useState(false)
   const [showReportModal, setShowReportModal] = useState(false)
   const [showPositionModal, setShowPositionModal] = useState(false)
+  const [showSelectPositionModal, setShowSelectPositionModal] = useState(false)
+  const [showAssignEmployeeModal, setShowAssignEmployeeModal] = useState(false)
   const [newPosition, setNewPosition] = useState('')
+  const [allPositions, setAllPositions] = useState<Position[]>([])
+  const [selectedPosition, setSelectedPosition] = useState<Position | null>(null)
+  const [selectedSvodEntry, setSelectedSvodEntry] = useState<SvodEmployee | null>(null)
   const [actionLoading, setActionLoading] = useState<number | null>(null)
   
   // Состояния для календаря
@@ -146,6 +160,16 @@ export default function SvodReportPage() {
     }
   }
 
+  // Загрузка всех должностей
+  const loadAllPositions = async () => {
+    try {
+      const data = await apiRequest('positions')
+      setAllPositions(data.positions || [])
+    } catch (err) {
+      console.error('Ошибка загрузки списка должностей:', err)
+    }
+  }
+
   // Открыть модальное окно
   const openModal = () => {
     setShowModal(true)
@@ -165,54 +189,90 @@ export default function SvodReportPage() {
       await apiRequest('svod-report/add-employee', {
         method: 'POST',
         body: JSON.stringify({
-          employee_id: employee.id,
-          report_date: selectedDate
+          employee_id: employee.id
         })
       })
       await loadSvodReport()
       setShowModal(false)
     } catch (err) {
       console.error('Ошибка добавления в свод:', err)
-      // *** 4. ИСПРАВЛЕНИЕ: alert() закомментирован ***
-      // alert('Ошибка добавления в свод')
     } finally {
       setActionLoading(null)
     }
   }
 
-  // Убрать сотрудника из свода
-  const removeFromSvod = async (employeeId: number) => {
-    setActionLoading(employeeId)
+  // Назначить сотрудника на должность
+  const assignEmployeeToPosition = async (employee: AllEmployee) => {
+    if (!selectedSvodEntry) return
+    
+    setActionLoading(employee.id)
     try {
-      await apiRequest(`svod-report/remove-employee?employee_id=${employeeId}&report_date=${selectedDate}`, {
+      await apiRequest('svod-report/add-employee', {
+        method: 'POST',
+        body: JSON.stringify({
+          employee_id: employee.id,
+          svod_id: selectedSvodEntry.svod_id
+        })
+      })
+      await loadSvodReport()
+      setShowAssignEmployeeModal(false)
+      setSelectedSvodEntry(null)
+    } catch (err) {
+      console.error('Ошибка назначения сотрудника:', err)
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
+  // Убрать сотрудника или должность из свода
+  const removeFromSvod = async (entry: SvodEmployee) => {
+    setActionLoading(entry.svod_id)
+    try {
+      await apiRequest(`svod-report/remove-employee?svod_id=${entry.svod_id}`, {
         method: 'DELETE'
       })
       await loadSvodReport()
     } catch (err) {
       console.error('Ошибка удаления из свода:', err)
-      // *** 4. ИСПРАВЛЕНИЕ: alert() закомментирован ***
-      // alert('Ошибка удаления из свода')
     } finally {
       setActionLoading(null)
     }
   }
 
-  // Добавить должность в свод
+  // Добавить должность в свод (текстом)
   const addPositionToSvod = async () => {
     if (!newPosition.trim()) return
     
-    setActionLoading(-1) // Используем -1 для индикации загрузки должности
+    setActionLoading(-1)
     try {
       await apiRequest('svod-report/add-position', {
         method: 'POST',
         body: JSON.stringify({
-          position: newPosition.trim(),
-          report_date: selectedDate
+          position: newPosition.trim()
         })
       })
       await loadSvodReport()
       setShowPositionModal(false)
       setNewPosition('')
+    } catch (err) {
+      console.error('Ошибка добавления должности:', err)
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
+  // Добавить должность из справочника
+  const addPositionFromList = async (position: Position) => {
+    setActionLoading(-position.id)
+    try {
+      await apiRequest('svod-report/add-position', {
+        method: 'POST',
+        body: JSON.stringify({
+          position: position.name
+        })
+      })
+      await loadSvodReport()
+      setShowSelectPositionModal(false)
     } catch (err) {
       console.error('Ошибка добавления должности:', err)
     } finally {
@@ -554,6 +614,15 @@ export default function SvodReportPage() {
   // --- (ОСТАЛЬНОЙ КОД JSX ОСТАЕТСЯ БЕЗ ИЗМЕНЕНИЙ) ---
   return (
     <div className="min-h-screen bg-gray-50 p-4">
+      {/* Кнопка "Назад" */}
+      <button
+        onClick={() => router.push('/reports')}
+        className="mb-4 inline-flex items-center px-3 py-2 border border-gray-300 rounded-lg shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50"
+      >
+        <ArrowLeft className="h-4 w-4 mr-2" />
+        Назад
+      </button>
+
       {/* Панель управления */}
       <div className="bg-white rounded-lg shadow-sm border p-4 mb-6">
         <div className="flex items-center justify-between">
@@ -643,7 +712,10 @@ export default function SvodReportPage() {
               Добавить сотрудника
             </button>
             <button
-              onClick={() => setShowPositionModal(true)}
+              onClick={() => {
+                setShowSelectPositionModal(true)
+                loadAllPositions()
+              }}
               className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 flex items-center"
             >
               <Plus className="h-4 w-4 mr-2" />
@@ -721,7 +793,13 @@ export default function SvodReportPage() {
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-900">{idx + 1}</td>
                     <td className="px-4 py-3 text-sm text-gray-900">{emp.position}</td>
-                    <td className="px-4 py-3 text-sm font-medium text-blue-700">{emp.full_name}</td>
+                    <td className="px-4 py-3 text-sm font-medium">
+                      {emp.is_position_only ? (
+                        <span className="text-gray-400 italic">Не назначен</span>
+                      ) : (
+                        <span className="text-blue-700">{emp.full_name}</span>
+                      )}
+                    </td>
                     <td className="px-4 py-3 text-sm">
                       {emp.comment ? (
                         emp.exception_type === 'at_work' ? (
@@ -736,13 +814,27 @@ export default function SvodReportPage() {
                       )}
                     </td>
                     <td className="px-4 py-3 text-center">
-                      <button
-                        onClick={() => removeFromSvod(emp.id)}
-                        disabled={actionLoading === emp.id}
-                        className="px-3 py-1 bg-red-500 text-white text-xs rounded hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {actionLoading === emp.id ? 'Удаление...' : 'Убрать'}
-                      </button>
+                      {emp.is_position_only ? (
+                        <button
+                          onClick={() => {
+                            setSelectedSvodEntry(emp)
+                            setShowAssignEmployeeModal(true)
+                            loadAllEmployees()
+                          }}
+                          disabled={actionLoading === emp.svod_id}
+                          className="px-3 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          Назначить сотрудника
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => removeFromSvod(emp)}
+                          disabled={actionLoading === emp.svod_id}
+                          className="px-3 py-1 bg-red-500 text-white text-xs rounded hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {actionLoading === emp.svod_id ? 'Удаление...' : 'Убрать'}
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -993,6 +1085,102 @@ export default function SvodReportPage() {
               >
                 {actionLoading === -1 ? 'Добавление...' : 'Добавить'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Модальное окно выбора должности из справочника */}
+      {showSelectPositionModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg w-full max-w-xl max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="flex justify-between items-center p-4 border-b">
+              <h3 className="text-lg font-semibold">Выбрать должность из справочника</h3>
+              <button
+                onClick={() => setShowSelectPositionModal(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+            
+            <div className="overflow-y-auto flex-grow">
+              {allPositions.length === 0 ? (
+                <div className="text-center p-8 text-gray-500">
+                  Загрузка списка должностей...
+                </div>
+              ) : (
+                <ul className="divide-y divide-gray-100">
+                  {allPositions.map((pos) => (
+                    <li key={pos.id} className="flex items-center justify-between p-3 hover:bg-gray-50">
+                      <div className="font-medium text-gray-900">{pos.name}</div>
+                      <button
+                        onClick={() => addPositionFromList(pos)}
+                        disabled={actionLoading === -pos.id}
+                        className="px-3 py-1 bg-purple-500 text-white text-sm rounded hover:bg-purple-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {actionLoading === -pos.id ? 'Добавление...' : 'Добавить'}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Модальное окно назначения сотрудника на должность */}
+      {showAssignEmployeeModal && selectedSvodEntry && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg w-full max-w-xl max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="flex justify-between items-center p-4 border-b">
+              <h3 className="text-lg font-semibold">Назначить сотрудника на должность: {selectedSvodEntry.position}</h3>
+              <button
+                onClick={() => {
+                  setShowAssignEmployeeModal(false)
+                  setSelectedSvodEntry(null)
+                }}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+            
+            <div className="p-4 border-b">
+              <input
+                type="text"
+                value={modalSearchQuery}
+                onChange={(e) => setModalSearchQuery(e.target.value)}
+                placeholder="Поиск по ФИО или должности..."
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            
+            <div className="overflow-y-auto flex-grow">
+              {filteredAllEmployees.length === 0 ? (
+                <div className="text-center p-8 text-gray-500">
+                  {allEmployees.length === 0 ? 'Загрузка списка сотрудников...' : 'Сотрудники не найдены или уже в своде.'}
+                </div>
+              ) : (
+                <ul className="divide-y divide-gray-100">
+                  {filteredAllEmployees.map((emp) => (
+                    <li key={emp.id} className="flex items-center justify-between p-3 hover:bg-gray-50">
+                      <div>
+                        <div className="font-medium text-gray-900">{emp.full_name}</div>
+                        <div className="text-sm text-gray-500">{emp.position}</div>
+                      </div>
+                      <button
+                        onClick={() => assignEmployeeToPosition(emp)}
+                        disabled={actionLoading === emp.id}
+                        className="px-3 py-1 bg-blue-500 text-white text-sm rounded hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {actionLoading === emp.id ? 'Назначение...' : 'Назначить'}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
           </div>
         </div>
