@@ -216,6 +216,10 @@ class ExceptionRangeCreate(BaseModel):
     reason: str
     exception_type: str = "no_lateness_check"
 
+class UpdateFullNameByName(BaseModel):
+    full_name: str
+    full_name_expanded: str
+
 def create_employee_exceptions_table():
     """Создает таблицу исключений для сотрудников, если её нет"""
     try:
@@ -3589,13 +3593,13 @@ async def update_employee_full_name(employee_id: int, data: dict = Body(...)):
 
 
 @app.put("/api/employees/update-by-name")
-async def update_employee_full_name_by_name(data: dict = Body(...)):
+async def update_employee_full_name_by_name(data: UpdateFullNameByName):
     """
     Обновить полное ФИО сотрудника по короткому имени
     """
     try:
-        full_name = data.get('full_name', '').strip()
-        full_name_expanded = data.get('full_name_expanded', '').strip()
+        full_name = data.full_name.strip()
+        full_name_expanded = data.full_name_expanded.strip()
         
         if not full_name:
             raise HTTPException(status_code=400, detail="full_name обязателен")
