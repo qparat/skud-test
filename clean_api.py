@@ -3499,7 +3499,7 @@ async def get_dashboard_birthdays(
         raise HTTPException(status_code=500, detail=f"Ошибка получения данных: {str(e)}")
 
 
-@app.get("/api/employees-list")
+@app.get("/employees-list")
 async def get_employees_list():
     """
     Получить список всех сотрудников для редактирования полных ФИО
@@ -3592,7 +3592,7 @@ async def update_employee_full_name(employee_id: int, data: dict = Body(...)):
         raise HTTPException(status_code=500, detail=f"Ошибка обновления: {str(e)}")
 
 
-@app.put("/api/employees/update-by-name")
+@app.put("/employees/update-by-name")
 async def update_employee_full_name_by_name(data: UpdateFullNameByName):
     """
     Обновить полное ФИО сотрудника по короткому имени
