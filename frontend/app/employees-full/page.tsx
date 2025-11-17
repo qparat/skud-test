@@ -184,7 +184,7 @@ export default function EmployeesFullPage() {
                     };
                     
                     // Функция для создания ключа из ФИО (Фамилия + инициалы)
-                    const createKey = (name: string): string => {
+                    const createKey = (name: string, debug = false): string => {
                       const normalized = normalizeString(name);
                       // Убираем точки, лишние пробелы
                       const cleaned = normalized.replace(/\./g, '').replace(/\s+/g, ' ').trim();
@@ -198,16 +198,23 @@ export default function EmployeesFullPage() {
                       // Собираем ВСЕ инициалы из остальных частей
                       // Для сокращённых (Д Ж) каждая часть - это инициал
                       // Для полных (Дарья Жановна) берём первые буквы
-                      const initials = parts.slice(1)
-                        .map(part => {
-                          // Если часть состоит из одной буквы (инициал), берём её
-                          if (part.length === 1) {
-                            return part.toUpperCase();
-                          }
-                          // Иначе берём первую букву (для полных имён)
-                          return part[0]?.toUpperCase() || '';
-                        })
-                        .filter(i => i && /[А-ЯA-Z]/.test(i))
+                      const initialsRaw = parts.slice(1).map(part => {
+                        // Если часть состоит из одной буквы (инициал), берём её
+                        if (part.length === 1) {
+                          return part.toUpperCase();
+                        }
+                        // Иначе берём первую букву (для полных имён)
+                        return part[0]?.toUpperCase() || '';
+                      });
+                      
+                      if (debug && initialsRaw.length > 0) {
+                        console.log(`  DEBUG: "${name}" → parts:`, parts);
+                        console.log(`  DEBUG: initialsRaw:`, initialsRaw);
+                        console.log(`  DEBUG: после фильтра:`, initialsRaw.filter(i => i && /[А-ЯA-ZЁЁ]/.test(i)));
+                      }
+                      
+                      const initials = initialsRaw
+                        .filter(i => i && /[А-ЯA-ZЁЁ]/.test(i))
                         .join('');
                       
                       return `${surname}${initials}`;
@@ -240,7 +247,7 @@ export default function EmployeesFullPage() {
                     console.log('Примеры из файла 1 (первые 5):');
                     for (let i = 0; i < Math.min(5, shortNames.length); i++) {
                       const shortName = shortNames[i];
-                      const key = createKey(shortName);
+                      const key = createKey(shortName, true); // Enable debug for first 5
                       const matched = fullNamesMap[key];
                       console.log(`  "${shortName}" → ключ: "${key}" → ${matched ? '✅ ' + matched : '❌ не найдено'}`);
                     }
