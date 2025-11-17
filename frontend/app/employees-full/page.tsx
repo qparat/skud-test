@@ -270,39 +270,50 @@ export default function EmployeesFullPage() {
                       });
                     }
                     
-                    // Обновляем сотрудников
+                    // Обновляем сотрудников через новый API endpoint
                     let updated = 0;
                     let notFound = 0;
-                    let notMatched = 0;
+                    let errors = 0;
                     
                     for (const [shortName, fullName] of Object.entries(mapping)) {
-                      const employee = employees.find(e => e.full_name === shortName);
-                      if (employee) {
-                        try {
-                          const response = await fetch(`/api/employees/${employee.id}/full-name`, {
-                            method: 'PUT',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ full_name_expanded: fullName })
-                          });
-                          
-                          if (response.ok) {
-                            updated++;
-                            console.log(`✅ ${shortName} → ${fullName}`);
-                          }
-                        } catch (error) {
-                          console.error(`Ошибка обновления ${shortName}:`, error);
+                      try {
+                        // Используем новый endpoint для обновления по короткому имени
+                        const response = await fetch(`/api/employees/update-by-name`, {
+                          method: 'PUT',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ 
+                            full_name: shortName,
+                            full_name_expanded: fullName 
+                          })
+                        });
+                        
+                        if (response.ok) {
+                          updated++;
+                          console.log(`✅ ${shortName} → ${fullName}`);
+                        } else if (response.status === 404) {
+                          notFound++;
+                          console.warn(`⚠️ Не найден в БД: ${shortName}`);
+                        } else {
+                          errors++;
+                          console.error(`❌ Ошибка обновления ${shortName}:`, response.statusText);
                         }
-                      } else {
-                        notFound++;
-                        console.warn(`⚠️ Не найден в БД: ${shortName}`);
+                      } catch (error) {
+                        errors++;
+                        console.error(`❌ Ошибка обновления ${shortName}:`, error);
                       }
                     }
                     
-                    notMatched = shortNames.length - Object.keys(mapping).length;
+                    const notMatched = shortNames.length - Object.keys(mapping).length;
                     
                     localStorage.removeItem('shortNames');
-                    alert(`Готово!\n\nОбновлено: ${updated}\nНе найдено в БД: ${notFound}\nНе совпало по ФИО: ${notMatched}\n\nВсего из файла 1: ${shortNames.length}\nВсего из файла 2: ${fullNames.length}`);
-                    fetchEmployees(); // Обновляем список
+                    alert(`Готово!\n\nОбновлено: ${updated}\nНе найдено в БД: ${notFound}\nНе совпало по ФИО: ${notMatched}\nОшибки: ${errors}\n\nВсего из файла 1: ${shortNames.length}\nВсего из файла 2: ${fullNames.length}`);
+                    
+                    // Обновляем список только если API доступно
+                    try {
+                      await fetchEmployees();
+                    } catch (e) {
+                      console.log('Не удалось обновить список (API недоступно)');
+                    }
                   }}
                 />
               </label>
