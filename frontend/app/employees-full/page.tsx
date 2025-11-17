@@ -195,9 +195,18 @@ export default function EmployeesFullPage() {
                       // Фамилия - это всегда первая часть
                       const surname = parts[0].toUpperCase();
                       
-                      // Собираем все первые буквы остальных частей
+                      // Собираем ВСЕ инициалы из остальных частей
+                      // Для сокращённых (Д Ж) каждая часть - это инициал
+                      // Для полных (Дарья Жановна) берём первые буквы
                       const initials = parts.slice(1)
-                        .map(p => p[0]?.toUpperCase() || '')
+                        .map(part => {
+                          // Если часть состоит из одной буквы (инициал), берём её
+                          if (part.length === 1) {
+                            return part.toUpperCase();
+                          }
+                          // Иначе берём первую букву (для полных имён)
+                          return part[0]?.toUpperCase() || '';
+                        })
                         .filter(i => i && /[А-ЯA-Z]/.test(i))
                         .join('');
                       
