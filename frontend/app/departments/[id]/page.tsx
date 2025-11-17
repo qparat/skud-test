@@ -27,6 +27,7 @@ interface Employee {
   employee_id: number;
   id?: number; // Добавляем поле id для совместимости с разными эндпоинтами
   full_name: string;
+  full_name_expanded?: string | null;
   position: string;
   department?: string;
 }
@@ -643,7 +644,7 @@ export default function DepartmentDetailPage() {
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-gray-500">ID: {employee.employee_id}</span>
                       <button
-                        onClick={() => removeEmployeeFromDepartment(employee.employee_id, employee.full_name)}
+                        onClick={() => removeEmployeeFromDepartment(employee.employee_id, employee.full_name_expanded || employee.full_name)}
                         className="text-red-500 hover:text-red-700 text-sm"
                         title="Убрать сотрудника из службы"
                       >

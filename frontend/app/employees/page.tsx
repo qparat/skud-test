@@ -8,6 +8,7 @@ import { apiRequest } from '@/lib/api'
 interface Employee {
   employee_id: number
   full_name: string
+  full_name_expanded?: string | null
   position: string
   birth_date?: string
   department?: string
@@ -87,7 +88,7 @@ export default function EmployeesPage() {
         filtered[departmentName] = empList;
       } else {
         const filteredEmployees = empList.filter((emp: Employee) =>
-          emp.full_name.toLowerCase().includes(term) ||
+          (emp.full_name_expanded || emp.full_name).toLowerCase().includes(term) ||
           emp.position.toLowerCase().includes(term) ||
           (emp.department && emp.department.toLowerCase().includes(term))
         );

@@ -104,7 +104,7 @@ async def get_employee_exceptions():
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute("""
-            SELECT ee.id, ee.employee_id, e.full_name, ee.exception_date, ee.reason, ee.exception_type
+            SELECT ee.id, ee.employee_id, e.full_name, e.full_name_expanded, ee.exception_date, ee.reason, ee.exception_type
             FROM employee_exceptions ee
             LEFT JOIN employees e ON ee.employee_id = e.id
             ORDER BY ee.exception_date DESC, e.full_name
@@ -115,9 +115,10 @@ async def get_employee_exceptions():
                 "id": row[0],
                 "employee_id": row[1],
                 "full_name": row[2],
-                "exception_date": row[3].strftime('%Y-%m-%d') if row[3] else None,
-                "reason": row[4],
-                "exception_type": row[5]
+                "full_name_expanded": row[3],
+                "exception_date": row[4].strftime('%Y-%m-%d') if row[4] else None,
+                "reason": row[5],
+                "exception_type": row[6]
             })
         conn.close()
         return JSONResponse(content={"exceptions": exceptions})
@@ -883,7 +884,7 @@ async def get_employee_schedule(
         all_logs = execute_query(
             conn,
             """
-            SELECT al.employee_id, e.full_name, e.department_id, CAST(al.access_datetime AS TIME) as access_time, al.door_location
+            SELECT al.employee_id, e.full_name, e.full_name_expanded, e.department_id, CAST(al.access_datetime AS TIME) as access_time, al.door_location
             FROM access_logs al
             JOIN employees e ON al.employee_id = e.id
             WHERE DATE(al.access_datetime) = %s
@@ -907,6 +908,7 @@ async def get_employee_schedule(
         for log in all_logs:
             employee_id = log['employee_id']
             full_name = log['full_name']
+            full_name_expanded = log.get('full_name_expanded')
             department_id = log['department_id']
             access_time = log['access_time']
             door_location = log['door_location']
@@ -915,6 +917,7 @@ async def get_employee_schedule(
                 employees_dict[employee_id] = {
                     'id': employee_id,
                     'name': full_name,
+                    'name_expanded': full_name_expanded,
                     'department_id': department_id,
                     'entries': [],
                     'exits': []
@@ -1038,6 +1041,7 @@ async def get_employee_schedule(
             employees_schedule.append({
                 'employee_id': emp_data['id'],
                 'full_name': emp_data['name'],
+                'full_name_expanded': emp_data.get('name_expanded'),
                 'department_id': emp_data['department_id'],
                 'department_name': dept_names_map.get(emp_data['department_id'], None),
                 'first_entry': first_entry,
@@ -1117,7 +1121,7 @@ async def get_employee_schedule_range(
         cursor.execute("SELECT id, name FROM departments")
         dept_names_map = {row[0]: row[1] for row in cursor.fetchall()}
         cursor.execute("""
-            SELECT DISTINCT e.id, e.full_name 
+            SELECT DISTINCT e.id, e.full_name, e.full_name_expanded
             FROM employees e
             INNER JOIN access_logs al ON e.id = al.employee_id
             WHERE e.is_active = TRUE
@@ -1137,7 +1141,7 @@ async def get_employee_schedule_range(
         cursor.execute("SELECT department_id, reason, exception_type FROM whitelist_departments")
         whitelist_map = {row[0]: {'reason': row[1], 'type': row[2]} for row in cursor.fetchall()}
 
-        for emp_id, emp_name in employees:
+        for emp_id, emp_name, emp_name_expanded in employees:
             employee_days = []
             department_id = emp_dept_map.get(emp_id)
             department_name = dept_names_map.get(department_id, None)
@@ -1246,6 +1250,7 @@ async def get_employee_schedule_range(
                 employees_with_days.append({
                     'employee_id': emp_id,
                     'full_name': emp_name,
+                    'full_name_expanded': emp_name_expanded,
                     'department_id': department_id,
                     'department_name': department_name,
                     'days': employee_days
@@ -1456,7 +1461,7 @@ async def get_all_employees():
         results = execute_query(
             conn,
             """
-            SELECT e.id, e.full_name, 
+            SELECT e.id, e.full_name, e.full_name_expanded,
                    p.name as position_name, 
                    d.name as department_name,
                    e.birth_date
@@ -1483,6 +1488,7 @@ async def get_all_employees():
             departments[department].append({
                 'employee_id': row['id'],
                 'full_name': row['full_name'],
+                'full_name_expanded': row.get('full_name_expanded'),
                 'position': row.get('position_name') or 'Не указана должность',
                 'birth_date': row.get('birth_date')
             })
@@ -1513,6 +1519,7 @@ async def get_employees_simple():
             SELECT 
                 e.id, 
                 e.full_name,
+                e.full_name_expanded,
                 COALESCE(p.name, 'Не указано') as position,
                 COALESCE(d.name, 'Не указано') as department
             FROM employees e
@@ -1682,7 +1689,7 @@ async def get_unassigned_employees():
         cursor = conn.cursor()
         
         cursor.execute("""
-            SELECT e.id, e.full_name, p.name as position_name, d.name as department_name, e.position_id
+            SELECT e.id, e.full_name, e.full_name_expanded, p.name as position_name, d.name as department_name, e.position_id
             FROM employees e
             LEFT JOIN positions p ON e.position_id = p.id
             LEFT JOIN departments d ON e.department_id = d.id
@@ -1691,10 +1698,11 @@ async def get_unassigned_employees():
         """)
         
         employees = []
-        for emp_id, name, position, department, position_id in cursor.fetchall():
+        for emp_id, name, name_expanded, position, department, position_id in cursor.fetchall():
             employees.append({
                 'employee_id': emp_id,
                 'full_name': name,
+                'full_name_expanded': name_expanded,
                 'position': position or 'Не указана',
                 'department': department or 'Не назначена',
                 'position_id': position_id
@@ -1714,7 +1722,7 @@ async def get_employee_details(employee_id: int):
         cursor = conn.cursor()
         
         cursor.execute("""
-            SELECT e.id, e.full_name, e.birth_date, e.card_number, e.is_active,
+            SELECT e.id, e.full_name, e.full_name_expanded, e.birth_date, e.card_number, e.is_active,
                    e.created_at, e.updated_at,
                    d.id as department_id, d.name as department_name,
                    p.id as position_id, p.name as position_name
@@ -1733,19 +1741,20 @@ async def get_employee_details(employee_id: int):
         return {
             "id": employee_data[0],
             "full_name": employee_data[1],
-            "birth_date": employee_data[2],
-            "card_number": employee_data[3],
-            "is_active": employee_data[4],
-            "created_at": employee_data[5],
-            "updated_at": employee_data[6],
+            "full_name_expanded": employee_data[2],
+            "birth_date": employee_data[3],
+            "card_number": employee_data[4],
+            "is_active": employee_data[5],
+            "created_at": employee_data[6],
+            "updated_at": employee_data[7],
             "department": {
-                "id": employee_data[7],
-                "name": employee_data[8]
-            } if employee_data[7] else None,
+                "id": employee_data[8],
+                "name": employee_data[9]
+            } if employee_data[8] else None,
             "position": {
-                "id": employee_data[9],
-                "name": employee_data[10]
-            } if employee_data[9] else None
+                "id": employee_data[10],
+                "name": employee_data[11]
+            } if employee_data[10] else None
         }
         
     except HTTPException:
@@ -1896,7 +1905,7 @@ async def get_employees_by_department(department_id: int):
         
         # Получаем сотрудников отдела
         cursor.execute("""
-            SELECT e.id, e.full_name, p.name as position_name
+            SELECT e.id, e.full_name, e.full_name_expanded, p.name as position_name
             FROM employees e
             LEFT JOIN positions p ON e.position_id = p.id
             WHERE e.department_id = %s AND e.is_active = TRUE
@@ -1904,10 +1913,11 @@ async def get_employees_by_department(department_id: int):
         """, (department_id,))
         
         employees = []
-        for emp_id, name, position in cursor.fetchall():
+        for emp_id, name, name_expanded, position in cursor.fetchall():
             employees.append({
                 'employee_id': emp_id,
                 'full_name': name,
+                'full_name_expanded': name_expanded,
                 'position': position or 'Не указана должность'
             })
         
@@ -2246,7 +2256,7 @@ async def get_svod_report(date: str = None):
         employees_data = execute_query(
             conn,
             """
-            SELECT e.id, e.full_name, 
+            SELECT e.id, e.full_name, e.full_name_expanded,
                    COALESCE(sre.position_override, p.name) as position_name,
                    d.name as department_name,
                    sre.order_index,

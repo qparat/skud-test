@@ -33,6 +33,7 @@ interface EmployeeHistory {
 interface EmployeeDetails {
   id: number
   full_name: string
+  full_name_expanded?: string | null
   birth_date?: string
   card_number?: string
   is_active: boolean

@@ -15,12 +15,14 @@ const formatDate = (date: Date) => {
 interface Employee {
   id: number
   full_name: string
+  full_name_expanded?: string | null
 }
 
 interface Exception {
   id: number
   employee_id: number
   full_name: string // добавлено для совместимости с backend
+  full_name_expanded?: string | null
   exception_date: string
   reason: string
   exception_type: string
@@ -105,13 +107,13 @@ export default function ExceptionsPage() {
       return employees
     }
     return employees.filter((employee: Employee) =>
-      employee.full_name.toLowerCase().includes(employeeSearch.toLowerCase())
+      (employee.full_name_expanded || employee.full_name).toLowerCase().includes(employeeSearch.toLowerCase())
     )
   }
 
   const handleEmployeeSelect = (employee: Employee) => {
   setSelectedEmployeeId(employee.id)
-  setEmployeeSearch(employee.full_name)
+  setEmployeeSearch(employee.full_name_expanded || employee.full_name)
   setShowEmployeeDropdown(false)
   setFormData((prev: typeof formData) => ({ ...prev, employee_id: employee.id.toString() }))
   }
@@ -466,7 +468,7 @@ export default function ExceptionsPage() {
 
   // Фильтрация исключений
   const filteredExceptions = exceptions.filter((exception: Exception) => {
-    const nameMatch = searchName.trim() === '' || exception.full_name.toLowerCase().includes(searchName.trim().toLowerCase());
+    const nameMatch = searchName.trim() === '' || (exception.full_name_expanded || exception.full_name).toLowerCase().includes(searchName.trim().toLowerCase());
     const reasonMatch = searchReason.trim() === '' || exception.reason.toLowerCase().includes(searchReason.trim().toLowerCase());
     
     let dateMatch = true;
@@ -650,7 +652,7 @@ export default function ExceptionsPage() {
                       onClick={() => handleEmployeeSelect(employee)}
                       className="px-3 py-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0"
                     >
-                      {employee.full_name}
+                      {employee.full_name_expanded || employee.full_name}
                     </div>
                   ))}
                 </div>
@@ -838,7 +840,7 @@ export default function ExceptionsPage() {
                       <div className="flex items-center">
                         <User className="h-4 w-4 text-gray-400 mr-2" />
                         <span className="text-sm font-medium text-gray-900">
-                          {exception.full_name}
+                          {exception.full_name_expanded || exception.full_name}
                         </span>
                       </div>
                     </td>

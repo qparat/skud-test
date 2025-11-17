@@ -18,6 +18,7 @@ const formatDate = (date: Date) => {
 interface Employee {
   employee_id: number
   full_name: string
+  full_name_expanded?: string | null
   department_id: number
   department_name: string | null
   first_entry: string | null
@@ -55,6 +56,7 @@ interface DayData {
 interface EmployeeWithDays {
   employee_id: number
   full_name: string
+  full_name_expanded?: string | null
   department_id: number
   department_name: string | null
   days: DayData[]
@@ -469,17 +471,17 @@ export function EmployeeSchedule() {
           return (filteredEmployees as Employee[]).sort((a, b) => {
             if (a.is_late && !b.is_late) return -1
             if (!a.is_late && b.is_late) return 1
-            return a.full_name.localeCompare(b.full_name)
+            return (a.full_name_expanded || a.full_name).localeCompare(b.full_name_expanded || b.full_name)
           })
         case 'normal-first':
           return (filteredEmployees as Employee[]).sort((a, b) => {
             if (!a.is_late && b.is_late) return -1
             if (a.is_late && !b.is_late) return 1
-            return a.full_name.localeCompare(b.full_name)
+            return (a.full_name_expanded || a.full_name).localeCompare(b.full_name_expanded || b.full_name)
           })
         default:
           return (filteredEmployees as Employee[]).sort((a, b) => 
-            a.full_name.localeCompare(b.full_name)
+            (a.full_name_expanded || a.full_name).localeCompare(b.full_name_expanded || b.full_name)
           )
       }
     } else {
@@ -490,7 +492,7 @@ export function EmployeeSchedule() {
         emp.days.forEach(day => {
           flatData.push({
             employee_id: emp.employee_id,
-            full_name: emp.full_name,
+            full_name: emp.full_name_expanded || emp.full_name,
             department_id: emp.department_id,
             department_name: emp.department_name,
             date: day.date,
@@ -579,7 +581,7 @@ export function EmployeeSchedule() {
       }
       
       // В любом случае вторичная сортировка по ФИО
-      return aFirst.full_name.localeCompare(bFirst.full_name)
+      return (aFirst.full_name_expanded || aFirst.full_name).localeCompare(bFirst.full_name_expanded || bFirst.full_name)
     })
     
     // Серверная пагинация уже применена - обрабатываем все полученные группы
@@ -722,7 +724,7 @@ export function EmployeeSchedule() {
         emp.days.forEach(day => {
           flatData.push({
             employee_id: emp.employee_id,
-            full_name: emp.full_name,
+            full_name: emp.full_name_expanded || emp.full_name,
             department_id: emp.department_id,
             department_name: emp.department_name,
             date: day.date,
@@ -786,8 +788,8 @@ export function EmployeeSchedule() {
           const sortedEmployeeIds = Object.keys(employeesInDept)
             .map(id => parseInt(id))
             .sort((a, b) => {
-              const aName = employeesInDept[a][0].full_name
-              const bName = employeesInDept[b][0].full_name
+              const aName = employeesInDept[a][0].full_name_expanded || employeesInDept[a][0].full_name
+              const bName = employeesInDept[b][0].full_name_expanded || employeesInDept[b][0].full_name
               return aName.localeCompare(bName, 'ru')
             })
           
@@ -800,7 +802,7 @@ export function EmployeeSchedule() {
             // TODO: Добавить должность когда API будет возвращать position_name
             excelData.push({
               '№': '',
-              'ФИО/Должность': `    ${firstDay.full_name}`, // TODO: добавить " - Должность" когда API вернет
+              'ФИО/Должность': `    ${firstDay.full_name_expanded || firstDay.full_name}`, // TODO: добавить " - Должность" когда API вернет
               'Дата': '',
               'Пришел': '',
               'Ушел': '',
@@ -905,14 +907,14 @@ export function EmployeeSchedule() {
             
             // Сортируем сотрудников в отделе по алфавиту
             const deptEmps = byDepartment[deptName].sort((a, b) => 
-              a.full_name.localeCompare(b.full_name, 'ru')
+              (a.full_name_expanded || a.full_name).localeCompare(b.full_name_expanded || b.full_name, 'ru')
             )
             
             // Данные сотрудников отдела
             deptEmps.forEach(emp => {
               excelData.push({
                 '№': dayRowIndex++,
-                'ФИО': emp.full_name,
+                'ФИО': emp.full_name_expanded || emp.full_name,
                 'Пришел': emp.first_entry || '-',
                 'Ушел': emp.last_exit || '-',
                 'Часы работы': emp.work_hours !== null && emp.work_hours !== undefined ? `${emp.work_hours.toFixed(1)} ч` : '-',
@@ -926,7 +928,7 @@ export function EmployeeSchedule() {
           console.log(`[EXPORT] Sorting alphabetically for date ${date}`)
           // Сортировка по алфавиту
           const sortedEmps = dayEmployees.sort((a, b) => 
-            a.full_name.localeCompare(b.full_name, 'ru')
+            (a.full_name_expanded || a.full_name).localeCompare(b.full_name_expanded || b.full_name, 'ru')
           )
           
           // Строка с датой
@@ -947,7 +949,7 @@ export function EmployeeSchedule() {
           sortedEmps.forEach(emp => {
             excelData.push({
               '№': dayRowIndex++,
-              'ФИО': emp.full_name,
+              'ФИО': emp.full_name_expanded || emp.full_name,
               'Пришел': emp.first_entry || '-',
               'Ушел': emp.last_exit || '-',
               'Часы работы': emp.work_hours !== null && emp.work_hours !== undefined ? `${emp.work_hours.toFixed(1)} ч` : '-',
@@ -1006,14 +1008,14 @@ export function EmployeeSchedule() {
           
           // Сортируем сотрудников в отделе по алфавиту
           const deptEmps = byDepartment[deptName].sort((a, b) => 
-            a.full_name.localeCompare(b.full_name, 'ru')
+            (a.full_name_expanded || a.full_name).localeCompare(b.full_name_expanded || b.full_name, 'ru')
           )
           
           // Данные сотрудников отдела
           deptEmps.forEach(emp => {
             excelData.push({
               '№': rowIndex++,
-              'ФИО': emp.full_name,
+              'ФИО': emp.full_name_expanded || emp.full_name,
               'Пришел': emp.first_entry || '-',
               'Ушел': emp.last_exit || '-',
               'Часы работы': emp.work_hours !== null && emp.work_hours !== undefined ? `${emp.work_hours.toFixed(1)} ч` : '-',
