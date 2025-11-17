@@ -145,13 +145,48 @@ export default function EmployeesPage() {
           </p>
         </div>
         
-        <button
-          onClick={handleScheduleClick}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
-        >
-          <Calendar className="h-4 w-4" />
-          Расписание на сегодня
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => {
+              if (!departmentsData) return;
+              
+              // Собираем все ФИО сотрудников
+              const allEmployees: string[] = [];
+              Object.values(departmentsData.departments).forEach((employees) => {
+                (employees as Employee[]).forEach((emp) => {
+                  allEmployees.push(emp.full_name);
+                });
+              });
+              
+              // Сортируем по алфавиту и убираем дубликаты
+              const uniqueEmployees = [...new Set(allEmployees)].sort();
+              
+              // Создаем текстовый файл
+              const text = uniqueEmployees.join('\n');
+              const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+              const url = URL.createObjectURL(blob);
+              const link = document.createElement('a');
+              link.href = url;
+              link.download = `employees_list_${new Date().toISOString().split('T')[0]}.txt`;
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+              URL.revokeObjectURL(url);
+            }}
+            className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
+          >
+            <Users className="h-4 w-4" />
+            Скачать список
+          </button>
+          
+          <button
+            onClick={handleScheduleClick}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+          >
+            <Calendar className="h-4 w-4" />
+            Расписание на сегодня
+          </button>
+        </div>
       </div>
 
       {/* Search */}
