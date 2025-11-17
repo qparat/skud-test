@@ -186,8 +186,8 @@ export default function EmployeesFullPage() {
                     // Функция для создания ключа из ФИО (Фамилия + инициалы)
                     const createKey = (name: string, debug = false): string => {
                       const normalized = normalizeString(name);
-                      // Убираем точки, лишние пробелы
-                      const cleaned = normalized.replace(/\./g, '').replace(/\s+/g, ' ').trim();
+                      // Заменяем точки на пробелы, чтобы инициалы разделились
+                      const cleaned = normalized.replace(/\./g, ' ').replace(/\s+/g, ' ').trim();
                       const parts = cleaned.split(' ').filter(p => p);
                       
                       if (parts.length === 0) return '';
