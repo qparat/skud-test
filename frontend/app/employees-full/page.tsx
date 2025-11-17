@@ -183,16 +183,22 @@ export default function EmployeesFullPage() {
                       return str.split('').map(normalizeChar).join('');
                     };
                     
-                    // Функция для создания ключа из ФИО (Фамилия + первые буквы имени и отчества)
+                    // Функция для создания ключа из ФИО (Фамилия + инициалы)
                     const createKey = (name: string): string => {
                       const normalized = normalizeString(name);
-                      const parts = normalized.split(/[\s.]+/).filter(p => p);
+                      // Убираем точки, лишние пробелы
+                      const cleaned = normalized.replace(/\./g, '').replace(/\s+/g, ' ').trim();
+                      const parts = cleaned.split(' ').filter(p => p);
+                      
                       if (parts.length === 0) return '';
                       
+                      // Фамилия - это всегда первая часть
                       const surname = parts[0].toUpperCase();
+                      
+                      // Собираем все первые буквы остальных частей
                       const initials = parts.slice(1)
                         .map(p => p[0]?.toUpperCase() || '')
-                        .filter(i => i)
+                        .filter(i => i && /[А-ЯA-Z]/.test(i))
                         .join('');
                       
                       return `${surname}${initials}`;
@@ -200,6 +206,14 @@ export default function EmployeesFullPage() {
                     
                     // Создаём маппинг из полных ФИО
                     const fullNamesMap: Record<string, string> = {};
+                    console.log('📝 Создание маппинга из полных ФИО...');
+                    console.log('Примеры из файла 2 (первые 5):');
+                    for (let i = 0; i < Math.min(5, fullNames.length); i++) {
+                      const fullName = fullNames[i];
+                      const key = createKey(fullName);
+                      console.log(`  "${fullName}" → ключ: "${key}"`);
+                    }
+                    
                     for (const fullName of fullNames) {
                       const key = createKey(fullName);
                       if (key) {
@@ -207,16 +221,38 @@ export default function EmployeesFullPage() {
                       }
                     }
                     
+                    console.log(`✅ Создано ${Object.keys(fullNamesMap).length} ключей из полных ФИО`);
+                    
                     // Создаём маппинг для обновления
                     const mapping: Record<string, string> = {};
+                    const notMatchedShort: string[] = [];
+                    
+                    console.log('\n📝 Сопоставление сокращённых ФИО...');
+                    console.log('Примеры из файла 1 (первые 5):');
+                    for (let i = 0; i < Math.min(5, shortNames.length); i++) {
+                      const shortName = shortNames[i];
+                      const key = createKey(shortName);
+                      const matched = fullNamesMap[key];
+                      console.log(`  "${shortName}" → ключ: "${key}" → ${matched ? '✅ ' + matched : '❌ не найдено'}`);
+                    }
+                    
                     for (const shortName of shortNames) {
                       const key = createKey(shortName);
                       if (key && fullNamesMap[key]) {
                         mapping[shortName] = fullNamesMap[key];
+                      } else {
+                        notMatchedShort.push(shortName);
                       }
                     }
                     
-                    console.log('Создан маппинг:', mapping);
+                    console.log(`\n✅ Создан маппинг: ${Object.keys(mapping).length} совпадений`);
+                    console.log(`❌ Не совпало: ${notMatchedShort.length}`);
+                    if (notMatchedShort.length > 0) {
+                      console.log('Примеры не совпавших (первые 10):');
+                      notMatchedShort.slice(0, 10).forEach(name => {
+                        console.log(`  "${name}" → ключ: "${createKey(name)}"`);
+                      });
+                    }
                     
                     // Обновляем сотрудников
                     let updated = 0;
