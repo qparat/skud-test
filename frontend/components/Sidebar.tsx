@@ -28,6 +28,7 @@ const navigation = [
   { name: 'Исключения', href: '/exceptions', icon: Shield, requireRole: 2 },
   { name: 'Пользователи', href: '/users', icon: UserCog, requireRole: 1 },
   { name: 'Загрузка файлов', href: '/upload', icon: Upload, requireRole: 1  },
+  { name: 'Список с ФИО полным', href: '/employees-full', icon: BookOpen, requireRole: 1 },
 ]
 
 export function Sidebar() {

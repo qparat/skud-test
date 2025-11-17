@@ -3493,3 +3493,96 @@ async def get_dashboard_birthdays(
         print(f"Ошибка получения дней рождений: {e}")
         print(f"Полная ошибка: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=f"Ошибка получения данных: {str(e)}")
+
+
+@app.get("/api/employees-list")
+async def get_employees_list():
+    """
+    Получить список всех сотрудников для редактирования полных ФИО
+    """
+    try:
+        conn = get_db_connection()
+        
+        employees = execute_query(
+            conn,
+            """
+            SELECT 
+                e.id,
+                e.full_name,
+                e.full_name_expanded,
+                d.name as department_name,
+                p.name as position_name,
+                e.is_active
+            FROM employees e
+            LEFT JOIN departments d ON e.department_id = d.id
+            LEFT JOIN positions p ON e.position_id = p.id
+            WHERE e.full_name NOT IN ('Охрана М.', '1 пост о.', '2 пост о.', 'Крыша К.', 'Водитель 1 В.', 'Водитель 2 В.', 'Дежурный в.', 'Дежурный В.')
+            ORDER BY e.full_name
+            """,
+            fetch_all=True
+        )
+        
+        conn.close()
+        
+        employees_list = []
+        for emp in employees:
+            employees_list.append({
+                'id': emp['id'],
+                'full_name': emp['full_name'],
+                'full_name_expanded': emp['full_name_expanded'],
+                'department_name': emp['department_name'],
+                'position_name': emp['position_name'],
+                'is_active': emp['is_active']
+            })
+        
+        return {
+            'employees': employees_list,
+            'total': len(employees_list)
+        }
+        
+    except Exception as e:
+        import traceback
+        print(f"Ошибка получения списка сотрудников: {e}")
+        print(f"Полная ошибка: {traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=f"Ошибка получения данных: {str(e)}")
+
+
+@app.put("/api/employees/{employee_id}/full-name")
+async def update_employee_full_name(employee_id: int, data: dict = Body(...)):
+    """
+    Обновить полное ФИО сотрудника
+    """
+    try:
+        full_name_expanded = data.get('full_name_expanded', '').strip()
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Обновляем полное ФИО
+        cursor.execute("""
+            UPDATE employees 
+            SET full_name_expanded = %s,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = %s
+        """, (full_name_expanded if full_name_expanded else None, employee_id))
+        
+        if cursor.rowcount == 0:
+            conn.close()
+            raise HTTPException(status_code=404, detail="Сотрудник не найден")
+        
+        conn.commit()
+        conn.close()
+        
+        return {
+            'success': True,
+            'employee_id': employee_id,
+            'full_name_expanded': full_name_expanded
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        print(f"Ошибка обновления ФИО: {e}")
+        print(f"Полная ошибка: {traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=f"Ошибка обновления: {str(e)}")
