@@ -3095,7 +3095,7 @@ async def get_dashboard_stats(date: str = None):
         total_employees_result = cursor.fetchone()
         total_employees = total_employees_result['total_employees'] if total_employees_result else 0
         
-        # Сотрудники, которые были за день (только входы, как в Schedule)
+        # Сотрудники, которые были за день (все записи, как в EmployeeSchedule)
         cursor.execute("""
             SELECT COUNT(DISTINCT al.employee_id) as present_count
             FROM access_logs al
@@ -3103,7 +3103,6 @@ async def get_dashboard_stats(date: str = None):
             WHERE DATE(al.access_datetime) = %s
             AND e.is_active = true
             AND e.full_name NOT IN ('Охрана М.', '1 пост о.', '2 пост о.', 'Крыша К.', 'Водитель 1 В.', 'Водитель 2 В.', 'Дежурный в.', 'Дежурный В.')
-            AND (al.door_location NOT LIKE '%%выход%%' OR al.door_location IS NULL)
         """, (target_date,))
         present_result = cursor.fetchone()
         present_count = present_result['present_count'] if present_result else 0
@@ -3179,7 +3178,6 @@ async def get_dashboard_stats(date: str = None):
                 SELECT 1 FROM access_logs al 
                 WHERE al.employee_id = e.id 
                 AND DATE(al.access_datetime) = %s
-                AND (al.door_location NOT LIKE '%%выход%%' OR al.door_location IS NULL)
             )
         """, (target_date, target_date))
         exceptions_result = cursor.fetchone()
