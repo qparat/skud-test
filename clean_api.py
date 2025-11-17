@@ -1543,6 +1543,51 @@ async def get_employees_simple():
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка получения списка сотрудников: {str(e)}")
 
+@app.put("/employees/update-by-name")
+async def update_employee_full_name_by_name(data: UpdateFullNameByName):
+    """
+    Обновить полное ФИО сотрудника по короткому имени
+    """
+    try:
+        full_name = data.full_name.strip()
+        full_name_expanded = data.full_name_expanded.strip()
+        
+        if not full_name:
+            raise HTTPException(status_code=400, detail="full_name обязателен")
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Обновляем полное ФИО по короткому имени
+        cursor.execute("""
+            UPDATE employees 
+            SET full_name_expanded = %s,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE full_name = %s
+        """, (full_name_expanded if full_name_expanded else None, full_name))
+        
+        if cursor.rowcount == 0:
+            conn.close()
+            raise HTTPException(status_code=404, detail="Сотрудник не найден")
+        
+        conn.commit()
+        conn.close()
+        
+        return {
+            'success': True,
+            'full_name': full_name,
+            'full_name_expanded': full_name_expanded,
+            'updated_count': cursor.rowcount
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        print(f"Ошибка обновления ФИО по имени: {e}")
+        print(f"Полная ошибка: {traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=f"Ошибка обновления: {str(e)}")
+
 @app.put("/employees/{employee_id}")
 async def update_employee(employee_id: int, updates: dict, current_user: dict = Depends(require_role)):
     """Обновление данных сотрудника (для superadmin и выше)"""
@@ -3588,51 +3633,5 @@ async def update_employee_full_name(employee_id: int, data: dict = Body(...)):
     except Exception as e:
         import traceback
         print(f"Ошибка обновления ФИО: {e}")
-        print(f"Полная ошибка: {traceback.format_exc()}")
-        raise HTTPException(status_code=500, detail=f"Ошибка обновления: {str(e)}")
-
-
-@app.put("/employees/update-by-name")
-async def update_employee_full_name_by_name(data: UpdateFullNameByName):
-    """
-    Обновить полное ФИО сотрудника по короткому имени
-    """
-    try:
-        full_name = data.full_name.strip()
-        full_name_expanded = data.full_name_expanded.strip()
-        
-        if not full_name:
-            raise HTTPException(status_code=400, detail="full_name обязателен")
-        
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        # Обновляем полное ФИО по короткому имени
-        cursor.execute("""
-            UPDATE employees 
-            SET full_name_expanded = %s,
-                updated_at = CURRENT_TIMESTAMP
-            WHERE full_name = %s
-        """, (full_name_expanded if full_name_expanded else None, full_name))
-        
-        if cursor.rowcount == 0:
-            conn.close()
-            raise HTTPException(status_code=404, detail="Сотрудник не найден")
-        
-        conn.commit()
-        conn.close()
-        
-        return {
-            'success': True,
-            'full_name': full_name,
-            'full_name_expanded': full_name_expanded,
-            'updated_count': cursor.rowcount
-        }
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        import traceback
-        print(f"Ошибка обновления ФИО по имени: {e}")
         print(f"Полная ошибка: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=f"Ошибка обновления: {str(e)}")
