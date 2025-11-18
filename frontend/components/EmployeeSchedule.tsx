@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Calendar, Clock, MapPin, User, Download, ChevronUp, ChevronDown } from 'lucide-react'
 import * as XLSX from 'xlsx'
+import ExcelJS from 'exceljs'
 import { apiRequest } from '@/lib/api'
 
 // Функция для правильного получения даты в формате YYYY-MM-DD без проблем с временной зоной
@@ -1073,45 +1074,53 @@ export function EmployeeSchedule() {
       }
     }
 
-    // Создаем рабочую книгу
-    const ws = XLSX.utils.json_to_sheet(excelData)
-    const wb = XLSX.utils.book_new()
+    // Создаем рабочую книгу с использованием ExcelJS для цветного форматирования
+    const workbook = new ExcelJS.Workbook()
+    const worksheet = workbook.addWorksheet('Расписание')
     
-    // Настраиваем ширину колонок
-    const colWidths = [
-      { wch: 5 },   // №
-      { wch: 25 },  // ФИО
-      { wch: 12 },  // Дата (только для диапазона)
-      { wch: 15 },  // День недели (только для диапазона)
-      { wch: 12 },  // Пришел
-      { wch: 12 },  // Ушел
-      { wch: 12 },  // Часы работы
-      { wch: 25 },  // Статус
-      { wch: 12 },  // Опоздание
-      { wch: 20 }   // Исключение (только для диапазона)
+    // Определяем колонки
+    const columns: any[] = [
+      { header: '№', key: 'num', width: 5 },
+      { header: 'ФИО', key: 'fio', width: 30 },
+      { header: 'Пришел', key: 'entry', width: 12 },
+      { header: 'Ушел', key: 'exit', width: 12 },
+      { header: 'Часы работы', key: 'hours', width: 15 },
+      { header: 'Статус', key: 'status', width: 25 },
+      { header: 'Опоздание (мин)', key: 'late', width: 15 },
+      { header: 'Исключение', key: 'exception', width: 20 }
     ]
-    ws['!cols'] = colWidths
-
-    // Окрашиваем строки с ФИО в синий цвет (#0B10F7)
-    if (exportSortType === 'department-detailed' && isRangeData) {
-      const range = XLSX.utils.decode_range(ws['!ref'] || 'A1')
-      for (let R = range.s.r; R <= range.e.r; ++R) {
-        const cellAddress = XLSX.utils.encode_cell({ r: R, c: 1 }) // Колонка B (ФИО)
-        const cell = ws[cellAddress]
-        if (cell && cell.v && typeof cell.v === 'string') {
+    
+    worksheet.columns = columns
+    
+    // Добавляем данные и форматируем
+    excelData.forEach((row, index) => {
+      const excelRow = worksheet.addRow({
+        num: row['№'],
+        fio: row['ФИО'] || row['ФИО/Должность'],
+        entry: row['Пришел'],
+        exit: row['Ушел'],
+        hours: row['Часы работы'],
+        status: row['Статус'],
+        late: row['Опоздание (мин)'],
+        exception: row['Исключение']
+      })
+      
+      // Применяем синий цвет к строкам с ФИО сотрудников
+      if (exportSortType === 'department-detailed' && isRangeData) {
+        const fioValue = row['ФИО'] || row['ФИО/Должность']
+        if (fioValue && typeof fioValue === 'string') {
           // Проверяем, что это строка с ФИО (начинается с 4 пробелами и не начинается с 8)
-          const value = cell.v.toString()
-          if (value.startsWith('    ') && !value.startsWith('        ') && !value.startsWith('СЛУЖБА:')) {
-            if (!cell.s) cell.s = {}
-            cell.s = {
-              font: { color: { rgb: '0B10F7' }, bold: true }
+          if (fioValue.startsWith('    ') && !fioValue.startsWith('        ') && !fioValue.startsWith('СЛУЖБА:')) {
+            // Окрашиваем ячейку с ФИО в синий цвет
+            const fioCell = excelRow.getCell('fio')
+            fioCell.font = {
+              color: { argb: 'FF0B10F7' }, // Синий цвет #0B10F7
+              bold: true
             }
           }
         }
       }
-    }
-
-    XLSX.utils.book_append_sheet(wb, ws, 'Расписание')
+    })
     
     // Генерируем имя файла с датой
     let fileName: string
@@ -1128,7 +1137,14 @@ export function EmployeeSchedule() {
     
     // Скачиваем файл
     try {
-      XLSX.writeFile(wb, fileName)
+      const buffer = await workbook.xlsx.writeBuffer()
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = fileName
+      link.click()
+      window.URL.revokeObjectURL(url)
       console.log('[EXPORT] File download successful!')
     } catch (writeError) {
       console.error('[EXPORT] Error writing Excel file:', writeError)
