@@ -833,6 +833,58 @@ async def create_user_simple(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка создания пользователя: {str(e)}")
 
+@app.post("/users/{user_id}/change-password")
+async def change_user_password(
+    user_id: int,
+    password_data: dict,
+    current_user: dict = Depends(require_role())
+):
+    """Смена пароля пользователя (только для root и superadmin)"""
+    try:
+        new_password = password_data.get("password")
+        if not new_password:
+            raise HTTPException(status_code=400, detail="Пароль не может быть пустым")
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Проверяем существование пользователя
+        cursor.execute("SELECT role FROM users WHERE id = %s", (user_id,))
+        target_user = cursor.fetchone()
+        if not target_user:
+            conn.close()
+            raise HTTPException(status_code=404, detail="Пользователь не найден")
+        
+        target_role = target_user[0]
+        
+        # Проверка прав: root может менять всем, superadmin только обычным пользователям
+        if current_user["role"] != 0:  # Если не root
+            if current_user["role"] == 2 and target_role <= 2:  # Superadmin не может менять root/superadmin
+                conn.close()
+                raise HTTPException(status_code=403, detail="Недостаточно прав")
+        
+        # Хешируем новый пароль
+        password_hash = hash_password(new_password)
+        
+        # Обновляем пароль
+        cursor.execute("""
+            UPDATE users 
+            SET password_hash = %s, updated_at = CURRENT_TIMESTAMP
+            WHERE id = %s
+        """, (password_hash, user_id))
+        
+        conn.commit()
+        conn.close()
+        
+        return {"message": "Пароль успешно изменен"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        if 'conn' in locals():
+            conn.close()
+        raise HTTPException(status_code=500, detail=f"Ошибка смены пароля: {str(e)}")
+
 @app.post("/logout")
 async def logout(credentials: HTTPAuthorizationCredentials = Depends(security)):
     """Выход из системы"""
