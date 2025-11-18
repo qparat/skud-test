@@ -1682,11 +1682,10 @@ async def update_employee(employee_id: int, updates: dict, current_user: dict = 
         raise HTTPException(status_code=500, detail=f"Ошибка обновления сотрудника: {str(e)}")
 
 @app.put("/employees/{employee_id}/deactivate")
-async def deactivate_employee(employee_id: int, request: Request, current_user: dict = Depends(get_current_user)):
+async def deactivate_employee(employee_id: int, request: Request):
     """Деактивация сотрудника (is_active = false) - для уволенных сотрудников"""
     try:
-        username = current_user.get('username', 'unknown')
-        print(f"[DEACTIVATE] Запрос от пользователя: {username}")
+        print(f"[DEACTIVATE] Запрос на деактивацию сотрудника {employee_id}")
         
         # Получаем данные из тела запроса
         body = await request.json()
