@@ -306,7 +306,7 @@ export default function ShiftsPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 p-8">
-        <div className="max-w-7xl mx-auto">
+        <div className="">
           <div className="text-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
             <p className="mt-4 text-gray-600">Загрузка...</p>
@@ -318,7 +318,7 @@ export default function ShiftsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 p-8">
-      <div className="max-w-7xl mx-auto">
+      <div className="">
         {/* Заголовок */}
         <div className="mb-8 flex justify-between items-start">
           <div>
