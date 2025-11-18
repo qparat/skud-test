@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Calendar, Plus, Edit2, Trash2, Save, X, Clock } from 'lucide-react';
+import { CalendarPlus, Plus, Edit2, Trash2, Save, X, Clock } from 'lucide-react';
 
 interface ShiftType {
   id: number;
@@ -323,7 +323,7 @@ export default function ShiftsPage() {
         <div className="mb-8 flex justify-between items-start">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-              <Calendar className="w-8 h-8 text-blue-600" />
+              <CalendarPlus className="w-8 h-8 text-blue-600" />
               Графики смен
             </h1>
             <p className="text-gray-600 mt-2">
