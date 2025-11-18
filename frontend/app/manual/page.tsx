@@ -95,24 +95,67 @@ export default function ManualPage() {
           <section className="mb-8">
             <div className="flex items-center space-x-2 mb-4">
               <FileText className="h-6 w-6 text-blue-600" />
-              <h2 className="text-2xl font-semibold text-gray-900">3. Отчеты</h2>
+              <h2 className="text-2xl font-semibold text-gray-900">3. Отчет СВОД</h2>
             </div>
             
             <div className="bg-gray-50 p-6 rounded-lg mb-4">
-              <h3 className="text-lg font-semibold mb-3">•</h3>
+              <h3 className="text-lg font-semibold mb-3">Просмотр и редактирование отчета</h3>
               <ul className="space-y-2 text-gray-700">
-                <li>• </li>
-                <li>• </li>
-                <li>• </li>
+                <li>• Перейдите в раздел "Отчет СВОД" в главном меню</li>
+                <li>• Отображается список всех сотрудников с их должностями в порядке очередности</li>
+                <li>• Сотрудники отображаются в том порядке, в котором они будут выгружены в Excel</li>
+              </ul>
+            </div>
+
+            <div className="bg-gray-50 p-6 rounded-lg mb-4">
+              <h3 className="text-lg font-semibold mb-3">Изменение порядка сотрудников</h3>
+              <ul className="space-y-2 text-gray-700">
+                <li>• <strong>Зажмите</strong> левую кнопку мыши на карточке сотрудника</li>
+                <li>• <strong>Перетащите</strong> карточку вверх или вниз на нужную позицию</li>
+                <li>• <strong>Отпустите</strong> кнопку мыши для фиксации новой позиции</li>
+                <li>• Порядок автоматически сохраняется</li>
+              </ul>
+            </div>
+
+            <div className="bg-gray-50 p-6 rounded-lg mb-4">
+              <h3 className="text-lg font-semibold mb-3">Добавление сотрудника с должностью</h3>
+              <ul className="space-y-2 text-gray-700">
+                <li>• Нажмите кнопку "Добавить сотрудника"</li>
+                <li>• Выберите сотрудника из выпадающего списка</li>
+                <li>• При необходимости выберите должность (можно отличную от основной)</li>
+                <li>• Нажмите "Добавить" для подтверждения</li>
+                <li>• Сотрудник появится в конце списка, затем его можно перетащить на нужную позицию</li>
+              </ul>
+            </div>
+
+            <div className="bg-gray-50 p-6 rounded-lg mb-4">
+              <h3 className="text-lg font-semibold mb-3">Добавление должности без сотрудника</h3>
+              <ul className="space-y-2 text-gray-700">
+                <li>• Нажмите кнопку "Добавить должность"</li>
+                <li>• Введите название должности в поле</li>
+                <li>• Нажмите "Добавить"</li>
+                <li>• Используется для вакантных позиций или планируемых должностей</li>
+                <li>• Должность отображается без ФИО сотрудника</li>
+              </ul>
+            </div>
+
+            <div className="bg-gray-50 p-6 rounded-lg mb-4">
+              <h3 className="text-lg font-semibold mb-3">Предварительный просмотр</h3>
+              <ul className="space-y-2 text-gray-700">
+                <li>• Нажмите кнопку "Посмотреть таблицу"</li>
+                <li>• Откроется окно с предпросмотром того, как будет выглядеть отчет в Excel</li>
+                <li>• Проверьте порядок сотрудников и должностей</li>
+                <li>• Закройте окно для возврата к редактированию</li>
               </ul>
             </div>
 
             <div className="bg-gray-50 p-6 rounded-lg">
-              <h3 className="text-lg font-semibold mb-3">•</h3>
+              <h3 className="text-lg font-semibold mb-3">Выгрузка отчета</h3>
               <ul className="space-y-2 text-gray-700">
-                <li>• </li>
-                <li>• </li>
-                <li>• </li>
+                <li>• Нажмите кнопку "Выгрузить" для создания Excel файла</li>
+                <li>• Файл автоматически скачается с именем "Свод_отчет_ГГГГ-ММ-ДД.xlsx"</li>
+                <li>• В отчете будут указаны все сотрудники и должности в установленном порядке</li>
+                <li>• Отчет готов для печати или отправки</li>
               </ul>
             </div>
           </section>
@@ -207,8 +250,29 @@ export default function ManualPage() {
               <ul className="space-y-2 text-gray-700">
                 <li>• Перейдите в раздел "Исключения"</li>
                 <li>• Нажмите "Добавить исключение"</li>
-                <li>• Выберите сотрудника, дату и причину</li>
-                <li>• Для диапазона дат используйте "Диапазон дат"</li>
+                <li>• Выберите сотрудника из выпадающего списка</li>
+                <li>• Откройте календарь и выберите дату исключения</li>
+                <li>• В поле "Примечание" укажите причину исключения (например: "Отпуск", "Больничный", "Командировка")</li>
+                <li>• Нажмите "Сохранить" для создания исключения</li>
+              </ul>
+            </div>
+
+            <div className="bg-gray-50 p-6 rounded-lg mb-4">
+              <h3 className="text-lg font-semibold mb-3">Диапазон дат</h3>
+              <ul className="space-y-2 text-gray-700">
+                <li>• Для создания исключения на несколько дней используйте "Диапазон дат"</li>
+                <li>• Выберите начальную дату в календаре</li>
+                <li>• Выберите конечную дату в календаре</li>
+                <li>• Исключение будет применено ко всем дням в выбранном диапазоне</li>
+              </ul>
+            </div>
+
+            <div className="bg-gray-50 p-6 rounded-lg">
+              <h3 className="text-lg font-semibold mb-3">Просмотр и удаление исключений</h3>
+              <ul className="space-y-2 text-gray-700">
+                <li>• Все созданные исключения отображаются в таблице</li>
+                <li>• Используйте фильтры для поиска по ФИО, дате или причине</li>
+                <li>• Для удаления исключения нажмите кнопку "Удалить" напротив записи</li>
               </ul>
             </div>
           </section>

@@ -72,12 +72,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               'Authorization': `Bearer ${storedToken}`
             }
           })
-        } catch (error) {
-          // Токен недействителен, очищаем
-          localStorage.removeItem('auth_token')
-          localStorage.removeItem('auth_user')
-          setToken(null)
-          setUser(null)
+        } catch (error: any) {
+          // Очищаем только при ошибке 401 (неавторизован), а не при сетевых ошибках
+          if (error?.message?.includes('401') || error?.message?.includes('Unauthorized')) {
+            console.log('Токен недействителен, требуется повторная авторизация')
+            localStorage.removeItem('auth_token')
+            localStorage.removeItem('auth_user')
+            setToken(null)
+            setUser(null)
+          } else {
+            // При других ошибках (сеть и т.д.) сохраняем токен
+            console.log('Ошибка проверки токена (сохраняем сессию):', error)
+          }
         }
       }
       setLoading(false)

@@ -141,7 +141,7 @@ async def limit_upload_size(request: Request, call_next):
 # Конфигурация для JWT
 SECRET_KEY = "your-secret-key-change-in-production"  # В продакшене использовать переменную окружения
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+ACCESS_TOKEN_EXPIRE_MINUTES = 1440  # 24 часа (вместо 30 минут)
 
 # Security
 security = HTTPBearer()
