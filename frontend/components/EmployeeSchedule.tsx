@@ -1081,7 +1081,7 @@ export function EmployeeSchedule() {
     // Определяем колонки
     const columns: any[] = [
       { header: '№', key: 'num', width: 5 },
-      { header: 'ФИО', key: 'fio', width: 30 },
+      { header: 'ФИО', key: 'fio', width: 45 },
       { header: 'Пришел', key: 'entry', width: 12 },
       { header: 'Ушел', key: 'exit', width: 12 },
       { header: 'Часы работы', key: 'hours', width: 15 },
@@ -1127,12 +1127,13 @@ export function EmployeeSchedule() {
           }
           // Проверяем, что это строка с датой (начинается с 8 пробелами)
           else if (fioValue.startsWith('        ')) {
-            // Окрашиваем даты в коричневый цвет
+            // Окрашиваем даты в коричневый цвет и выравниваем по правому краю
             const fioCell = excelRow.getCell('fio')
             fioCell.font = {
               name: 'Times New Roman',
               color: { argb: 'FF1D5800' } // Коричневый цвет #1D5800
             }
+            fioCell.alignment = { horizontal: 'right' }
           }
         }
       }
