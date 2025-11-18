@@ -521,7 +521,7 @@ export default function DepartmentDetailPage() {
                               onClick={() => handleEmployeeSelect(employee)}
                               className="px-3 py-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0"
                             >
-                              <div className="font-medium">{employee.full_name}</div>
+                              <div className="font-medium">{employee.full_name_expanded || employee.full_name}</div>
                               <div className="text-sm text-gray-600">
                                 {employee.position} {employee.department && `• ${employee.department}`}
                               </div>
@@ -576,7 +576,7 @@ export default function DepartmentDetailPage() {
                 <div key={employee.employee_id} className="bg-gray-50 border rounded-lg p-4">
                   <div className="flex justify-between items-start">
                     <div>
-                      <h3 className="font-medium text-gray-900">{employee.full_name}</h3>
+                      <h3 className="font-medium text-gray-900">{employee.full_name_expanded || employee.full_name}</h3>
                       <div className="flex items-center gap-2">
                         <p className="text-sm text-blue-600 mt-1">{employee.position}</p>
                         {employee.position === 'Не указана должность' && (
