@@ -1685,42 +1685,19 @@ async def update_employee(employee_id: int, updates: dict, current_user: dict = 
 async def deactivate_employee(employee_id: int, request: Request, current_user: dict = Depends(get_current_user)):
     """Деактивация сотрудника (is_active = false) - для уволенных сотрудников"""
     try:
-        # Логируем полную информацию о пользователе
-        print(f"[DEACTIVATE] current_user данные: {current_user}")
-        user_role = current_user.get('role', 999)
         username = current_user.get('username', 'unknown')
-        user_id = current_user.get('user_id', 'unknown')
-        print(f"[DEACTIVATE] Пользователь: {username} (ID: {user_id}), роль: {user_role}")
+        print(f"[DEACTIVATE] Запрос от пользователя: {username}")
         
-        # Проверяем права доступа (только admin и superadmin: role <= 2)
-        # Роли: 1=superadmin, 2=admin, 3=user
-        if user_role > 2:
-            print(f"[DEACTIVATE] ОТКАЗАНО: роль {user_role} > 2")
-            raise HTTPException(
-                status_code=403, 
-                detail=f"Недостаточно прав. Ваша роль: {user_role}, требуется: admin (≤2). Username: {username}"
-            )
-        
-        # Получаем пароль из тела запроса
+        # Получаем данные из тела запроса
         body = await request.json()
-        password = body.get('password')
+        confirmation_word = body.get('password', '').strip()
         
-        if not password:
-            raise HTTPException(status_code=400, detail="Требуется пароль для подтверждения")
+        if not confirmation_word:
+            raise HTTPException(status_code=400, detail="Требуется подтверждение")
         
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        # Проверяем пароль пользователя
-        cursor.execute(
-            "SELECT id, password_hash FROM users WHERE username = %s",
-            (current_user.get('username'),)
-        )
-        user_data = cursor.fetchone()
-        
-        if not user_data or not pwd_context.verify(password, user_data[1]):
-            conn.close()
-            raise HTTPException(status_code=401, detail="Неверный пароль")
+        # Проверяем что пользователь ввел слово "удалить"
+        if confirmation_word.lower() != "удалить":
+            raise HTTPException(status_code=401, detail='Для подтверждения введите слово "удалить"')
         
         # Проверяем существование сотрудника
         cursor.execute("SELECT id, full_name, is_active FROM employees WHERE id = %s", (employee_id,))

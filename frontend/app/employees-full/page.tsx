@@ -123,7 +123,7 @@ export default function EmployeesFullPage() {
 
   const confirmDelete = async (employeeId: number) => {
     if (!deletePassword.trim()) {
-      setDeleteError('Введите пароль');
+      setDeleteError('Введите слово "удалить"');
       return;
     }
 
@@ -141,7 +141,8 @@ export default function EmployeesFullPage() {
       });
 
       if (response.status === 401) {
-        setDeleteError('Неверный пароль');
+        const error = await response.json();
+        setDeleteError(error.detail || 'Неверное подтверждение');
         return;
       }
 
@@ -487,10 +488,10 @@ export default function EmployeesFullPage() {
                         ) : deletingId === employee.id ? (
                           <div className="space-y-2">
                             <input
-                              type="password"
+                              type="text"
                               value={deletePassword}
                               onChange={(e) => setDeletePassword(e.target.value)}
-                              placeholder="Введите ваш пароль"
+                              placeholder='Введите слово "удалить"'
                               className="w-full px-3 py-2 border border-red-500 rounded-md focus:ring-2 focus:ring-red-500 focus:outline-none text-sm"
                               autoFocus
                               disabled={saving}
