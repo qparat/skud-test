@@ -140,20 +140,11 @@ export default function EmployeesFullPage() {
         body: JSON.stringify({ password: deletePassword })
       });
 
-      if (response.status === 401) {
-        const error = await response.json();
-        setDeleteError(error.detail || 'Неверное подтверждение');
-        return;
-      }
-
-      if (response.status === 403) {
-        setDeleteError('Недостаточно прав');
-        return;
-      }
-
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.detail || 'Ошибка деактивации');
+        setDeleteError(error.detail || 'Ошибка деактивации');
+        setSaving(false);
+        return;
       }
 
       // Удаляем из локального состояния (так как показываем только активных)
