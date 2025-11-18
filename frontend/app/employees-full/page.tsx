@@ -37,11 +37,13 @@ export default function EmployeesFullPage() {
     // Применяем поиск
     if (searchQuery.trim() !== '') {
       const query = searchQuery.toLowerCase();
-      result = result.filter(emp => 
-        emp.full_name.toLowerCase().includes(query) ||
-        (emp.full_name_expanded && emp.full_name_expanded.toLowerCase().includes(query)) ||
-        (emp.department_name && emp.department_name.toLowerCase().includes(query))
-      );
+      result = result.filter(emp => {
+        const fullName = (emp.full_name_expanded || emp.full_name).toLowerCase();
+        const shortName = emp.full_name.toLowerCase();
+        return fullName.includes(query) ||
+          shortName.includes(query) ||
+          (emp.department_name && emp.department_name.toLowerCase().includes(query));
+      });
     }
     
     // Применяем сортировку по полному ФИО

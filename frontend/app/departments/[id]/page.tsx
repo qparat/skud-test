@@ -103,10 +103,14 @@ export default function DepartmentDetailPage() {
   useEffect(() => {
     // Фильтруем сотрудников по поисковому запросу
     if (employeeSearch.trim()) {
-      const filtered = employees.filter((employee: Employee) =>
-        employee.full_name.toLowerCase().includes(employeeSearch.toLowerCase()) ||
-        employee.position.toLowerCase().includes(employeeSearch.toLowerCase())
-      );
+      const filtered = employees.filter((employee: Employee) => {
+        const query = employeeSearch.toLowerCase();
+        const fullName = (employee.full_name_expanded || employee.full_name).toLowerCase();
+        const shortName = employee.full_name.toLowerCase();
+        return fullName.includes(query) ||
+          shortName.includes(query) ||
+          employee.position.toLowerCase().includes(query);
+      });
       setFilteredEmployees(filtered);
     } else {
       setFilteredEmployees(employees);
@@ -300,11 +304,15 @@ export default function DepartmentDetailPage() {
     if (!employeeDropdownSearch.trim()) {
       return availableEmployees;
     }
-    return availableEmployees.filter((employee: Employee) =>
-      employee.full_name.toLowerCase().includes(employeeDropdownSearch.toLowerCase()) ||
-      employee.position.toLowerCase().includes(employeeDropdownSearch.toLowerCase()) ||
-      (employee.department && employee.department.toLowerCase().includes(employeeDropdownSearch.toLowerCase()))
-    );
+    return availableEmployees.filter((employee: Employee) => {
+      const query = employeeDropdownSearch.toLowerCase();
+      const fullName = (employee.full_name_expanded || employee.full_name).toLowerCase();
+      const shortName = employee.full_name.toLowerCase();
+      return fullName.includes(query) ||
+        shortName.includes(query) ||
+        employee.position.toLowerCase().includes(query) ||
+        (employee.department && employee.department.toLowerCase().includes(query));
+    });
   };
 
   const handleEmployeeSelect = (employee: Employee) => {

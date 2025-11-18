@@ -106,9 +106,12 @@ export default function ExceptionsPage() {
     if (!employeeSearch.trim()) {
       return employees
     }
-    return employees.filter((employee: Employee) =>
-      (employee.full_name_expanded || employee.full_name).toLowerCase().includes(employeeSearch.toLowerCase())
-    )
+    return employees.filter((employee: Employee) => {
+      const query = employeeSearch.toLowerCase();
+      const fullName = (employee.full_name_expanded || employee.full_name).toLowerCase();
+      const shortName = employee.full_name.toLowerCase();
+      return fullName.includes(query) || shortName.includes(query);
+    })
   }
 
   const handleEmployeeSelect = (employee: Employee) => {
@@ -468,7 +471,10 @@ export default function ExceptionsPage() {
 
   // Фильтрация исключений
   const filteredExceptions = exceptions.filter((exception: Exception) => {
-    const nameMatch = searchName.trim() === '' || (exception.full_name_expanded || exception.full_name).toLowerCase().includes(searchName.trim().toLowerCase());
+    const query = searchName.trim().toLowerCase();
+    const fullName = (exception.full_name_expanded || exception.full_name).toLowerCase();
+    const shortName = exception.full_name.toLowerCase();
+    const nameMatch = searchName.trim() === '' || fullName.includes(query) || shortName.includes(query);
     const reasonMatch = searchReason.trim() === '' || exception.reason.toLowerCase().includes(searchReason.trim().toLowerCase());
     
     let dateMatch = true;

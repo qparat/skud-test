@@ -313,7 +313,7 @@ export function Dashboard() {
             )
             filteredEmployees = onTimeEmployees.map((emp: any) => ({
               id: emp.id || emp.employee_id || emp.emp_id,
-              name: emp.full_name || emp.name,
+              name: emp.full_name_expanded || emp.full_name || emp.name,
               first_entry: emp.first_entry,
               is_late: emp.is_late
             }))
@@ -323,7 +323,7 @@ export function Dashboard() {
             )
             filteredEmployees = lateEmployees.map((emp: any) => ({
               id: emp.id || emp.employee_id || emp.emp_id,
-              name: emp.full_name || emp.name,
+              name: emp.full_name_expanded || emp.full_name || emp.name,
               first_entry: emp.first_entry,
               is_late: emp.is_late
             }))
@@ -648,7 +648,7 @@ export function Dashboard() {
                 <div key={index} className="bg-gradient-to-r from-yellow-50 to-yellow-100 border-l-3 border-yellow-400 p-3 rounded-r-lg">
                   <div>
                     <h4 className="text-sm font-semibold text-gray-900 mb-0.5">
-                      {employee.name || employee.full_name}
+                      {employee.full_name_expanded || employee.name || employee.full_name}
                     </h4>
                     <p className="text-xs text-gray-600 mb-0.5">{employee.department_name}</p>
                     <p className="text-xs text-gray-500">{employee.position_name}</p>
@@ -738,7 +738,7 @@ export function Dashboard() {
                     >
                       <div className="flex-1">
                         <h3 className="font-semibold text-gray-900 hover:text-blue-600 transition-colors">
-                          {employee.name || employee.full_name || 'Имя не указано'}
+                          {employee.full_name_expanded || employee.name || employee.full_name || 'Имя не указано'}
                         </h3>
                       </div>
                       <div className="text-right">

@@ -277,7 +277,7 @@ export default function EmployeePage({ params }: EmployeePageProps) {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <div className="bg-gray-50 rounded-lg p-4">
                   <p className="text-sm text-gray-600 mb-1">ФИО</p>
-                  <p className="text-lg font-medium text-gray-900">{employeeDetails.full_name}</p>
+                  <p className="text-lg font-medium text-gray-900">{employeeDetails.full_name_expanded || employeeDetails.full_name}</p>
                 </div>
                 
                 <div className="bg-blue-50 rounded-lg p-4">

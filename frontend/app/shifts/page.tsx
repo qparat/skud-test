@@ -699,8 +699,10 @@ export default function ShiftsPage() {
                       .filter(emp => !scheduleData.employees.find(se => se.employee_id === emp.id))
                       .filter(emp => {
                         if (!searchEmployee) return true;
-                        const fullName = emp.full_name_expanded || emp.full_name;
-                        return fullName.toLowerCase().includes(searchEmployee.toLowerCase());
+                        const fullName = (emp.full_name_expanded || emp.full_name).toLowerCase();
+                        const shortName = emp.full_name.toLowerCase();
+                        const query = searchEmployee.toLowerCase();
+                        return fullName.includes(query) || shortName.includes(query);
                       })
                       .map(emp => (
                         <div
@@ -719,8 +721,10 @@ export default function ShiftsPage() {
                       .filter(emp => !scheduleData.employees.find(se => se.employee_id === emp.id))
                       .filter(emp => {
                         if (!searchEmployee) return true;
-                        const fullName = emp.full_name_expanded || emp.full_name;
-                        return fullName.toLowerCase().includes(searchEmployee.toLowerCase());
+                        const fullName = (emp.full_name_expanded || emp.full_name).toLowerCase();
+                        const shortName = emp.full_name.toLowerCase();
+                        const query = searchEmployee.toLowerCase();
+                        return fullName.includes(query) || shortName.includes(query);
                       }).length === 0 && (
                       <div className="px-4 py-8 text-center text-gray-500">
                         {searchEmployee ? 'Сотрудники не найдены' : 'Нет доступных сотрудников'}
