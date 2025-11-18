@@ -1092,6 +1092,25 @@ export function EmployeeSchedule() {
     ]
     ws['!cols'] = colWidths
 
+    // Окрашиваем строки с ФИО в синий цвет (#0B10F7)
+    if (exportSortType === 'department-detailed' && isRangeData) {
+      const range = XLSX.utils.decode_range(ws['!ref'] || 'A1')
+      for (let R = range.s.r; R <= range.e.r; ++R) {
+        const cellAddress = XLSX.utils.encode_cell({ r: R, c: 1 }) // Колонка B (ФИО)
+        const cell = ws[cellAddress]
+        if (cell && cell.v && typeof cell.v === 'string') {
+          // Проверяем, что это строка с ФИО (начинается с 4 пробелами и не начинается с 8)
+          const value = cell.v.toString()
+          if (value.startsWith('    ') && !value.startsWith('        ') && !value.startsWith('СЛУЖБА:')) {
+            if (!cell.s) cell.s = {}
+            cell.s = {
+              font: { color: { rgb: '0B10F7' }, bold: true }
+            }
+          }
+        }
+      }
+    }
+
     XLSX.utils.book_append_sheet(wb, ws, 'Расписание')
     
     // Генерируем имя файла с датой
