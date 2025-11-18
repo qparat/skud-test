@@ -1681,6 +1681,73 @@ async def update_employee(employee_id: int, updates: dict, current_user: dict = 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка обновления сотрудника: {str(e)}")
 
+@app.put("/employees/{employee_id}/deactivate")
+async def deactivate_employee(employee_id: int, request: Request, current_user: dict = Depends(get_current_user)):
+    """Деактивация сотрудника (is_active = false) - для уволенных сотрудников"""
+    try:
+        # Проверяем права доступа (только admin и superadmin)
+        if current_user.get('role', 999) > 2:
+            raise HTTPException(status_code=403, detail="Недостаточно прав для деактивации сотрудников")
+        
+        # Получаем пароль из тела запроса
+        body = await request.json()
+        password = body.get('password')
+        
+        if not password:
+            raise HTTPException(status_code=400, detail="Требуется пароль для подтверждения")
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Проверяем пароль пользователя
+        cursor.execute(
+            "SELECT id, password_hash FROM users WHERE username = %s",
+            (current_user.get('username'),)
+        )
+        user_data = cursor.fetchone()
+        
+        if not user_data or not pwd_context.verify(password, user_data[1]):
+            conn.close()
+            raise HTTPException(status_code=401, detail="Неверный пароль")
+        
+        # Проверяем существование сотрудника
+        cursor.execute("SELECT id, full_name, is_active FROM employees WHERE id = %s", (employee_id,))
+        employee = cursor.fetchone()
+        
+        if not employee:
+            conn.close()
+            raise HTTPException(status_code=404, detail="Сотрудник не найден")
+        
+        employee_name = employee[1]
+        is_active = employee[2]
+        
+        if not is_active:
+            conn.close()
+            raise HTTPException(status_code=400, detail="Сотрудник уже деактивирован")
+        
+        # Деактивируем сотрудника (мягкое удаление)
+        cursor.execute(
+            "UPDATE employees SET is_active = FALSE, updated_at = CURRENT_TIMESTAMP WHERE id = %s",
+            (employee_id,)
+        )
+        
+        conn.commit()
+        conn.close()
+        
+        return {
+            "message": f"Сотрудник '{employee_name}' деактивирован (is_active = false)",
+            "employee_id": employee_id,
+            "is_active": False
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        print(f"Ошибка деактивации сотрудника: {e}")
+        print(f"Полная ошибка: {traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=f"Ошибка деактивации: {str(e)}")
+
 @app.get("/employees/unassigned")
 async def get_unassigned_employees():
     """Получить сотрудников без службы или с неактивным статусом"""

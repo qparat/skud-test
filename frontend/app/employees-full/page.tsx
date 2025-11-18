@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Search, Edit2, Save, X, UserCheck } from 'lucide-react';
+import { Search, Edit2, Save, X, UserCheck, Trash2, ArrowUpDown } from 'lucide-react';
 
 interface Employee {
   id: number;
@@ -20,24 +20,41 @@ export default function EmployeesFullPage() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editValue, setEditValue] = useState('');
   const [saving, setSaving] = useState(false);
+  const [sortByEmpty, setSortByEmpty] = useState(false);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleteError, setDeleteError] = useState('');
 
   useEffect(() => {
     fetchEmployees();
   }, []);
 
   useEffect(() => {
-    if (searchQuery.trim() === '') {
-      setFilteredEmployees(employees);
-    } else {
+    let result = [...employees];
+    
+    // Применяем поиск
+    if (searchQuery.trim() !== '') {
       const query = searchQuery.toLowerCase();
-      const filtered = employees.filter(emp => 
+      result = result.filter(emp => 
         emp.full_name.toLowerCase().includes(query) ||
         (emp.full_name_expanded && emp.full_name_expanded.toLowerCase().includes(query)) ||
         (emp.department_name && emp.department_name.toLowerCase().includes(query))
       );
-      setFilteredEmployees(filtered);
     }
-  }, [searchQuery, employees]);
+    
+    // Применяем сортировку
+    if (sortByEmpty) {
+      result.sort((a, b) => {
+        const aEmpty = !a.full_name_expanded;
+        const bEmpty = !b.full_name_expanded;
+        if (aEmpty && !bEmpty) return -1;
+        if (!aEmpty && bEmpty) return 1;
+        return 0;
+      });
+    }
+    
+    setFilteredEmployees(result);
+  }, [searchQuery, employees, sortByEmpty]);
 
   const fetchEmployees = async () => {
     try {
@@ -90,6 +107,69 @@ export default function EmployeesFullPage() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const startDelete = (employeeId: number) => {
+    setDeletingId(employeeId);
+    setDeletePassword('');
+    setDeleteError('');
+  };
+
+  const cancelDelete = () => {
+    setDeletingId(null);
+    setDeletePassword('');
+    setDeleteError('');
+  };
+
+  const confirmDelete = async (employeeId: number) => {
+    if (!deletePassword.trim()) {
+      setDeleteError('Введите пароль');
+      return;
+    }
+
+    try {
+      setSaving(true);
+      setDeleteError('');
+      
+      const response = await fetch(`/api/employees/${employeeId}/deactivate`, {
+        method: 'PUT',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
+        },
+        body: JSON.stringify({ password: deletePassword })
+      });
+
+      if (response.status === 401) {
+        setDeleteError('Неверный пароль');
+        return;
+      }
+
+      if (response.status === 403) {
+        setDeleteError('Недостаточно прав');
+        return;
+      }
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || 'Ошибка деактивации');
+      }
+
+      // Удаляем из локального состояния (так как показываем только активных)
+      setEmployees(prev => prev.filter(emp => emp.id !== employeeId));
+      
+      cancelDelete();
+      alert('Сотрудник деактивирован (is_active = false)');
+    } catch (error) {
+      console.error('Ошибка деактивации:', error);
+      setDeleteError(error instanceof Error ? error.message : 'Не удалось деактивировать сотрудника');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const toggleSort = () => {
+    setSortByEmpty(!sortByEmpty);
   };
 
   if (loading) {
@@ -321,21 +401,35 @@ export default function EmployeesFullPage() {
           </div>
         </div>
 
-        {/* Поиск */}
-        <div className="mb-6">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-            <input
-              type="text"
-              placeholder="Поиск по ФИО, службе..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
+        {/* Поиск и сортировка */}
+        <div className="mb-6 flex gap-4">
+          <div className="flex-1">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <input
+                type="text"
+                placeholder="Поиск по ФИО, службе..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+            <p className="text-sm text-gray-500 mt-2">
+              Найдено сотрудников: {filteredEmployees.length}
+            </p>
           </div>
-          <p className="text-sm text-gray-500 mt-2">
-            Найдено сотрудников: {filteredEmployees.length}
-          </p>
+          <button
+            onClick={toggleSort}
+            className={`px-4 py-3 rounded-lg border transition-colors flex items-center gap-2 ${
+              sortByEmpty 
+                ? 'bg-blue-600 text-white border-blue-600' 
+                : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+            }`}
+            title="Показать сначала без полного ФИО"
+          >
+            <ArrowUpDown className="w-5 h-5" />
+            <span className="whitespace-nowrap">Без ФИО вверх</span>
+          </button>
         </div>
 
         {/* Таблица */}
@@ -356,7 +450,7 @@ export default function EmployeesFullPage() {
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                     Служба
                   </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider w-32">
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider w-40">
                     Действия
                   </th>
                 </tr>
@@ -390,6 +484,21 @@ export default function EmployeesFullPage() {
                             autoFocus
                             disabled={saving}
                           />
+                        ) : deletingId === employee.id ? (
+                          <div className="space-y-2">
+                            <input
+                              type="password"
+                              value={deletePassword}
+                              onChange={(e) => setDeletePassword(e.target.value)}
+                              placeholder="Введите ваш пароль"
+                              className="w-full px-3 py-2 border border-red-500 rounded-md focus:ring-2 focus:ring-red-500 focus:outline-none text-sm"
+                              autoFocus
+                              disabled={saving}
+                            />
+                            {deleteError && (
+                              <p className="text-xs text-red-600">{deleteError}</p>
+                            )}
+                          </div>
                         ) : (
                           <div className="text-sm text-gray-900">
                             {employee.full_name_expanded || (
@@ -423,14 +532,42 @@ export default function EmployeesFullPage() {
                               <X className="w-5 h-5" />
                             </button>
                           </div>
+                        ) : deletingId === employee.id ? (
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => confirmDelete(employee.id)}
+                              disabled={saving}
+                              className="px-3 py-2 bg-red-600 text-white text-xs rounded-md hover:bg-red-700 transition-colors disabled:opacity-50"
+                              title="Деактивировать сотрудника"
+                            >
+                              Деактивировать
+                            </button>
+                            <button
+                              onClick={cancelDelete}
+                              disabled={saving}
+                              className="p-2 text-gray-600 hover:bg-gray-50 rounded-md transition-colors disabled:opacity-50"
+                              title="Отменить"
+                            >
+                              <X className="w-5 h-5" />
+                            </button>
+                          </div>
                         ) : (
-                          <button
-                            onClick={() => startEdit(employee)}
-                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
-                            title="Редактировать"
-                          >
-                            <Edit2 className="w-5 h-5" />
-                          </button>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => startEdit(employee)}
+                              className="p-2 text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+                              title="Редактировать"
+                            >
+                              <Edit2 className="w-5 h-5" />
+                            </button>
+                            <button
+                              onClick={() => startDelete(employee.id)}
+                              className="p-2 text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                              title="Деактивировать сотрудника (уволен)"
+                            >
+                              <Trash2 className="w-5 h-5" />
+                            </button>
+                          </div>
                         )}
                       </td>
                     </tr>
