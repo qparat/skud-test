@@ -1,7 +1,7 @@
 ﻿'use client'
 
 import { useState } from 'react'
-import { Upload, FileText, CheckCircle, XCircle, Loader2 } from 'lucide-react'
+import { Upload, FileText, CheckCircle, XCircle, Loader2, FolderOpen } from 'lucide-react'
 import { apiRequest } from '@/lib/api'
 
 interface UploadStats {
@@ -16,10 +16,25 @@ interface UploadResponse {
   stats?: UploadStats
 }
 
+interface FolderCheckResponse {
+  success: boolean
+  message: string
+  files_processed?: number
+  total_stats?: UploadStats
+  results?: Array<{
+    filename: string
+    success: boolean
+    stats?: UploadStats
+    error?: string
+  }>
+}
+
 export function FileUpload() {
   const [uploading, setUploading] = useState(false)
   const [result, setResult] = useState<UploadResponse | null>(null)
   const [dragOver, setDragOver] = useState(false)
+  const [checkingFolder, setCheckingFolder] = useState(false)
+  const [folderResult, setFolderResult] = useState<FolderCheckResponse | null>(null)
 
   const handleFileUpload = async (file: File) => {
     if (!file.name.endsWith('.txt')) {
@@ -93,6 +108,23 @@ export function FileUpload() {
     }
   }
 
+  const checkPrishelFolder = async () => {
+    setCheckingFolder(true)
+    setFolderResult(null)
+
+    try {
+      const data = await apiRequest('check-prishel-folder')
+      setFolderResult(data)
+    } catch (error) {
+      setFolderResult({
+        success: false,
+        message: error instanceof Error ? error.message : 'Ошибка проверки папки'
+      })
+    } finally {
+      setCheckingFolder(false)
+    }
+  }
+
   return (
     <div className="space-y-6">
       {/* Upload area */}
@@ -151,6 +183,94 @@ export function FileUpload() {
           </div>
         </div>
       </div>
+
+      {/* Check folder button */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <h3 className="text-lg font-medium text-gray-900 mb-4">Автоматическая загрузка из папки</h3>
+        <p className="text-sm text-gray-600 mb-4">
+          Проверить папку <code className="bg-gray-100 px-2 py-1 rounded">prishel_txt</code> на наличие файлов для обработки
+        </p>
+        <button
+          onClick={checkPrishelFolder}
+          disabled={checkingFolder || uploading}
+          className="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+        >
+          {checkingFolder ? (
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+          ) : (
+            <FolderOpen className="w-4 h-4 mr-2" />
+          )}
+          {checkingFolder ? 'Проверка папки...' : 'Проверить папку prishel_txt'}
+        </button>
+      </div>
+
+      {/* Folder check result */}
+      {folderResult && (
+        <div className={`rounded-lg p-4 ${
+          folderResult.success ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'
+        }`}>
+          <div className="flex items-start">
+            <div className="flex-shrink-0">
+              {folderResult.success ? (
+                <CheckCircle className="w-6 h-6 text-green-600" />
+              ) : (
+                <XCircle className="w-6 h-6 text-red-600" />
+              )}
+            </div>
+            <div className="ml-3 w-full">
+              <h4 className={`text-sm font-medium ${
+                folderResult.success ? 'text-green-800' : 'text-red-800'
+              }`}>
+                {folderResult.success ? 'Папка успешно обработана!' : 'Ошибка обработки папки'}
+              </h4>
+              <p className={`text-sm mt-1 ${
+                folderResult.success ? 'text-green-700' : 'text-red-700'
+              }`}>
+                {folderResult.message}
+              </p>
+
+              {folderResult.success && folderResult.files_processed !== undefined && (
+                <div className="mt-3">
+                  <p className="text-sm font-medium text-green-800">
+                    Обработано файлов: {folderResult.files_processed}
+                  </p>
+                  
+                  {folderResult.total_stats && (
+                    <div className="mt-2 space-y-1 text-sm text-green-700">
+                      <p>• Всего строк: {folderResult.total_stats.processed_lines}</p>
+                      <p>• Новых сотрудников: {folderResult.total_stats.new_employees}</p>
+                      <p>• Новых записей доступа: {folderResult.total_stats.new_access_records}</p>
+                    </div>
+                  )}
+
+                  {folderResult.results && folderResult.results.length > 0 && (
+                    <div className="mt-3 space-y-2">
+                      <p className="text-sm font-medium text-green-800">Детали по файлам:</p>
+                      {folderResult.results.map((fileResult, index) => (
+                        <div key={index} className={`text-sm p-2 rounded ${
+                          fileResult.success ? 'bg-green-100' : 'bg-red-100'
+                        }`}>
+                          <p className="font-medium">{fileResult.filename}</p>
+                          {fileResult.success && fileResult.stats && (
+                            <p className="text-xs text-green-700 mt-1">
+                              Строк: {fileResult.stats.processed_lines}, 
+                              Новых сотрудников: {fileResult.stats.new_employees}, 
+                              Записей: {fileResult.stats.new_access_records}
+                            </p>
+                          )}
+                          {!fileResult.success && fileResult.error && (
+                            <p className="text-xs text-red-700 mt-1">Ошибка: {fileResult.error}</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Result */}
       {result && (
