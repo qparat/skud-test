@@ -1,6 +1,6 @@
 ﻿'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Upload, FileText, CheckCircle, XCircle, Loader2, FolderOpen } from 'lucide-react'
 import { apiRequest } from '@/lib/api'
 
@@ -35,6 +35,14 @@ export function FileUpload() {
   const [dragOver, setDragOver] = useState(false)
   const [checkingFolder, setCheckingFolder] = useState(false)
   const [folderResult, setFolderResult] = useState<FolderCheckResponse | null>(null)
+  const [autoCheckEnabled, setAutoCheckEnabled] = useState(false)
+  const [nextCheckIn, setNextCheckIn] = useState(0)
+  const [logs, setLogs] = useState<Array<{time: string, message: string, type: 'info' | 'success' | 'error'}>>([])
+
+  const addLog = (message: string, type: 'info' | 'success' | 'error' = 'info') => {
+    const time = new Date().toLocaleTimeString('ru-RU')
+    setLogs(prev => [...prev, { time, message, type }].slice(-50)) // Храним последние 50 записей
+  }
 
   const handleFileUpload = async (file: File) => {
     if (!file.name.endsWith('.txt')) {
@@ -111,18 +119,83 @@ export function FileUpload() {
   const checkPrishelFolder = async () => {
     setCheckingFolder(true)
     setFolderResult(null)
+    addLog('Начало проверки папки prishel_txt...', 'info')
 
     try {
       const data = await apiRequest('check-prishel-folder')
       setFolderResult(data)
+      
+      if (data.success) {
+        if (data.files_processed === 0) {
+          addLog('Папка пуста - файлы не найдены', 'info')
+        } else {
+          addLog(`✓ Обработано файлов: ${data.files_processed}`, 'success')
+          if (data.total_stats) {
+            addLog(`  → Строк: ${data.total_stats.processed_lines} | Новых сотрудников: ${data.total_stats.new_employees} | Записей доступа: ${data.total_stats.new_access_records}`, 'success')
+          }
+          if (data.results) {
+            data.results.forEach(file => {
+              if (file.success && file.stats) {
+                addLog(`  📄 ${file.filename}: ${file.stats.processed_lines} строк`, 'success')
+              } else if (!file.success) {
+                addLog(`  ✗ ${file.filename}: ${file.error}`, 'error')
+              }
+            })
+          }
+        }
+      } else {
+        addLog(`✗ Ошибка: ${data.message}`, 'error')
+      }
     } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : 'Ошибка проверки папки'
+      addLog(`✗ ${errorMsg}`, 'error')
       setFolderResult({
         success: false,
-        message: error instanceof Error ? error.message : 'Ошибка проверки папки'
+        message: errorMsg
       })
     } finally {
       setCheckingFolder(false)
     }
+  }
+
+  // Автоматическая проверка папки каждые 30 минут
+  useEffect(() => {
+    let intervalId: NodeJS.Timeout
+    let countdownId: NodeJS.Timeout
+
+    if (autoCheckEnabled) {
+      addLog('🔄 Автопроверка включена (интервал: 30 минут)', 'info')
+      // Первая проверка сразу при включении
+      checkPrishelFolder()
+      
+      // Устанавливаем таймер на 30 минут (1800000 мс)
+      setNextCheckIn(1800)
+      
+      // Интервал для проверки папки каждые 30 минут
+      intervalId = setInterval(() => {
+        addLog('⏰ Автоматическая проверка по расписанию', 'info')
+        checkPrishelFolder()
+        setNextCheckIn(1800)
+      }, 30 * 60 * 1000)
+      
+      // Обратный отсчет каждую секунду
+      countdownId = setInterval(() => {
+        setNextCheckIn(prev => prev > 0 ? prev - 1 : 0)
+      }, 1000)
+    } else if (logs.length > 0 && logs[logs.length - 1].message.includes('Автопроверка включена')) {
+      addLog('⏸️ Автопроверка выключена', 'info')
+    }
+
+    return () => {
+      if (intervalId) clearInterval(intervalId)
+      if (countdownId) clearInterval(countdownId)
+    }
+  }, [autoCheckEnabled])
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60)
+    const secs = seconds % 60
+    return `${mins}:${secs.toString().padStart(2, '0')}`
   }
 
   return (
@@ -190,18 +263,74 @@ export function FileUpload() {
         <p className="text-sm text-gray-600 mb-4">
           Проверить папку <code className="bg-gray-100 px-2 py-1 rounded">prishel_txt</code> на наличие файлов для обработки
         </p>
-        <button
-          onClick={checkPrishelFolder}
-          disabled={checkingFolder || uploading}
-          className="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
-        >
-          {checkingFolder ? (
-            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-          ) : (
-            <FolderOpen className="w-4 h-4 mr-2" />
+        
+        <div className="space-y-4">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={checkPrishelFolder}
+              disabled={checkingFolder || uploading}
+              className="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+            >
+              {checkingFolder ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <FolderOpen className="w-4 h-4 mr-2" />
+              )}
+              {checkingFolder ? 'Проверка папки...' : 'Проверить сейчас'}
+            </button>
+
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={autoCheckEnabled}
+                onChange={(e) => setAutoCheckEnabled(e.target.checked)}
+                className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500"
+              />
+              <span className="text-sm text-gray-700">
+                Автоматически каждые 30 минут
+              </span>
+            </label>
+          </div>
+
+          {autoCheckEnabled && (
+            <div className="flex items-center gap-2 text-sm text-gray-600">
+              <span className="inline-block w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+              <span>
+                Автопроверка включена. Следующая проверка через: <strong>{formatTime(nextCheckIn)}</strong>
+              </span>
+            </div>
           )}
-          {checkingFolder ? 'Проверка папки...' : 'Проверить папку prishel_txt'}
-        </button>
+        </div>
+
+        {/* Console Log */}
+        <div className="mt-6">
+          <div className="flex items-center justify-between mb-2">
+            <h4 className="text-sm font-medium text-gray-700">Консоль:</h4>
+            <button
+              onClick={() => setLogs([])}
+              className="text-xs text-gray-500 hover:text-gray-700"
+            >
+              Очистить
+            </button>
+          </div>
+          <div className="bg-gray-900 rounded-lg p-4 h-64 overflow-y-auto font-mono text-xs">
+            {logs.length === 0 ? (
+              <div className="text-gray-500">Ожидание событий...</div>
+            ) : (
+              <div className="space-y-1">
+                {logs.map((log, index) => (
+                  <div key={index} className={`${
+                    log.type === 'success' ? 'text-green-400' :
+                    log.type === 'error' ? 'text-red-400' :
+                    'text-gray-300'
+                  }`}>
+                    <span className="text-gray-500">[{log.time}]</span> {log.message}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Folder check result */}
