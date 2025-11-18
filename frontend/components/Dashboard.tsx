@@ -667,31 +667,6 @@ export function Dashboard() {
         </div>
       </div>
 
-      {/* Быстрые действия */}
-      <div className="bg-white rounded-lg shadow-lg p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Быстрые действия</h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <button className="flex flex-col items-center p-4 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors duration-200">
-            <Calendar className="h-8 w-8 text-blue-600 mb-2" />
-            <span className="text-sm font-medium text-blue-700">Расписание</span>
-          </button>
-          <button className="flex flex-col items-center p-4 bg-green-50 hover:bg-green-100 rounded-lg transition-colors duration-200">
-            <Users className="h-8 w-8 text-green-600 mb-2" />
-            <span className="text-sm font-medium text-green-700">Сотрудники</span>
-          </button>
-          <button className="flex flex-col items-center p-4 bg-amber-50 hover:bg-amber-100 rounded-lg transition-colors duration-200">
-            <AlertCircle className="h-8 w-8 text-amber-600 mb-2" />
-            <span className="text-sm font-medium text-amber-700">Исключения</span>
-          </button>
-          <button className="flex flex-col items-center p-4 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors duration-200">
-            <File className="h-8 w-8 text-purple-600 mb-2" />
-            <span className="text-sm font-medium text-purple-700">Отчеты</span>
-          </button>
-        </div>
-      </div>
-
-
-
       {/* Модальное окно со списком сотрудников */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 modal-backdrop">
