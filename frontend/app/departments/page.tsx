@@ -11,6 +11,11 @@ interface Department {
   employee_count?: number;
 }
 
+interface EditingPriority {
+  departmentId: number;
+  value: string;
+}
+
 export default function DepartmentsPage() {
   const [search, setSearch] = useState('');
   const [departments, setDepartments] = useState<Department[]>([]);
@@ -22,6 +27,8 @@ export default function DepartmentsPage() {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newDepartment, setNewDepartment] = useState({ name: '', priority: '' });
   const [creating, setCreating] = useState(false);
+  const [editingPriority, setEditingPriority] = useState<EditingPriority | null>(null);
+  const [updating, setUpdating] = useState(false);
 
   useEffect(() => {
     fetchDepartments();
@@ -66,6 +73,34 @@ export default function DepartmentsPage() {
       setError(err instanceof Error ? err.message : 'Ошибка при создании службы');
     } finally {
       setCreating(false);
+    }
+  };
+
+  const updatePriority = async (departmentId: number, priority: string) => {
+    try {
+      setUpdating(true);
+      const department = departments.find(d => d.id === departmentId);
+      if (!department) return;
+
+      const payload: any = {
+        name: department.name,
+      };
+
+      if (priority.trim() !== '') {
+        payload.priority = parseInt(priority);
+      }
+
+      await apiRequest(`/departments/${departmentId}`, {
+        method: 'PUT',
+        body: JSON.stringify(payload),
+      });
+
+      setEditingPriority(null);
+      await fetchDepartments();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Ошибка при обновлении приоритета');
+    } finally {
+      setUpdating(false);
     }
   };
 
@@ -191,10 +226,56 @@ export default function DepartmentsPage() {
                     {department.name}
                   </Link>
                 </h3>
-                {department.priority !== null && department.priority !== undefined && (
-                  <span className="inline-block mt-1 px-2 py-0.5 bg-purple-100 text-purple-800 text-xs font-medium rounded">
-                    Приоритет: {department.priority}
-                  </span>
+                
+                {editingPriority?.departmentId === department.id ? (
+                  <div className="mt-2 flex items-center gap-2">
+                    <input
+                      type="number"
+                      value={editingPriority.value}
+                      onChange={(e) => setEditingPriority({ departmentId: department.id, value: e.target.value })}
+                      className="w-20 border border-gray-300 rounded px-2 py-1 text-sm"
+                      placeholder="№"
+                      min="1"
+                      autoFocus
+                      disabled={updating}
+                    />
+                    <button
+                      onClick={() => updatePriority(department.id, editingPriority.value)}
+                      disabled={updating}
+                      className="bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded text-xs disabled:opacity-50"
+                    >
+                      ✓
+                    </button>
+                    <button
+                      onClick={() => setEditingPriority(null)}
+                      disabled={updating}
+                      className="bg-gray-400 hover:bg-gray-500 text-white px-2 py-1 rounded text-xs disabled:opacity-50"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ) : (
+                  <div className="mt-1 flex items-center gap-2">
+                    {department.priority !== null && department.priority !== undefined ? (
+                      <span className="inline-block px-2 py-0.5 bg-purple-100 text-purple-800 text-xs font-medium rounded">
+                        Приоритет: {department.priority}
+                      </span>
+                    ) : (
+                      <span className="inline-block px-2 py-0.5 bg-gray-100 text-gray-600 text-xs font-medium rounded">
+                        Без приоритета
+                      </span>
+                    )}
+                    <button
+                      onClick={() => setEditingPriority({ 
+                        departmentId: department.id, 
+                        value: department.priority?.toString() || '' 
+                      })}
+                      className="text-purple-600 hover:text-purple-800 text-xs underline"
+                      title="Изменить приоритет"
+                    >
+                      изменить
+                    </button>
+                  </div>
                 )}
               </div>
               <button
@@ -205,7 +286,7 @@ export default function DepartmentsPage() {
                 ✕
               </button>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 mt-3">
               <Link
                 href={`/departments/${department.id}`}
                 className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm"
