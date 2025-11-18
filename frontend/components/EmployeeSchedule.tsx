@@ -1105,6 +1105,12 @@ export function EmployeeSchedule() {
         exception: row['Исключение']
       })
       
+      // Устанавливаем Times New Roman для всех ячеек
+      excelRow.eachCell((cell) => {
+        if (!cell.font) cell.font = {}
+        cell.font = { ...cell.font, name: 'Times New Roman' }
+      })
+      
       // Применяем синий цвет к строкам с ФИО сотрудников
       if (exportSortType === 'department-detailed' && isRangeData) {
         const fioValue = row['ФИО'] || row['ФИО/Должность']
@@ -1114,8 +1120,18 @@ export function EmployeeSchedule() {
             // Окрашиваем ячейку с ФИО в синий цвет
             const fioCell = excelRow.getCell('fio')
             fioCell.font = {
+              name: 'Times New Roman',
               color: { argb: 'FF0B10F7' }, // Синий цвет #0B10F7
               bold: true
+            }
+          }
+          // Проверяем, что это строка с датой (начинается с 8 пробелами)
+          else if (fioValue.startsWith('        ')) {
+            // Окрашиваем даты в коричневый цвет
+            const fioCell = excelRow.getCell('fio')
+            fioCell.font = {
+              name: 'Times New Roman',
+              color: { argb: 'FF1D5800' } // Коричневый цвет #1D5800
             }
           }
         }
