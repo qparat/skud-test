@@ -1063,12 +1063,12 @@ export function EmployeeSchedule() {
         console.log('[EXPORT] Sorting alphabetically for single day')
         // Сортировка по алфавиту
         const sortedEmps = employees.sort((a, b) => 
-          a.full_name.localeCompare(b.full_name, 'ru')
+          (a.full_name_expanded || a.full_name).localeCompare(b.full_name_expanded || b.full_name, 'ru')
         )
         
         excelData = sortedEmps.map((employee, index) => ({
           '№': index + 1,
-          'ФИО': employee.full_name,
+          'ФИО': employee.full_name_expanded || employee.full_name,
           'Пришел': employee.first_entry || '-',
           'Ушел': employee.last_exit || '-',
           'Часы работы': employee.work_hours !== null && employee.work_hours !== undefined ? `${employee.work_hours.toFixed(1)} ч` : '-',

@@ -38,13 +38,19 @@ export default function EditDepartmentPage() {
       setFormData({
         name: data.name,
       });
-      // TODO: fetch whitelist info for departmentId from API and set state
-      // Example:
-      // const wl = await apiRequest(`/whitelist-departments/${departmentId}`);
-      // if (wl && wl.is_permanent) {
-      //   setIsWhitelisted(true);
-      //   setWhitelistReason(wl.reason || '');
-      // }
+      
+      // Загружаем информацию об исключении для службы
+      try {
+        const whitelist = await apiRequest(`/whitelist-departments/${departmentId}`);
+        if (whitelist && whitelist.is_permanent) {
+          setIsWhitelisted(true);
+          setWhitelistReason(whitelist.reason || '');
+        }
+      } catch (err) {
+        // Если исключения нет (404), это нормально - просто не устанавливаем галочку
+        console.log('Исключение для службы не найдено (это нормально)');
+      }
+      
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ошибка при загрузке службы');
@@ -59,6 +65,8 @@ export default function EditDepartmentPage() {
 
     try {
       setSaving(true);
+      
+      // Сохраняем название службы
       await apiRequest(`/departments/${departmentId}`, {
         method: 'PUT',
         body: JSON.stringify({
@@ -66,8 +74,9 @@ export default function EditDepartmentPage() {
         }),
       });
 
-      // Сохраняем whitelist (исключение) для службы
+      // Управление исключением для службы
       if (isWhitelisted && whitelistReason.trim()) {
+        // Галочка стоит и причина указана - добавляем/обновляем исключение
         await apiRequest(`/whitelist-departments`, {
           method: 'POST',
           body: JSON.stringify({
@@ -78,10 +87,16 @@ export default function EditDepartmentPage() {
           }),
         });
       } else {
-        // Если сняли галочку, можно удалить исключение
-        await apiRequest(`/whitelist-departments/${departmentId}`, {
-          method: 'DELETE'
-        });
+        // Галочка снята или причина пустая - удаляем исключение
+        try {
+          await apiRequest(`/whitelist-departments/${departmentId}`, {
+            method: 'DELETE'
+          });
+          console.log('Исключение для службы удалено');
+        } catch (deleteErr) {
+          // Если исключения не было (404), это нормально - игнорируем ошибку
+          console.log('Исключение не найдено или уже удалено');
+        }
       }
 
       router.push(`/departments/${departmentId}`);

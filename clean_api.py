@@ -433,6 +433,31 @@ async def add_whitelist_department(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка добавления исключения: {str(e)}")
 
+@app.get("/whitelist-departments/{department_id}")
+async def get_whitelist_department(department_id: int, current_user: dict = Depends(get_current_user)):
+    """Получить информацию об исключении для службы (отдела)"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT department_id, reason, exception_type, is_permanent
+            FROM whitelist_departments 
+            WHERE department_id = %s
+        """, (department_id,))
+        row = cursor.fetchone()
+        conn.close()
+        
+        if row:
+            return {
+                "department_id": row[0],
+                "reason": row[1],
+                "exception_type": row[2],
+                "is_permanent": row[3]
+            }
+        return None
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка получения исключения: {str(e)}")
+
 @app.delete("/whitelist-departments/{department_id}")
 async def delete_whitelist_department(department_id: int, current_user: dict = Depends(get_current_user)):
     """Удалить бесконечное исключение для службы (отдела)"""
@@ -440,9 +465,10 @@ async def delete_whitelist_department(department_id: int, current_user: dict = D
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute("DELETE FROM whitelist_departments WHERE department_id = %s", (department_id,))
+        deleted_count = cursor.rowcount
         conn.commit()
         conn.close()
-        return {"message": "Исключение для службы удалено"}
+        return {"message": "Исключение для службы удалено", "deleted": deleted_count > 0}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка удаления исключения: {str(e)}")
 
@@ -1064,44 +1090,40 @@ async def get_employee_schedule(
                         entry_time = datetime.strptime(first_entry, '%H:%M:%S').time()
                     else:
                         entry_time = first_entry
+                    # Проверяем, опоздал ли физически
+                    physically_late = entry_time > work_start_time
+                    
                     # Проверяем исключения
-                    if (employee_exception and employee_exception['type'] == 'no_lateness_check'):
-                        exception_info = {
-                            'has_exception': True,
-                            'reason': employee_exception['reason'],
-                            'type': employee_exception['type']
-                        }
-                    elif (department_exception and department_exception['type'] == 'no_lateness_check'):
-                        exception_info = {
-                            'has_exception': True,
-                            'reason': department_exception['reason'],
-                            'type': department_exception['type']
-                        }
-                    if not exception_info:
-                        if entry_time > work_start_time:
-                            is_late = True
-                            entry_datetime = datetime.combine(datetime.today().date(), entry_time)
-                            work_start_datetime = datetime.combine(datetime.today().date(), work_start_time)
-                            late_minutes = int((entry_datetime - work_start_datetime).total_seconds() / 60)
-                            print(f"[DEBUG] {emp_data['name']} (ID: {emp_data['id']}) пришёл в {first_entry} > 09:00:00 => is_late=True, late_minutes={late_minutes}")
-                        else:
-                            print(f"[DEBUG] {emp_data['name']} (ID: {emp_data['id']}) пришёл в {first_entry} <= 09:00:00 => is_late=False")
-                    else:
-                        print(f"[DEBUG] {emp_data['name']} (ID: {emp_data['id']}) исключение: {exception_info}")
-                    # Если пришел вовремя, но есть исключение (любого типа), показываем причину
-                    if entry_time <= work_start_time:
-                        if employee_exception:
+                    if physically_late:
+                        # Если опоздал физически, проверяем есть ли исключение
+                        if (employee_exception and employee_exception['type'] == 'no_lateness_check'):
                             exception_info = {
                                 'has_exception': True,
                                 'reason': employee_exception['reason'],
                                 'type': employee_exception['type']
                             }
-                        elif department_exception:
+                            # Исключение снимает опоздание
+                            is_late = False
+                            print(f"[DEBUG] {emp_data['name']} (ID: {emp_data['id']}) пришёл в {first_entry} > 09:00:00, но есть исключение сотрудника: {employee_exception['reason']}")
+                        elif (department_exception and department_exception['type'] == 'no_lateness_check'):
                             exception_info = {
                                 'has_exception': True,
                                 'reason': department_exception['reason'],
                                 'type': department_exception['type']
                             }
+                            # Исключение снимает опоздание
+                            is_late = False
+                            print(f"[DEBUG] {emp_data['name']} (ID: {emp_data['id']}) пришёл в {first_entry} > 09:00:00, но есть исключение отдела: {department_exception['reason']}")
+                        else:
+                            # Опоздал и нет исключения
+                            is_late = True
+                            entry_datetime = datetime.combine(datetime.today().date(), entry_time)
+                            work_start_datetime = datetime.combine(datetime.today().date(), work_start_time)
+                            late_minutes = int((entry_datetime - work_start_datetime).total_seconds() / 60)
+                            print(f"[DEBUG] {emp_data['name']} (ID: {emp_data['id']}) пришёл в {first_entry} > 09:00:00 => is_late=True, late_minutes={late_minutes}")
+                    else:
+                        # Пришёл вовремя - исключения не показываем
+                        print(f"[DEBUG] {emp_data['name']} (ID: {emp_data['id']}) пришёл в {first_entry} <= 09:00:00 => is_late=False")
                 except Exception as ex:
                     print(f"[ERROR] Ошибка расчёта опоздания для {emp_data['name']} (ID: {emp_data['id']}): {ex}")
 
@@ -1279,43 +1301,36 @@ async def get_employee_schedule_range(
                     if first_entry:
                         entry_time = datetime.strptime(first_entry, '%H:%M:%S').time()
                         work_start = datetime.strptime('09:00:00', '%H:%M:%S').time()
-                        if entry_time > work_start:
-                            # Если есть исключение типа "no_lateness_check" у сотрудника или отдела, не помечаем как опоздавшего
-                            if (exception_data and exception_data[1] == 'no_lateness_check') or (department_exception and department_exception['type'] == 'no_lateness_check'):
+                        physically_late = entry_time > work_start
+                        
+                        if physically_late:
+                            # Если опоздал физически, проверяем есть ли исключение
+                            if (exception_data and exception_data[1] == 'no_lateness_check'):
+                                # Есть персональное исключение - не считаем опозданием
                                 is_late = False
                                 late_minutes = 0
-                                if exception_data and exception_data[1] == 'no_lateness_check':
-                                    exception_info = {
-                                        'has_exception': True,
-                                        'reason': exception_data[0],
-                                        'type': exception_data[1]
-                                    }
-                                else:
-                                    exception_info = {
-                                        'has_exception': True,
-                                        'reason': department_exception['reason'],
-                                        'type': department_exception['type']
-                                    }
-                            else:
-                                is_late = True
-                                entry_datetime = datetime.combine(current_date, entry_time)
-                                work_start_datetime = datetime.combine(current_date, work_start)
-                                late_minutes = int((entry_datetime - work_start_datetime).total_seconds() / 60)
-                                total_late_count += 1
-                        else:
-                            # Если пришел вовремя, но есть исключение, все равно отмечаем его
-                            if exception_data:
                                 exception_info = {
                                     'has_exception': True,
                                     'reason': exception_data[0],
                                     'type': exception_data[1]
                                 }
-                            elif department_exception:
+                            elif (department_exception and department_exception['type'] == 'no_lateness_check'):
+                                # Есть исключение отдела - не считаем опозданием
+                                is_late = False
+                                late_minutes = 0
                                 exception_info = {
                                     'has_exception': True,
                                     'reason': department_exception['reason'],
                                     'type': department_exception['type']
                                 }
+                            else:
+                                # Опоздал и нет исключения
+                                is_late = True
+                                entry_datetime = datetime.combine(current_date, entry_time)
+                                work_start_datetime = datetime.combine(current_date, work_start)
+                                late_minutes = int((entry_datetime - work_start_datetime).total_seconds() / 60)
+                                total_late_count += 1
+                        # Если пришёл вовремя - исключения не показываем (exception_info остается None)
                     status = get_employee_status(is_late, first_entry, exception_info)
                     # Ensure work_hours is always defined
                     if 'work_hours' not in locals():
