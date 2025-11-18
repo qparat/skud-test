@@ -16,7 +16,7 @@ import {
   File,
   ChevronLeft,
   ChevronRight,
-  BookOpen
+  UserCheck
 } from 'lucide-react'
 
 const navigation = [
@@ -29,7 +29,7 @@ const navigation = [
   { name: 'Исключения', href: '/exceptions', icon: Shield, requireRole: 2 },
   { name: 'Пользователи', href: '/users', icon: UserCog, requireRole: 1 },
   { name: 'Загрузка файлов', href: '/upload', icon: Upload, requireRole: 1  },
-  { name: 'Список с ФИО полным', href: '/employees-full', icon: BookOpen, requireRole: 1 },
+  { name: 'Полные ФИО сотрудников', href: '/employees-full', icon: UserCheck, requireRole: 1 },
 ]
 
 export function Sidebar() {
@@ -115,7 +115,7 @@ export function Sidebar() {
               `}
               title={isCollapsed ? 'Инструкция по эксплуатации' : ''}
             >
-              <BookOpen
+              <File
                 className={`
                   ${pathname === '/manual' ? 'text-blue-500' : 'text-gray-400 group-hover:text-gray-500'}
                   ${isCollapsed ? '' : 'mr-3'} flex-shrink-0 h-5 w-5
