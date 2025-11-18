@@ -15,6 +15,22 @@ const formatDate = (date: Date) => {
   return `${year}-${month}-${day}`
 }
 
+// Функция для сортировки названий служб по заданному приоритету из API
+// Принимает массив объектов { name, priority } и возвращает отсортированные названия
+const sortDepartmentNames = (deptNames: string[], departmentPriorities: Record<string, number | null>): string[] => {
+  return deptNames.sort((a, b) => {
+    const priorityA = departmentPriorities[a] ?? 999
+    const priorityB = departmentPriorities[b] ?? 999
+    
+    if (priorityA !== priorityB) {
+      return priorityA - priorityB
+    }
+    
+    // Если приоритеты одинаковые (или обе службы без приоритета), сортируем по алфавиту
+    return a.localeCompare(b, 'ru')
+  })
+}
+
 interface Employee {
   employee_id: number
   full_name: string
@@ -88,7 +104,7 @@ export function EmployeeSchedule() {
   const [showCalendar, setShowCalendar] = useState(false)
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const [expandedEmployees, setExpandedEmployees] = useState<Set<number>>(new Set())
-  const [departments, setDepartments] = useState<{ id: number; name: string }[]>([])
+  const [departments, setDepartments] = useState<{ id: number; name: string; priority?: number | null }[]>([])
   const [selectedDepartment, setSelectedDepartment] = useState<number[]>([])
   const [showFilter, setShowFilter] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
@@ -763,8 +779,14 @@ export function EmployeeSchedule() {
           byDepartment[deptName][emp.employee_id].push(emp)
         })
         
-        // Сортируем названия отделов
-        const sortedDeptNames = Object.keys(byDepartment).sort((a, b) => a.localeCompare(b, 'ru'))
+        // Создаем объект приоритетов из departments
+        const departmentPriorities: Record<string, number | null> = {}
+        departments.forEach(dept => {
+          departmentPriorities[dept.name] = dept.priority ?? null
+        })
+        
+        // Сортируем названия отделов по приоритету из API
+        const sortedDeptNames = sortDepartmentNames(Object.keys(byDepartment), departmentPriorities)
         
         let globalRowIndex = 1
         
@@ -874,8 +896,14 @@ export function EmployeeSchedule() {
             byDepartment[deptName].push(emp)
           })
           
-          // Сортируем названия отделов
-          const sortedDeptNames = Object.keys(byDepartment).sort((a, b) => a.localeCompare(b, 'ru'))
+          // Создаем объект приоритетов из departments
+          const departmentPriorities: Record<string, number | null> = {}
+          departments.forEach(dept => {
+            departmentPriorities[dept.name] = dept.priority ?? null
+          })
+          
+          // Сортируем названия отделов по приоритету из API
+          const sortedDeptNames = sortDepartmentNames(Object.keys(byDepartment), departmentPriorities)
           
           // Строка с датой
           excelData.push({
@@ -987,8 +1015,14 @@ export function EmployeeSchedule() {
           byDepartment[deptName].push(emp)
         })
         
-        // Сортируем названия отделов
-        const sortedDeptNames = Object.keys(byDepartment).sort((a, b) => a.localeCompare(b, 'ru'))
+        // Создаем объект приоритетов из departments
+        const departmentPriorities: Record<string, number | null> = {}
+        departments.forEach(dept => {
+          departmentPriorities[dept.name] = dept.priority ?? null
+        })
+        
+        // Сортируем названия отделов по приоритету из API
+        const sortedDeptNames = sortDepartmentNames(Object.keys(byDepartment), departmentPriorities)
         
         let rowIndex = 1
         
@@ -1101,7 +1135,7 @@ export function EmployeeSchedule() {
       try {
         const resp = await apiRequest('departments')
         if (Array.isArray(resp)) {
-          setDepartments(resp.map((d: any) => ({ id: d.id, name: d.name })))
+          setDepartments(resp.map((d: any) => ({ id: d.id, name: d.name, priority: d.priority })))
         }
       } catch (e) {
         if (scheduleData && Array.isArray(scheduleData.employees)) {
@@ -1110,12 +1144,12 @@ export function EmployeeSchedule() {
             .filter(Boolean)))
           setDepartments(
             uniqueDeps
-              .map((str): { id: number; name: string } | null => {
+              .map((str): { id: number; name: string; priority?: number | null } | null => {
                 if (!str) return null
                 const [id, name] = str.split('|')
-                return { id: Number(id), name }
+                return { id: Number(id), name, priority: null }
               })
-              .filter((item): item is { id: number; name: string } => Boolean(item))
+              .filter((item): item is { id: number; name: string; priority?: number | null } => Boolean(item))
           )
         }
       }

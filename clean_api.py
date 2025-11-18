@@ -186,9 +186,11 @@ class UserResponse(BaseModel):
 # Pydantic модели для валидации данных
 class DepartmentCreate(BaseModel):
     name: str
+    priority: Optional[int] = None
 
 class DepartmentUpdate(BaseModel):
     name: str
+    priority: Optional[int] = None
 
 class PositionCreate(BaseModel):
     name: str
@@ -529,6 +531,39 @@ def create_svod_report_employees_table():
     except Exception as e:
         print(f"Ошибка создания таблицы svod_report_employees: {e}")
 
+def add_departments_priority_column():
+    """Добавляет колонку priority в таблицу departments, если её нет"""
+    try:
+        conn = psycopg2.connect(
+            host=DB_HOST,
+            database=DB_NAME,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            port=DB_PORT
+        )
+        cursor = conn.cursor()
+        
+        # Добавляем колонку priority для кастомной сортировки служб
+        try:
+            cursor.execute("ALTER TABLE departments ADD COLUMN priority INTEGER")
+            print("Колонка priority добавлена в таблицу departments")
+        except Exception:
+            # Колонка уже существует
+            pass
+        
+        # Создаем индекс для оптимизации сортировки
+        try:
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_departments_priority ON departments(priority)")
+            print("Индекс idx_departments_priority создан")
+        except Exception:
+            # Индекс уже существует
+            pass
+        
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print(f"Ошибка добавления колонки priority: {e}")
+
 @app.on_event("startup")
 async def startup_event():
     """Инициализация при запуске приложения"""
@@ -536,6 +571,7 @@ async def startup_event():
     create_auth_tables()
     create_department_positions_table()
     create_whitelist_departments_table()
+    add_departments_priority_column()
     create_svod_report_employees_table()
     # update_employees_table()  # Функция не определена, убрано для предотвращения ошибки
     create_initial_admin()
@@ -1966,11 +2002,11 @@ async def get_all_departments():
         results = execute_query(
             conn,
             """
-            SELECT d.id, d.name, COUNT(e.id) as employee_count
+            SELECT d.id, d.name, d.priority, COUNT(e.id) as employee_count
             FROM departments d
             LEFT JOIN employees e ON d.id = e.department_id AND e.is_active = %s
-            GROUP BY d.id, d.name
-            ORDER BY d.name
+            GROUP BY d.id, d.name, d.priority
+            ORDER BY COALESCE(d.priority, 999), d.name
             """,
             (True,),
             fetch_all=True
@@ -1981,6 +2017,7 @@ async def get_all_departments():
             departments.append({
                 'id': row['id'],
                 'name': row['name'],
+                'priority': row.get('priority'),
                 'employee_count': row['employee_count']
             })
         
@@ -1998,11 +2035,11 @@ async def get_department_by_id(department_id: int):
         cursor = conn.cursor()
         
         cursor.execute("""
-            SELECT d.id, d.name, COUNT(e.id) as employee_count
+            SELECT d.id, d.name, d.priority, COUNT(e.id) as employee_count
             FROM departments d
             LEFT JOIN employees e ON d.id = e.department_id AND e.is_active = TRUE
             WHERE d.id = %s
-            GROUP BY d.id, d.name
+            GROUP BY d.id, d.name, d.priority
         """, (department_id,))
         
         result = cursor.fetchone()
@@ -2011,10 +2048,11 @@ async def get_department_by_id(department_id: int):
         if not result:
             raise HTTPException(status_code=404, detail="Отдел не найден")
         
-        dept_id, name, employee_count = result
+        dept_id, name, priority, employee_count = result
         return {
             'id': dept_id,
             'name': name,
+            'priority': priority,
             'employee_count': employee_count
         }
         
@@ -2958,7 +2996,11 @@ async def create_department(department: DepartmentCreate):
             raise HTTPException(status_code=400, detail="Отдел с таким названием уже существует")
 
         # Создаем новый отдел и получаем id
-        cursor.execute("INSERT INTO departments (name) VALUES (%s) RETURNING id", (department.name,))
+        priority = getattr(department, 'priority', None)
+        if priority is not None:
+            cursor.execute("INSERT INTO departments (name, priority) VALUES (%s, %s) RETURNING id", (department.name, priority))
+        else:
+            cursor.execute("INSERT INTO departments (name) VALUES (%s) RETURNING id", (department.name,))
         department_id = cursor.fetchone()[0]
 
         conn.commit()
@@ -2967,6 +3009,7 @@ async def create_department(department: DepartmentCreate):
         return {
             "id": department_id,
             "name": department.name,
+            "priority": priority,
             "message": "Отдел успешно создан"
         }
 
@@ -2991,7 +3034,11 @@ async def update_department(department_id: int, department: DepartmentUpdate):
             raise HTTPException(status_code=400, detail="Отдел с таким названием уже существует")
 
         # Обновляем отдел
-        cursor.execute("UPDATE departments SET name = %s WHERE id = %s", (department.name, department_id))
+        priority = getattr(department, 'priority', None)
+        if priority is not None:
+            cursor.execute("UPDATE departments SET name = %s, priority = %s WHERE id = %s", (department.name, priority, department_id))
+        else:
+            cursor.execute("UPDATE departments SET name = %s, priority = NULL WHERE id = %s", (department.name, department_id))
         
         conn.commit()
         conn.close()
@@ -2999,6 +3046,7 @@ async def update_department(department_id: int, department: DepartmentUpdate):
         return {
             "id": department_id,
             "name": department.name,
+            "priority": priority,
             "message": "Отдел успешно обновлен"
         }
         

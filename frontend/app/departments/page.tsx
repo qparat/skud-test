@@ -7,6 +7,7 @@ import { apiRequest } from '@/lib/api';
 interface Department {
   id: number;
   name: string;
+  priority?: number | null;
   employee_count?: number;
 }
 
@@ -19,7 +20,7 @@ export default function DepartmentsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [newDepartment, setNewDepartment] = useState({ name: '' });
+  const [newDepartment, setNewDepartment] = useState({ name: '', priority: '' });
   const [creating, setCreating] = useState(false);
 
   useEffect(() => {
@@ -45,14 +46,20 @@ export default function DepartmentsPage() {
 
     try {
       setCreating(true);
+      const payload: any = {
+        name: newDepartment.name.trim(),
+      };
+      
+      if (newDepartment.priority && newDepartment.priority.trim() !== '') {
+        payload.priority = parseInt(newDepartment.priority);
+      }
+      
       await apiRequest('/departments', {
         method: 'POST',
-        body: JSON.stringify({
-          name: newDepartment.name.trim(),
-        }),
+        body: JSON.stringify(payload),
       });
 
-      setNewDepartment({ name: '' });
+      setNewDepartment({ name: '', priority: '' });
       setShowCreateForm(false);
       await fetchDepartments();
     } catch (err) {
@@ -118,7 +125,7 @@ export default function DepartmentsPage() {
         <div className="bg-white border rounded-lg p-6 mb-6 shadow-sm">
           <h2 className="text-xl font-semibold mb-4">Создать новую службу</h2>
           <form onSubmit={createDepartment}>
-            <div className="mb-4">
+            <div className="mb-4 space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Название службы *
@@ -130,6 +137,22 @@ export default function DepartmentsPage() {
                   className="w-full border border-gray-300 rounded-md px-3 py-2"
                   required
                 />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Приоритет (необязательно)
+                </label>
+                <input
+                  type="number"
+                  value={newDepartment.priority}
+                  onChange={(e) => setNewDepartment({ ...newDepartment, priority: e.target.value })}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2"
+                  placeholder="Чем меньше число, тем выше приоритет"
+                  min="1"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Службы с меньшим числом будут отображаться первыми в отчетах. Службы без приоритета будут идти после всех в алфавитном порядке.
+                </p>
               </div>
             </div>
             <div className="flex gap-2">
@@ -144,7 +167,7 @@ export default function DepartmentsPage() {
                 type="button"
                 onClick={() => {
                   setShowCreateForm(false);
-                  setNewDepartment({ name: '' });
+                  setNewDepartment({ name: '', priority: '' });
                 }}
                 className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-md"
               >
@@ -159,14 +182,21 @@ export default function DepartmentsPage() {
         {filteredDepartments.map((department) => (
           <div key={department.id} className="bg-white border rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow">
             <div className="flex justify-between items-start mb-3">
-              <h3 className="text-xl font-semibold text-blue-600">
-                <Link 
-                  href={`/departments/${department.id}`}
-                  className="hover:underline"
-                >
-                  {department.name}
-                </Link>
-              </h3>
+              <div className="flex-1">
+                <h3 className="text-xl font-semibold text-blue-600">
+                  <Link 
+                    href={`/departments/${department.id}`}
+                    className="hover:underline"
+                  >
+                    {department.name}
+                  </Link>
+                </h3>
+                {department.priority !== null && department.priority !== undefined && (
+                  <span className="inline-block mt-1 px-2 py-0.5 bg-purple-100 text-purple-800 text-xs font-medium rounded">
+                    Приоритет: {department.priority}
+                  </span>
+                )}
+              </div>
               <button
                 onClick={() => deleteDepartment(department.id, department.name)}
                 className="text-red-500 hover:text-red-700 text-sm"
