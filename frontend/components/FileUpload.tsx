@@ -134,7 +134,7 @@ export function FileUpload() {
             addLog(`  → Строк: ${data.total_stats.processed_lines} | Новых сотрудников: ${data.total_stats.new_employees} | Записей доступа: ${data.total_stats.new_access_records}`, 'success')
           }
           if (data.results) {
-            data.results.forEach(file => {
+            data.results.forEach((file: { filename: string; success: boolean; stats?: UploadStats; error?: string }) => {
               if (file.success && file.stats) {
                 addLog(`  📄 ${file.filename}: ${file.stats.processed_lines} строк`, 'success')
               } else if (!file.success) {
