@@ -47,6 +47,7 @@ export default function ShiftsPage() {
   const [showAddEmployeeModal, setShowAddEmployeeModal] = useState(false);
   const [availableEmployees, setAvailableEmployees] = useState<Employee[]>([]);
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<number | null>(null);
+  const [searchEmployee, setSearchEmployee] = useState('');
   const [editingCell, setEditingCell] = useState<{empId: number, day: number} | null>(null);
   const [cellValue, setCellValue] = useState('');
 
@@ -69,7 +70,9 @@ export default function ShiftsPage() {
       const response = await fetch('/api/employees-list');
       if (response.ok) {
         const data = await response.json();
-        setAvailableEmployees(data.employees || []);
+        // Фильтруем только активных сотрудников (is_active = true)
+        const activeEmployees = (data.employees || []).filter((emp: any) => emp.is_active !== false);
+        setAvailableEmployees(activeEmployees);
       }
     } catch (error) {
       console.error('Ошибка загрузки сотрудников:', error);
@@ -673,25 +676,60 @@ export default function ShiftsPage() {
                 <h2 className="text-xl font-bold text-gray-900">Добавить сотрудника в график</h2>
               </div>
 
-              <div className="p-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Выберите сотрудника
-                </label>
-                <select
-                  value={selectedEmployeeId || ''}
-                  onChange={(e) => setSelectedEmployeeId(Number(e.target.value))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value="">-- Выберите --</option>
-                  {availableEmployees
-                    .filter(emp => !scheduleData.employees.find(se => se.employee_id === emp.id))
-                    .map(emp => (
-                      <option key={emp.id} value={emp.id}>
-                        {emp.full_name_expanded || emp.full_name}
-                      </option>
-                    ))}
-                </select>
-                <p className="text-xs text-gray-500 mt-2">
+              <div className="p-6 space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Поиск сотрудника
+                  </label>
+                  <input
+                    type="text"
+                    value={searchEmployee}
+                    onChange={(e) => setSearchEmployee(e.target.value)}
+                    placeholder="Введите имя для поиска..."
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Выберите сотрудника
+                  </label>
+                  <div className="max-h-60 overflow-y-auto border border-gray-300 rounded-md">
+                    {availableEmployees
+                      .filter(emp => !scheduleData.employees.find(se => se.employee_id === emp.id))
+                      .filter(emp => {
+                        if (!searchEmployee) return true;
+                        const fullName = emp.full_name_expanded || emp.full_name;
+                        return fullName.toLowerCase().includes(searchEmployee.toLowerCase());
+                      })
+                      .map(emp => (
+                        <div
+                          key={emp.id}
+                          onClick={() => setSelectedEmployeeId(emp.id)}
+                          className={`px-4 py-3 cursor-pointer hover:bg-gray-50 border-b border-gray-200 last:border-b-0 ${
+                            selectedEmployeeId === emp.id ? 'bg-blue-50 border-l-4 border-l-blue-600' : ''
+                          }`}
+                        >
+                          <div className="font-medium text-gray-900">
+                            {emp.full_name_expanded || emp.full_name}
+                          </div>
+                        </div>
+                      ))}
+                    {availableEmployees
+                      .filter(emp => !scheduleData.employees.find(se => se.employee_id === emp.id))
+                      .filter(emp => {
+                        if (!searchEmployee) return true;
+                        const fullName = emp.full_name_expanded || emp.full_name;
+                        return fullName.toLowerCase().includes(searchEmployee.toLowerCase());
+                      }).length === 0 && (
+                      <div className="px-4 py-8 text-center text-gray-500">
+                        {searchEmployee ? 'Сотрудники не найдены' : 'Нет доступных сотрудников'}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <p className="text-xs text-gray-500">
                   По умолчанию все дни будут отмечены как выходные (В). Вы сможете изменить их после добавления.
                 </p>
               </div>
@@ -701,13 +739,17 @@ export default function ShiftsPage() {
                   onClick={() => {
                     setShowAddEmployeeModal(false);
                     setSelectedEmployeeId(null);
+                    setSearchEmployee('');
                   }}
                   className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
                 >
                   Отмена
                 </button>
                 <button
-                  onClick={addEmployeeToSchedule}
+                  onClick={() => {
+                    addEmployeeToSchedule();
+                    setSearchEmployee('');
+                  }}
                   disabled={!selectedEmployeeId}
                   className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
