@@ -168,10 +168,6 @@ export default function ManualPage() {
               </div>
             </div>
 
-            <div className="bg-yellow-50 p-4 rounded-lg border-l-4 border-yellow-500">
-              <h4 className="text-base font-semibold mb-2 text-yellow-900">Будущие отчеты</h4>
-              <p className="text-yellow-800 text-sm">В следующих версиях системы будут добавлены дополнительные типы отчетов для расширенного анализа данных</p>
-            </div>
           </section>
 
           {/* Раздел 4 */}
