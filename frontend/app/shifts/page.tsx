@@ -32,13 +32,23 @@ interface ScheduleWithEmployees {
   employees: EmployeeShift[];
 }
 
+interface Employee {
+  id: number;
+  full_name: string;
+  full_name_expanded?: string;
+}
+
 export default function ShiftsPage() {
   const [schedules, setSchedules] = useState<ShiftSchedule[]>([]);
   const [selectedSchedule, setSelectedSchedule] = useState<number | null>(null);
   const [scheduleData, setScheduleData] = useState<ScheduleWithEmployees | null>(null);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [editingShiftType, setEditingShiftType] = useState<ShiftType | null>(null);
+  const [showAddEmployeeModal, setShowAddEmployeeModal] = useState(false);
+  const [availableEmployees, setAvailableEmployees] = useState<Employee[]>([]);
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<number | null>(null);
+  const [editingCell, setEditingCell] = useState<{empId: number, day: number} | null>(null);
+  const [cellValue, setCellValue] = useState('');
 
   // Форма создания графика
   const [newScheduleName, setNewScheduleName] = useState('');
@@ -51,7 +61,20 @@ export default function ShiftsPage() {
 
   useEffect(() => {
     fetchSchedules();
+    fetchEmployees();
   }, []);
+
+  const fetchEmployees = async () => {
+    try {
+      const response = await fetch('/api/employees-list');
+      if (response.ok) {
+        const data = await response.json();
+        setAvailableEmployees(data.employees || []);
+      }
+    } catch (error) {
+      console.error('Ошибка загрузки сотрудников:', error);
+    }
+  };
 
   const fetchSchedules = async () => {
     try {
@@ -191,6 +214,87 @@ export default function ShiftsPage() {
     }
   };
 
+  const addEmployeeToSchedule = () => {
+    if (!selectedEmployeeId || !scheduleData) return;
+
+    const employee = availableEmployees.find(e => e.id === selectedEmployeeId);
+    if (!employee) return;
+
+    const daysInMonth = new Date(scheduleData.schedule.year, scheduleData.schedule.month, 0).getDate();
+    const newEmployee: EmployeeShift = {
+      employee_id: employee.id,
+      employee_name: employee.full_name_expanded || employee.full_name,
+      days: Array(daysInMonth).fill('В')
+    };
+
+    setScheduleData({
+      ...scheduleData,
+      employees: [...scheduleData.employees, newEmployee]
+    });
+
+    setShowAddEmployeeModal(false);
+    setSelectedEmployeeId(null);
+  };
+
+  const updateCellValue = (empId: number, dayIndex: number, value: string) => {
+    if (!scheduleData) return;
+
+    setScheduleData({
+      ...scheduleData,
+      employees: scheduleData.employees.map(emp => 
+        emp.employee_id === empId
+          ? { ...emp, days: emp.days.map((d, i) => i === dayIndex ? value : d) }
+          : emp
+      )
+    });
+  };
+
+  const startEditCell = (empId: number, day: number, currentValue: string) => {
+    setEditingCell({ empId, day });
+    setCellValue(currentValue);
+  };
+
+  const saveCell = () => {
+    if (editingCell) {
+      updateCellValue(editingCell.empId, editingCell.day, cellValue);
+      setEditingCell(null);
+      setCellValue('');
+    }
+  };
+
+  const cancelEdit = () => {
+    setEditingCell(null);
+    setCellValue('');
+  };
+
+  const removeEmployeeFromSchedule = (empId: number) => {
+    if (!scheduleData) return;
+    if (!confirm('Удалить сотрудника из графика?')) return;
+
+    setScheduleData({
+      ...scheduleData,
+      employees: scheduleData.employees.filter(emp => emp.employee_id !== empId)
+    });
+  };
+
+  const applyPatternToEmployee = (empId: number, pattern: string[]) => {
+    if (!scheduleData) return;
+
+    const employee = scheduleData.employees.find(e => e.employee_id === empId);
+    if (!employee) return;
+
+    const newDays = Array.from({ length: employee.days.length }, (_, i) => pattern[i % pattern.length]);
+    
+    setScheduleData({
+      ...scheduleData,
+      employees: scheduleData.employees.map(emp => 
+        emp.employee_id === empId
+          ? { ...emp, days: newDays }
+          : emp
+      )
+    });
+  };
+
   const months = [
     'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
     'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'
@@ -276,20 +380,29 @@ export default function ShiftsPage() {
         {/* Таблица с графиком */}
         {scheduleData && (
           <div className="bg-white rounded-lg shadow overflow-hidden">
-            <div className="p-6 border-b border-gray-200">
-              <h2 className="text-xl font-semibold text-gray-900">
-                {scheduleData.schedule.name}
-              </h2>
-              <p className="text-sm text-gray-600 mt-1">
-                {months[scheduleData.schedule.month - 1]} {scheduleData.schedule.year}
-              </p>
+            <div className="p-6 border-b border-gray-200 flex justify-between items-center">
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900">
+                  {scheduleData.schedule.name}
+                </h2>
+                <p className="text-sm text-gray-600 mt-1">
+                  {months[scheduleData.schedule.month - 1]} {scheduleData.schedule.year}
+                </p>
+              </div>
+              <button
+                onClick={() => setShowAddEmployeeModal(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+              >
+                <Plus className="w-5 h-5" />
+                Добавить сотрудника
+              </button>
             </div>
 
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider sticky left-0 bg-gray-50 z-10">
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider sticky left-0 bg-gray-50 z-10 min-w-[200px]">
                       Сотрудник
                     </th>
                     {Array.from(
@@ -303,15 +416,37 @@ export default function ShiftsPage() {
                         {day}
                       </th>
                     ))}
+                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider sticky right-0 bg-gray-50 z-10">
+                      Действия
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                   {scheduleData.employees.map(emp => (
                     <tr key={emp.employee_id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 text-sm font-medium text-gray-900 sticky left-0 bg-white">
-                        {emp.employee_name}
+                      <td className="px-4 py-3 text-sm font-medium text-gray-900 sticky left-0 bg-white border-r border-gray-200">
+                        <div className="flex flex-col">
+                          <span>{emp.employee_name}</span>
+                          <div className="flex gap-1 mt-1">
+                            <button
+                              onClick={() => applyPatternToEmployee(emp.employee_id, ['1', '1', 'В', 'В'])}
+                              className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
+                              title="2 через 2"
+                            >
+                              2/2
+                            </button>
+                            <button
+                              onClick={() => applyPatternToEmployee(emp.employee_id, ['1', '2', 'В', 'В'])}
+                              className="text-xs px-2 py-1 bg-purple-100 text-purple-700 rounded hover:bg-purple-200"
+                              title="День/Ночь/2 выходных"
+                            >
+                              Д/Н
+                            </button>
+                          </div>
+                        </div>
                       </td>
                       {emp.days.map((day, idx) => {
+                        const isEditing = editingCell?.empId === emp.employee_id && editingCell?.day === idx;
                         const shiftType = scheduleData.schedule.shift_types.find(
                           st => st.name === day || st.name === `${day} смена`
                         );
@@ -320,7 +455,7 @@ export default function ShiftsPage() {
                         return (
                           <td
                             key={idx}
-                            className="px-2 py-3 text-center text-sm font-medium"
+                            className="px-2 py-3 text-center text-sm font-medium cursor-pointer hover:ring-2 hover:ring-blue-400"
                             style={{
                               backgroundColor: shiftType
                                 ? `${shiftType.color}20`
@@ -331,11 +466,36 @@ export default function ShiftsPage() {
                                 : undefined,
                               color: shiftType?.color || (isCustom ? '#92400e' : day === 'В' ? '#991b1b' : '#374151')
                             }}
+                            onClick={() => !isEditing && startEditCell(emp.employee_id, idx, day)}
                           >
-                            {day}
+                            {isEditing ? (
+                              <input
+                                type="text"
+                                value={cellValue}
+                                onChange={(e) => setCellValue(e.target.value)}
+                                onBlur={saveCell}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') saveCell();
+                                  if (e.key === 'Escape') cancelEdit();
+                                }}
+                                className="w-full px-1 py-1 text-center border-2 border-blue-500 rounded focus:outline-none"
+                                autoFocus
+                              />
+                            ) : (
+                              day
+                            )}
                           </td>
                         );
                       })}
+                      <td className="px-4 py-3 text-center sticky right-0 bg-white border-l border-gray-200">
+                        <button
+                          onClick={() => removeEmployeeFromSchedule(emp.employee_id)}
+                          className="p-1 text-red-600 hover:bg-red-50 rounded"
+                          title="Удалить из графика"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -499,6 +659,59 @@ export default function ShiftsPage() {
                   className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
                 >
                   Создать график
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Модальное окно добавления сотрудника */}
+        {showAddEmployeeModal && scheduleData && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+              <div className="p-6 border-b border-gray-200">
+                <h2 className="text-xl font-bold text-gray-900">Добавить сотрудника в график</h2>
+              </div>
+
+              <div className="p-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Выберите сотрудника
+                </label>
+                <select
+                  value={selectedEmployeeId || ''}
+                  onChange={(e) => setSelectedEmployeeId(Number(e.target.value))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="">-- Выберите --</option>
+                  {availableEmployees
+                    .filter(emp => !scheduleData.employees.find(se => se.employee_id === emp.id))
+                    .map(emp => (
+                      <option key={emp.id} value={emp.id}>
+                        {emp.full_name_expanded || emp.full_name}
+                      </option>
+                    ))}
+                </select>
+                <p className="text-xs text-gray-500 mt-2">
+                  По умолчанию все дни будут отмечены как выходные (В). Вы сможете изменить их после добавления.
+                </p>
+              </div>
+
+              <div className="p-6 border-t border-gray-200 flex justify-end gap-3">
+                <button
+                  onClick={() => {
+                    setShowAddEmployeeModal(false);
+                    setSelectedEmployeeId(null);
+                  }}
+                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
+                >
+                  Отмена
+                </button>
+                <button
+                  onClick={addEmployeeToSchedule}
+                  disabled={!selectedEmployeeId}
+                  className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Добавить
                 </button>
               </div>
             </div>
