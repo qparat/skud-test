@@ -21,7 +21,8 @@ export default function EmployeesFullPage() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editValue, setEditValue] = useState('');
   const [saving, setSaving] = useState(false);
-  const [sortByEmpty, setSortByEmpty] = useState(false);
+  const [sortByFullName, setSortByFullName] = useState<'none' | 'empty-first' | 'filled-first'>('none');
+  const [sortByStatus, setSortByStatus] = useState<'none' | 'active-first' | 'inactive-first'>('none');
   const [toggleStatusId, setToggleStatusId] = useState<number | null>(null);
   const [confirmWord, setConfirmWord] = useState('');
   const [statusError, setStatusError] = useState('');
@@ -43,8 +44,8 @@ export default function EmployeesFullPage() {
       );
     }
     
-    // Применяем сортировку
-    if (sortByEmpty) {
+    // Применяем сортировку по полному ФИО
+    if (sortByFullName === 'empty-first') {
       result.sort((a, b) => {
         const aEmpty = !a.full_name_expanded;
         const bEmpty = !b.full_name_expanded;
@@ -52,10 +53,33 @@ export default function EmployeesFullPage() {
         if (!aEmpty && bEmpty) return 1;
         return 0;
       });
+    } else if (sortByFullName === 'filled-first') {
+      result.sort((a, b) => {
+        const aEmpty = !a.full_name_expanded;
+        const bEmpty = !b.full_name_expanded;
+        if (!aEmpty && bEmpty) return -1;
+        if (aEmpty && !bEmpty) return 1;
+        return 0;
+      });
+    }
+    
+    // Применяем сортировку по статусу
+    if (sortByStatus === 'active-first') {
+      result.sort((a, b) => {
+        if (a.is_active && !b.is_active) return -1;
+        if (!a.is_active && b.is_active) return 1;
+        return 0;
+      });
+    } else if (sortByStatus === 'inactive-first') {
+      result.sort((a, b) => {
+        if (!a.is_active && b.is_active) return -1;
+        if (a.is_active && !b.is_active) return 1;
+        return 0;
+      });
     }
     
     setFilteredEmployees(result);
-  }, [searchQuery, employees, sortByEmpty]);
+  }, [searchQuery, employees, sortByFullName, sortByStatus]);
 
   const fetchEmployees = async () => {
     try {
@@ -197,8 +221,24 @@ export default function EmployeesFullPage() {
     }
   };
 
-  const toggleSort = () => {
-    setSortByEmpty(!sortByEmpty);
+  const toggleFullNameSort = () => {
+    if (sortByFullName === 'none') {
+      setSortByFullName('empty-first');
+    } else if (sortByFullName === 'empty-first') {
+      setSortByFullName('filled-first');
+    } else {
+      setSortByFullName('none');
+    }
+  };
+
+  const toggleStatusSort = () => {
+    if (sortByStatus === 'none') {
+      setSortByStatus('active-first');
+    } else if (sortByStatus === 'active-first') {
+      setSortByStatus('inactive-first');
+    } else {
+      setSortByStatus('none');
+    }
   };
 
   if (loading) {
@@ -430,35 +470,21 @@ export default function EmployeesFullPage() {
           </div>
         </div>
 
-        {/* Поиск и сортировка */}
-        <div className="mb-6 flex gap-4">
-          <div className="flex-1">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-              <input
-                type="text"
-                placeholder="Поиск по ФИО, службе..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-            <p className="text-sm text-gray-500 mt-2">
-              Найдено сотрудников: {filteredEmployees.length}
-            </p>
+        {/* Поиск */}
+        <div className="mb-6">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <input
+              type="text"
+              placeholder="Поиск по ФИО, службе..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
           </div>
-          <button
-            onClick={toggleSort}
-            className={`px-4 py-3 rounded-lg border transition-colors flex items-center gap-2 ${
-              sortByEmpty 
-                ? 'bg-blue-600 text-white border-blue-600' 
-                : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-            }`}
-            title="Показать сначала без полного ФИО"
-          >
-            <ArrowUpDown className="w-5 h-5" />
-            <span className="whitespace-nowrap">Без ФИО вверх</span>
-          </button>
+          <p className="text-sm text-gray-500 mt-2">
+            Найдено сотрудников: {filteredEmployees.length}
+          </p>
         </div>
 
         {/* Таблица */}
@@ -473,14 +499,32 @@ export default function EmployeesFullPage() {
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                     Сокращённое ФИО
                   </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                    Полное ФИО
+                  <th 
+                    className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                    onClick={toggleFullNameSort}
+                    title="Нажмите для сортировки"
+                  >
+                    <div className="flex items-center gap-2">
+                      Полное ФИО
+                      {sortByFullName === 'empty-first' && <ArrowUpDown className="w-4 h-4 text-blue-600" />}
+                      {sortByFullName === 'filled-first' && <ArrowUpDown className="w-4 h-4 text-blue-600 rotate-180" />}
+                      {sortByFullName === 'none' && <ArrowUpDown className="w-4 h-4 text-gray-400" />}
+                    </div>
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                     Служба
                   </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider w-32">
-                    Статус
+                  <th 
+                    className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider w-32 cursor-pointer hover:bg-gray-100 select-none"
+                    onClick={toggleStatusSort}
+                    title="Нажмите для сортировки"
+                  >
+                    <div className="flex items-center gap-2">
+                      Статус
+                      {sortByStatus === 'active-first' && <ArrowUpDown className="w-4 h-4 text-blue-600" />}
+                      {sortByStatus === 'inactive-first' && <ArrowUpDown className="w-4 h-4 text-blue-600 rotate-180" />}
+                      {sortByStatus === 'none' && <ArrowUpDown className="w-4 h-4 text-gray-400" />}
+                    </div>
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider w-40">
                     Действия
