@@ -29,6 +29,7 @@ services:
       # Монтируем директории для загрузки данных
       - ./data_input:/app/data_input
       - ./uploads:/app/uploads
+      - ./prishel_txt:/app/prishel_txt
     environment:
       - PYTHONUNBUFFERED=1
 
