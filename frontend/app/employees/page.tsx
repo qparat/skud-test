@@ -219,7 +219,7 @@ export default function EmployeesPage() {
                         </div>
                         <div className="min-w-0 flex-1">
                           <p className="text-sm font-medium text-gray-900 truncate">
-                            {employee.full_name}
+                            {employee.full_name_expanded || employee.full_name}
                           </p>
                           <p className="text-xs text-gray-500 truncate">
                             {employee.position}
