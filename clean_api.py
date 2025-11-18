@@ -869,7 +869,7 @@ async def change_user_password(
         # Обновляем пароль
         cursor.execute("""
             UPDATE users 
-            SET password_hash = %s, updated_at = CURRENT_TIMESTAMP
+            SET password_hash = %s
             WHERE id = %s
         """, (password_hash, user_id))
         
