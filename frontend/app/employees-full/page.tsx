@@ -683,7 +683,7 @@ export default function EmployeesFullPage() {
         </div>
 
         {/* Статистика */}
-        <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="mt-6 grid grid-cols-1 md:grid-cols-5 gap-4">
           <div className="bg-white p-4 rounded-lg shadow">
             <div className="text-sm text-gray-600">Всего сотрудников</div>
             <div className="text-2xl font-bold text-gray-900 mt-1">
@@ -691,8 +691,20 @@ export default function EmployeesFullPage() {
             </div>
           </div>
           <div className="bg-white p-4 rounded-lg shadow">
-            <div className="text-sm text-gray-600">С полным ФИО</div>
+            <div className="text-sm text-gray-600">Активированных</div>
             <div className="text-2xl font-bold text-green-600 mt-1">
+              {employees.filter(e => e.is_active).length}
+            </div>
+          </div>
+          <div className="bg-white p-4 rounded-lg shadow">
+            <div className="text-sm text-gray-600">Деактивированных</div>
+            <div className="text-2xl font-bold text-red-600 mt-1">
+              {employees.filter(e => !e.is_active).length}
+            </div>
+          </div>
+          <div className="bg-white p-4 rounded-lg shadow">
+            <div className="text-sm text-gray-600">С полным ФИО</div>
+            <div className="text-2xl font-bold text-blue-600 mt-1">
               {employees.filter(e => e.full_name_expanded).length}
             </div>
           </div>
