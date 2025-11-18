@@ -101,7 +101,13 @@ export default function EmployeesFullPage() {
       if (deactivatedResponse.ok) {
         const deactivatedData = await deactivatedResponse.json();
         const deactivatedEmployees = deactivatedData.map((emp: Employee) => ({ ...emp, is_active: false }));
-        allEmployees = [...activeEmployees, ...deactivatedEmployees];
+        
+        // Объединяем и удаляем дубликаты по ID
+        const employeesMap = new Map();
+        [...activeEmployees, ...deactivatedEmployees].forEach(emp => {
+          employeesMap.set(emp.id, emp);
+        });
+        allEmployees = Array.from(employeesMap.values());
       }
       
       setEmployees(allEmployees);
