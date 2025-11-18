@@ -822,11 +822,23 @@ export function EmployeeSchedule() {
             // Сортируем даты
             employeeDays.sort((a, b) => a.date.localeCompare(b.date))
             
-            // Строки с данными по датам - дата под ФИО
-            employeeDays.forEach((day, dayIndex) => {
+            // Строка с ФИО сотрудника (без данных)
+            excelData.push({
+              '№': '',
+              'ФИО': `    ${firstDay.full_name_expanded || firstDay.full_name}`,
+              'Пришел': '',
+              'Ушел': '',
+              'Часы работы': '',
+              'Статус': '',
+              'Опоздание (мин)': '',
+              'Исключение': ''
+            })
+            
+            // Строки с данными по датам - все даты под ФИО
+            employeeDays.forEach(day => {
               excelData.push({
                 '№': globalRowIndex++,
-                'ФИО': dayIndex === 0 ? `    ${firstDay.full_name_expanded || firstDay.full_name}` : `        ${day.date}`,
+                'ФИО': `        ${day.date}`,
                 'Пришел': day.first_entry || '-',
                 'Ушел': day.last_exit || '-',
                 'Часы работы': day.work_hours !== null && day.work_hours !== undefined ? `${day.work_hours.toFixed(1)} ч` : '-',
