@@ -1699,6 +1699,10 @@ async def deactivate_employee(employee_id: int, request: Request, current_user: 
         if confirmation_word.lower() != "удалить":
             raise HTTPException(status_code=401, detail='Для подтверждения введите слово "удалить"')
         
+        # Подключаемся к базе данных
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
         # Проверяем существование сотрудника
         cursor.execute("SELECT id, full_name, is_active FROM employees WHERE id = %s", (employee_id,))
         employee = cursor.fetchone()
