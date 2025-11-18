@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Search, Edit2, Save, X, UserCheck, Trash2, ArrowUpDown } from 'lucide-react';
+import { Search, Edit2, Save, X, UserCheck, Trash2, ArrowUpDown, UserX, RotateCcw } from 'lucide-react';
 
 interface Employee {
   id: number;
@@ -10,6 +10,7 @@ interface Employee {
   department_name?: string;
   position_name?: string;
   is_active: boolean;
+  updated_at?: string | null;
 }
 
 export default function EmployeesFullPage() {
@@ -21,9 +22,9 @@ export default function EmployeesFullPage() {
   const [editValue, setEditValue] = useState('');
   const [saving, setSaving] = useState(false);
   const [sortByEmpty, setSortByEmpty] = useState(false);
-  const [deletingId, setDeletingId] = useState<number | null>(null);
-  const [deletePassword, setDeletePassword] = useState('');
-  const [deleteError, setDeleteError] = useState('');
+  const [toggleStatusId, setToggleStatusId] = useState<number | null>(null);
+  const [confirmWord, setConfirmWord] = useState('');
+  const [statusError, setStatusError] = useState('');
 
   useEffect(() => {
     fetchEmployees();
@@ -59,11 +60,28 @@ export default function EmployeesFullPage() {
   const fetchEmployees = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/employees-list');
-      if (!response.ok) throw new Error('Ошибка загрузки');
-      const data = await response.json();
-      setEmployees(data.employees || []);
-      setFilteredEmployees(data.employees || []);
+      // Загружаем активных сотрудников
+      const activeResponse = await fetch('/api/employees-list');
+      if (!activeResponse.ok) throw new Error('Ошибка загрузки активных');
+      const activeData = await activeResponse.json();
+      const activeEmployees = (activeData.employees || []).map((emp: Employee) => ({ ...emp, is_active: true }));
+      
+      // Загружаем деактивированных сотрудников
+      const deactivatedResponse = await fetch('/api/employees/deactivated', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
+        }
+      });
+      
+      let allEmployees = activeEmployees;
+      if (deactivatedResponse.ok) {
+        const deactivatedData = await deactivatedResponse.json();
+        const deactivatedEmployees = deactivatedData.map((emp: Employee) => ({ ...emp, is_active: false }));
+        allEmployees = [...activeEmployees, ...deactivatedEmployees];
+      }
+      
+      setEmployees(allEmployees);
+      setFilteredEmployees(allEmployees);
     } catch (error) {
       console.error('Ошибка загрузки сотрудников:', error);
     } finally {
@@ -109,52 +127,71 @@ export default function EmployeesFullPage() {
     }
   };
 
-  const startDelete = (employeeId: number) => {
-    setDeletingId(employeeId);
-    setDeletePassword('');
-    setDeleteError('');
+  const startToggleStatus = (employeeId: number) => {
+    setToggleStatusId(employeeId);
+    setConfirmWord('');
+    setStatusError('');
   };
 
-  const cancelDelete = () => {
-    setDeletingId(null);
-    setDeletePassword('');
-    setDeleteError('');
+  const cancelToggleStatus = () => {
+    setToggleStatusId(null);
+    setConfirmWord('');
+    setStatusError('');
   };
 
-  const confirmDelete = async (employeeId: number) => {
-    if (!deletePassword.trim()) {
-      setDeleteError('Введите слово "удалить"');
+  const confirmToggleStatus = async (employeeId: number) => {
+    const employee = employees.find(e => e.id === employeeId);
+    if (!employee) return;
+
+    const isActivating = !employee.is_active;
+    const requiredWord = isActivating ? 'активировать' : 'удалить';
+
+    if (!confirmWord.trim()) {
+      setStatusError(`Введите слово "${requiredWord}"`);
+      return;
+    }
+
+    if (confirmWord.toLowerCase() !== requiredWord) {
+      setStatusError(`Для подтверждения введите слово "${requiredWord}"`);
       return;
     }
 
     try {
       setSaving(true);
-      setDeleteError('');
+      setStatusError('');
       
-      const response = await fetch(`/api/employees/${employeeId}/deactivate`, {
+      const endpoint = isActivating 
+        ? `/api/employees/${employeeId}/reactivate`
+        : `/api/employees/${employeeId}/deactivate`;
+      
+      const response = await fetch(endpoint, {
         method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
         },
-        body: JSON.stringify({ password: deletePassword })
+        body: JSON.stringify({ password: confirmWord })
       });
 
       if (!response.ok) {
         const error = await response.json();
-        setDeleteError(error.detail || 'Ошибка деактивации');
+        setStatusError(error.detail || `Ошибка ${isActivating ? 'активации' : 'деактивации'}`);
         setSaving(false);
         return;
       }
 
-      // Удаляем из локального состояния (так как показываем только активных)
-      setEmployees(prev => prev.filter(emp => emp.id !== employeeId));
+      // Обновляем статус в локальном состоянии
+      setEmployees(prev => prev.map(emp => 
+        emp.id === employeeId 
+          ? { ...emp, is_active: isActivating }
+          : emp
+      ));
       
-      cancelDelete();
-      alert('Сотрудник деактивирован (is_active = false)');
+      cancelToggleStatus();
+      alert(`Сотрудник ${isActivating ? 'активирован' : 'деактивирован'}`);
     } catch (error) {
-      console.error('Ошибка деактивации:', error);
-      setDeleteError(error instanceof Error ? error.message : 'Не удалось деактивировать сотрудника');
+      console.error('Ошибка изменения статуса:', error);
+      setStatusError(error instanceof Error ? error.message : 'Не удалось изменить статус');
     } finally {
       setSaving(false);
     }
@@ -442,6 +479,9 @@ export default function EmployeesFullPage() {
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                     Служба
                   </th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider w-32">
+                    Статус
+                  </th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider w-40">
                     Действия
                   </th>
@@ -450,7 +490,7 @@ export default function EmployeesFullPage() {
               <tbody className="divide-y divide-gray-200">
                 {filteredEmployees.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
+                    <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
                       {searchQuery ? 'Ничего не найдено' : 'Нет сотрудников'}
                     </td>
                   </tr>
@@ -476,21 +516,6 @@ export default function EmployeesFullPage() {
                             autoFocus
                             disabled={saving}
                           />
-                        ) : deletingId === employee.id ? (
-                          <div className="space-y-2">
-                            <input
-                              type="text"
-                              value={deletePassword}
-                              onChange={(e) => setDeletePassword(e.target.value)}
-                              placeholder='Введите слово "удалить"'
-                              className="w-full px-3 py-2 border border-red-500 rounded-md focus:ring-2 focus:ring-red-500 focus:outline-none text-sm"
-                              autoFocus
-                              disabled={saving}
-                            />
-                            {deleteError && (
-                              <p className="text-xs text-red-600">{deleteError}</p>
-                            )}
-                          </div>
                         ) : (
                           <div className="text-sm text-gray-900">
                             {employee.full_name_expanded || (
@@ -503,6 +528,17 @@ export default function EmployeesFullPage() {
                         <div className="text-sm text-gray-600">
                           {employee.department_name || '—'}
                         </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        {employee.is_active ? (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            Активен
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                            Деактивирован
+                          </span>
+                        )}
                       </td>
                       <td className="px-6 py-4">
                         {editingId === employee.id ? (
@@ -524,24 +560,38 @@ export default function EmployeesFullPage() {
                               <X className="w-5 h-5" />
                             </button>
                           </div>
-                        ) : deletingId === employee.id ? (
-                          <div className="flex gap-2">
-                            <button
-                              onClick={() => confirmDelete(employee.id)}
+                        ) : toggleStatusId === employee.id ? (
+                          <div className="space-y-2">
+                            <input
+                              type="text"
+                              value={confirmWord}
+                              onChange={(e) => setConfirmWord(e.target.value)}
+                              placeholder={employee.is_active ? 'Введите "удалить"' : 'Введите "активировать"'}
+                              className="w-full px-3 py-2 border border-blue-500 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm"
+                              autoFocus
                               disabled={saving}
-                              className="px-3 py-2 bg-red-600 text-white text-xs rounded-md hover:bg-red-700 transition-colors disabled:opacity-50"
-                              title="Деактивировать сотрудника"
-                            >
-                              Деактивировать
-                            </button>
-                            <button
-                              onClick={cancelDelete}
-                              disabled={saving}
-                              className="p-2 text-gray-600 hover:bg-gray-50 rounded-md transition-colors disabled:opacity-50"
-                              title="Отменить"
-                            >
-                              <X className="w-5 h-5" />
-                            </button>
+                            />
+                            {statusError && (
+                              <p className="text-xs text-red-600">{statusError}</p>
+                            )}
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => confirmToggleStatus(employee.id)}
+                                disabled={saving}
+                                className={`px-3 py-2 text-white text-xs rounded-md transition-colors disabled:opacity-50 ${
+                                  employee.is_active ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'
+                                }`}
+                              >
+                                {employee.is_active ? 'Деактивировать' : 'Активировать'}
+                              </button>
+                              <button
+                                onClick={cancelToggleStatus}
+                                disabled={saving}
+                                className="px-3 py-2 bg-gray-300 text-gray-700 text-xs rounded-md hover:bg-gray-400 disabled:opacity-50"
+                              >
+                                Отмена
+                              </button>
+                            </div>
                           </div>
                         ) : (
                           <div className="flex gap-2">
@@ -552,13 +602,23 @@ export default function EmployeesFullPage() {
                             >
                               <Edit2 className="w-5 h-5" />
                             </button>
-                            <button
-                              onClick={() => startDelete(employee.id)}
-                              className="p-2 text-red-600 hover:bg-red-50 rounded-md transition-colors"
-                              title="Деактивировать сотрудника"
-                            >
-                              <Trash2 className="w-5 h-5" />
-                            </button>
+                            {employee.is_active ? (
+                              <button
+                                onClick={() => startToggleStatus(employee.id)}
+                                className="p-2 text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                                title="Деактивировать сотрудника"
+                              >
+                                <Trash2 className="w-5 h-5" />
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => startToggleStatus(employee.id)}
+                                className="p-2 text-green-600 hover:bg-green-50 rounded-md transition-colors"
+                                title="Активировать сотрудника"
+                              >
+                                <RotateCcw className="w-5 h-5" />
+                              </button>
+                            )}
                           </div>
                         )}
                       </td>
@@ -591,6 +651,7 @@ export default function EmployeesFullPage() {
             </div>
           </div>
         </div>
+
       </div>
     </div>
   );

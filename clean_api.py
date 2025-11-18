@@ -1740,6 +1740,90 @@ async def deactivate_employee(employee_id: int, request: Request):
         print(f"Полная ошибка: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=f"Ошибка деактивации: {str(e)}")
 
+@app.get("/employees/deactivated")
+async def get_deactivated_employees():
+    """Получить список деактивированных сотрудников"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT e.id, e.full_name, e.full_name_expanded, p.name as position_name, 
+                   d.name as department_name, e.updated_at
+            FROM employees e
+            LEFT JOIN positions p ON e.position_id = p.id
+            LEFT JOIN departments d ON e.department_id = d.id
+            WHERE e.is_active = FALSE
+            ORDER BY e.updated_at DESC
+        """)
+        
+        employees = []
+        for row in cursor.fetchall():
+            employees.append({
+                'id': row[0],
+                'full_name': row[1],
+                'full_name_expanded': row[2],
+                'position_name': row[3],
+                'department_name': row[4],
+                'updated_at': row[5].isoformat() if row[5] else None
+            })
+        
+        conn.close()
+        return employees
+        
+    except Exception as e:
+        import traceback
+        print(f"Ошибка получения деактивированных сотрудников: {e}")
+        print(f"Полная ошибка: {traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=f"Ошибка получения списка: {str(e)}")
+
+@app.put("/employees/{employee_id}/reactivate")
+async def reactivate_employee(employee_id: int):
+    """Реактивация сотрудника (is_active = true)"""
+    try:
+        print(f"[REACTIVATE] Запрос на активацию сотрудника {employee_id}")
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Проверяем существование сотрудника
+        cursor.execute("SELECT id, full_name, is_active FROM employees WHERE id = %s", (employee_id,))
+        employee = cursor.fetchone()
+        
+        if not employee:
+            conn.close()
+            raise HTTPException(status_code=404, detail="Сотрудник не найден")
+        
+        employee_name = employee[1]
+        is_active = employee[2]
+        
+        if is_active:
+            conn.close()
+            raise HTTPException(status_code=400, detail="Сотрудник уже активен")
+        
+        # Активируем сотрудника
+        cursor.execute(
+            "UPDATE employees SET is_active = TRUE, updated_at = CURRENT_TIMESTAMP WHERE id = %s",
+            (employee_id,)
+        )
+        
+        conn.commit()
+        conn.close()
+        
+        return {
+            "message": f"Сотрудник '{employee_name}' активирован (is_active = true)",
+            "employee_id": employee_id,
+            "is_active": True
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        print(f"Ошибка активации сотрудника: {e}")
+        print(f"Полная ошибка: {traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=f"Ошибка активации: {str(e)}")
+
 @app.get("/employees/unassigned")
 async def get_unassigned_employees():
     """Получить сотрудников без службы или с неактивным статусом"""
