@@ -22,6 +22,7 @@ import {
 const navigation = [
   { name: 'Расписание', href: '/schedule', icon: LayoutDashboard },
   { name: 'Список сотрудников', href: '/employees', icon: Users },
+  { name: 'Смены', href: '/shifts', icon: Calendar, requireRole: 2 },
   { name: 'Отчеты', href: '/reports', icon: File, requireRole: 2 },
   { name: 'Службы', href: '/departments', icon: Building2, requireRole: 2 },
   { name: 'Должности', href: '/positions', icon: Briefcase, requireRole: 2 },
