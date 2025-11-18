@@ -53,6 +53,19 @@ export default function DepartmentsPage() {
 
     try {
       setCreating(true);
+      
+      // Проверяем, есть ли уже служба с таким приоритетом
+      if (newDepartment.priority && newDepartment.priority.trim() !== '') {
+        const priorityNum = parseInt(newDepartment.priority);
+        const existingDept = departments.find(d => d.priority === priorityNum);
+        
+        if (existingDept) {
+          setError(`Приоритет ${priorityNum} уже занят службой "${existingDept.name}"`);
+          setCreating(false);
+          return;
+        }
+      }
+      
       const payload: any = {
         name: newDepartment.name.trim(),
       };
@@ -69,6 +82,7 @@ export default function DepartmentsPage() {
       setNewDepartment({ name: '', priority: '' });
       setShowCreateForm(false);
       await fetchDepartments();
+      setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ошибка при создании службы');
     } finally {
@@ -81,6 +95,20 @@ export default function DepartmentsPage() {
       setUpdating(true);
       const department = departments.find(d => d.id === departmentId);
       if (!department) return;
+
+      // Проверяем, есть ли уже служба с таким приоритетом
+      if (priority.trim() !== '') {
+        const priorityNum = parseInt(priority);
+        const existingDept = departments.find(d => 
+          d.id !== departmentId && d.priority === priorityNum
+        );
+        
+        if (existingDept) {
+          setError(`Приоритет ${priorityNum} уже занят службой "${existingDept.name}"`);
+          setUpdating(false);
+          return;
+        }
+      }
 
       const payload: any = {
         name: department.name,
@@ -97,6 +125,7 @@ export default function DepartmentsPage() {
 
       setEditingPriority(null);
       await fetchDepartments();
+      setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ошибка при обновлении приоритета');
     } finally {
