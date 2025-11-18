@@ -563,7 +563,7 @@ export default function EmployeesFullPage() {
                             <button
                               onClick={() => startDelete(employee.id)}
                               className="p-2 text-red-600 hover:bg-red-50 rounded-md transition-colors"
-                              title="Деактивировать сотрудника (уволен)"
+                              title="Деактивировать сотрудника"
                             >
                               <Trash2 className="w-5 h-5" />
                             </button>

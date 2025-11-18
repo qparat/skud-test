@@ -1685,9 +1685,19 @@ async def update_employee(employee_id: int, updates: dict, current_user: dict = 
 async def deactivate_employee(employee_id: int, request: Request, current_user: dict = Depends(get_current_user)):
     """Деактивация сотрудника (is_active = false) - для уволенных сотрудников"""
     try:
-        # Проверяем права доступа (только admin и superadmin)
-        if current_user.get('role', 999) > 2:
-            raise HTTPException(status_code=403, detail="Недостаточно прав для деактивации сотрудников")
+        # Логируем информацию о пользователе для отладки
+        user_role = current_user.get('role', 999)
+        username = current_user.get('username', 'unknown')
+        print(f"[DEACTIVATE] Пользователь: {username}, роль: {user_role}")
+        
+        # Проверяем права доступа (только admin и superadmin: role <= 2)
+        # Роли: 1=superadmin, 2=admin, 3=user
+        if user_role > 2:
+            print(f"[DEACTIVATE] ОТКАЗАНО: роль {user_role} > 2")
+            raise HTTPException(
+                status_code=403, 
+                detail=f"Недостаточно прав. Ваша роль: {user_role}, требуется: admin (≤2)"
+            )
         
         # Получаем пароль из тела запроса
         body = await request.json()
