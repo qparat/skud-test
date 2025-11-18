@@ -795,8 +795,7 @@ export function EmployeeSchedule() {
           // Заголовок отдела (СЛУЖБА)
           excelData.push({
             '№': '',
-            'ФИО/Должность': `СЛУЖБА: ${deptName}`,
-            'Дата': '',
+            'ФИО': `СЛУЖБА: ${deptName}`,
             'Пришел': '',
             'Ушел': '',
             'Часы работы': '',
@@ -820,29 +819,14 @@ export function EmployeeSchedule() {
             const employeeDays = employeesInDept[employeeId]
             const firstDay = employeeDays[0]
             
-            // Строка с ФИО сотрудника и должностью (если есть)
-            // TODO: Добавить должность когда API будет возвращать position_name
-            excelData.push({
-              '№': '',
-              'ФИО/Должность': `    ${firstDay.full_name_expanded || firstDay.full_name}`, // TODO: добавить " - Должность" когда API вернет
-              'Дата': '',
-              'Пришел': '',
-              'Ушел': '',
-              'Часы работы': '',
-              'Статус': '',
-              'Опоздание (мин)': '',
-              'Исключение': ''
-            })
-            
             // Сортируем даты
             employeeDays.sort((a, b) => a.date.localeCompare(b.date))
             
-            // Строки с данными по датам
-            employeeDays.forEach(day => {
+            // Строки с данными по датам - дата под ФИО
+            employeeDays.forEach((day, dayIndex) => {
               excelData.push({
                 '№': globalRowIndex++,
-                'ФИО/Должность': '',
-                'Дата': day.date,
+                'ФИО': dayIndex === 0 ? `    ${firstDay.full_name_expanded || firstDay.full_name}` : `        ${day.date}`,
                 'Пришел': day.first_entry || '-',
                 'Ушел': day.last_exit || '-',
                 'Часы работы': day.work_hours !== null && day.work_hours !== undefined ? `${day.work_hours.toFixed(1)} ч` : '-',
@@ -855,8 +839,7 @@ export function EmployeeSchedule() {
             // Пустая строка после сотрудника
             excelData.push({
               '№': '',
-              'ФИО/Должность': '',
-              'Дата': '',
+              'ФИО': '',
               'Пришел': '',
               'Ушел': '',
               'Часы работы': '',
@@ -869,8 +852,7 @@ export function EmployeeSchedule() {
           // Дополнительная пустая строка после отдела
           excelData.push({
             '№': '',
-            'ФИО/Должность': '',
-            'Дата': '',
+            'ФИО': '',
             'Пришел': '',
             'Ушел': '',
             'Часы работы': '',
