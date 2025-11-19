@@ -1172,16 +1172,16 @@ export function EmployeeSchedule() {
           fioCell.alignment = { horizontal: 'right' }
           
           // Чередующийся фон для строк с датами
-          // Если ФИО белое (четный индекс), первая дата белая, вторая #F1F9FD
-          // Если ФИО #F1F9FD (нечетный индекс), первая дата #F1F9FD, вторая белая
+          // Если ФИО белое (четный индекс), первая дата #F1F9FD, вторая белая
+          // Если ФИО #F1F9FD (нечетный индекс), первая дата белая, вторая #F1F9FD
           const dateRowIndex = row['_dateRowIndex'] || 0
           let backgroundColor
           if (employeeIndex % 2 === 0) {
-            // ФИО белое -> даты: белая, F1F9FD, белая, F1F9FD...
-            backgroundColor = (dateRowIndex % 2 === 0) ? 'FFFFFFFF' : 'FFF1F9FD'
-          } else {
-            // ФИО F1F9FD -> даты: F1F9FD, белая, F1F9FD, белая...
+            // ФИО белое -> даты: F1F9FD, белая, F1F9FD, белая...
             backgroundColor = (dateRowIndex % 2 === 0) ? 'FFF1F9FD' : 'FFFFFFFF'
+          } else {
+            // ФИО F1F9FD -> даты: белая, F1F9FD, белая, F1F9FD...
+            backgroundColor = (dateRowIndex % 2 === 0) ? 'FFFFFFFF' : 'FFF1F9FD'
           }
           excelRow.eachCell((cell: any) => {
             cell.fill = {
