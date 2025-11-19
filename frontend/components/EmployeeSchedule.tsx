@@ -1143,6 +1143,12 @@ export function EmployeeSchedule() {
               pattern: 'solid',
               fgColor: { argb: 'FFB9E1D4' }
             }
+            // Полужирный текст и цвет #563232 для названия службы
+            cell.font = {
+              name: 'Times New Roman',
+              bold: true,
+              color: { argb: 'FF563232' }
+            }
           })
         } else if (rowType === 'employee') {
           // Окрашиваем ФИО в синий цвет
