@@ -797,20 +797,6 @@ export default function SvodReportPage() {
                 {filteredSvodEmployees.map((emp, idx) => (
                   <React.Fragment key={emp.svod_id || emp.id}>
                     {/* Индикатор места вставки сверху */}
-                    {dragOverIndex === idx && draggedIndex !== null && draggedIndex !== idx && draggedIndex > idx && (
-                      <tr className="h-1 relative">
-                        <td colSpan={6} className="p-0">
-                          <div className="absolute inset-x-0 h-0.5 bg-gradient-to-r from-transparent via-blue-500 to-transparent animate-pulse shadow-lg" 
-                               style={{ 
-                                 boxShadow: '0 0 15px rgba(59, 130, 246, 0.7), 0 0 5px rgba(59, 130, 246, 0.9)',
-                                 animation: 'pulse 0.8s ease-in-out infinite',
-                                 transition: 'all 0.3s ease'
-                               }}
-                          />
-                        </td>
-                      </tr>
-                    )}
-                    
                     <tr 
                       draggable
                       onDragStart={(e) => handleDragStart(e, idx)}
@@ -820,12 +806,8 @@ export default function SvodReportPage() {
                       onDragEnd={handleDragEnd}
                       className={`hover:bg-gray-50 cursor-move transition-all duration-200
                         ${emp.exception_type && emp.exception_type !== 'at_work' ? 'bg-blue-50' : ''}
-                        ${draggedIndex === idx ? 'opacity-40 scale-95 bg-gray-100 shadow-2xl' : ''}
-                        ${dragOverIndex === idx && draggedIndex !== idx ? 'bg-blue-50 shadow-md border-l-4 border-blue-500' : ''}`}
-                      style={draggedIndex === idx ? { 
-                        transform: 'translateY(-4px)',
-                        zIndex: 1000
-                      } : {}}
+                        ${draggedIndex === idx ? 'opacity-40 scale-95 bg-gray-100' : ''}
+                        ${dragOverIndex === idx && draggedIndex !== idx ? 'bg-blue-50 border-l-4 border-blue-500' : ''}`}
                     >
                       <td className="px-2 py-3 text-center">
                         <GripVertical className={`h-4 w-4 mx-auto transition-colors duration-200 ${
