@@ -198,7 +198,7 @@ export default function DepartmentsPage() {
       priority: index + 1
     }));
     
-    // Обновляем состояние локально
+    // Обновляем состояние локально сразу для плавности
     setDepartments(updatedDepartments);
     
     // Сохраняем приоритеты на сервере
@@ -212,9 +212,10 @@ export default function DepartmentsPage() {
           })
         });
       }
-      await fetchDepartments();
+      // Не вызываем fetchDepartments() чтобы не сбрасывать скролл
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ошибка сохранения порядка служб');
+      // При ошибке перезагружаем данные с сервера
       await fetchDepartments();
     }
     
