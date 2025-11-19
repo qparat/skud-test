@@ -936,7 +936,8 @@ export function EmployeeSchedule() {
               'Часы работы': '',
               'Статус': '',
               'Опоздание (мин)': '',
-              'Исключение': ''
+              'Исключение': '',
+              '_rowType': 'department' // Метаданные для форматирования
             })
             
             // Сортируем сотрудников в отделе по алфавиту
@@ -974,7 +975,8 @@ export function EmployeeSchedule() {
             'Часы работы': '',
             'Статус': '',
             'Опоздание (мин)': '',
-            'Исключение': ''
+            'Исключение': '',
+            '_rowType': 'date-header' // Метаданные для форматирования
           })
           
           let dayRowIndex = 1
@@ -1003,7 +1005,8 @@ export function EmployeeSchedule() {
             'Часы работы': '',
             'Статус': '',
             'Опоздание (мин)': '',
-            'Исключение': ''
+            'Исключение': '',
+            '_rowType': 'empty' // Метаданные для форматирования
           })
         })
       }
@@ -1043,7 +1046,8 @@ export function EmployeeSchedule() {
             'Часы работы': '',
             'Статус': '',
             'Опоздание (мин)': '',
-            'Исключение': ''
+            'Исключение': '',
+            '_rowType': 'department' // Метаданные для форматирования
           })
           
           // Сортируем сотрудников в отделе по алфавиту
@@ -1135,10 +1139,11 @@ export function EmployeeSchedule() {
       lateCell.alignment = { horizontal: 'center', vertical: 'middle' }
       exceptionCell.alignment = { horizontal: 'center', vertical: 'middle' }
       
-      // Применяем форматирование для отчета "По службам детально"
-      if (exportSortType === 'department-detailed' && isRangeData) {
-        const rowType = (row as any)._rowType
-        const employeeIndex = (row as any)._employeeIndex
+      // Применяем форматирование для всех типов отчетов
+      const rowType = (row as any)._rowType
+      const employeeIndex = (row as any)._employeeIndex
+      
+      if (rowType) {
         
         if (rowType === 'department') {
           // Окрашиваем фон всей строки службы в #B9E1D4
@@ -1199,6 +1204,24 @@ export function EmployeeSchedule() {
               type: 'pattern',
               pattern: 'solid',
               fgColor: { argb: backgroundColor }
+            }
+          })
+        } else if (rowType === 'date-header') {
+          // Окрашиваем заголовки дат (для форматов "По алфавиту" и "По службам")
+          const fioCell = excelRow.getCell('fio')
+          fioCell.font = {
+            name: 'Times New Roman',
+            color: { argb: 'FF1D5800' }, // Коричневый цвет #1D5800
+            bold: true
+          }
+          fioCell.alignment = { horizontal: 'center' }
+          
+          // Фон белый для заголовка даты
+          excelRow.eachCell((cell: any) => {
+            cell.fill = {
+              type: 'pattern',
+              pattern: 'solid',
+              fgColor: { argb: 'FFFFFFFF' }
             }
           })
         } else if (rowType === 'empty') {
