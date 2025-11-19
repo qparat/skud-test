@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { GripVertical } from 'lucide-react';
 import { apiRequest } from '@/lib/api';
 
 interface Department {
@@ -29,6 +30,8 @@ export default function DepartmentsPage() {
   const [creating, setCreating] = useState(false);
   const [editingPriority, setEditingPriority] = useState<EditingPriority | null>(null);
   const [updating, setUpdating] = useState(false);
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
   useEffect(() => {
     fetchDepartments();
@@ -149,6 +152,81 @@ export default function DepartmentsPage() {
     }
   };
 
+  // Функции для drag and drop
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+    const img = new Image();
+    img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+    e.dataTransfer.setDragImage(img, 0, 0);
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDragOverIndex(index);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const x = e.clientX;
+    const y = e.clientY;
+    
+    if (x < rect.left || x >= rect.right || y < rect.top || y >= rect.bottom) {
+      setDragOverIndex(null);
+    }
+  };
+
+  const handleDrop = async (e: React.DragEvent, dropIndex: number) => {
+    e.preventDefault();
+    
+    if (draggedIndex === null || draggedIndex === dropIndex) {
+      setDraggedIndex(null);
+      setDragOverIndex(null);
+      return;
+    }
+
+    const newDepartments = [...filteredDepartments];
+    const draggedDept = newDepartments[draggedIndex];
+    
+    newDepartments.splice(draggedIndex, 1);
+    newDepartments.splice(dropIndex, 0, draggedDept);
+    
+    // Обновляем приоритеты на основе нового порядка
+    const updatedDepartments = newDepartments.map((dept, index) => ({
+      ...dept,
+      priority: index + 1
+    }));
+    
+    // Обновляем состояние локально
+    setDepartments(updatedDepartments);
+    
+    // Сохраняем приоритеты на сервере
+    try {
+      for (const dept of updatedDepartments) {
+        await apiRequest(`/departments/${dept.id}`, {
+          method: 'PUT',
+          body: JSON.stringify({
+            name: dept.name,
+            priority: dept.priority
+          })
+        });
+      }
+      await fetchDepartments();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Ошибка сохранения порядка служб');
+      await fetchDepartments();
+    }
+    
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  };
+
   if (loading) {
     return (
       <div className="container">
@@ -248,14 +326,33 @@ export default function DepartmentsPage() {
             <table className="w-full">
               <thead>
                 <tr className="border-b">
+                  <th className="text-center py-3 px-2 w-8"></th>
                   <th className="text-left py-3 px-4 w-32">Приоритет</th>
                   <th className="text-left py-3 px-4">Название службы</th>
                   <th className="text-right py-3 px-4">Действия</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredDepartments.map((department: Department) => (
-                  <tr key={department.id} className="border-b hover:bg-gray-50">
+                {filteredDepartments.map((department: Department, idx: number) => (
+                  <tr 
+                    key={department.id} 
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, idx)}
+                    onDragOver={(e) => handleDragOver(e, idx)}
+                    onDragLeave={handleDragLeave}
+                    onDrop={(e) => handleDrop(e, idx)}
+                    onDragEnd={handleDragEnd}
+                    className={`border-b hover:bg-gray-50 cursor-move transition-all duration-200 ${
+                      draggedIndex === idx ? 'opacity-40 scale-95 bg-gray-100' : ''
+                    } ${
+                      dragOverIndex === idx && draggedIndex !== idx ? 'bg-blue-50 border-l-4 border-blue-500' : ''
+                    }`}
+                  >
+                    <td className="py-3 px-2 text-center">
+                      <GripVertical className={`h-4 w-4 mx-auto transition-colors duration-200 ${
+                        draggedIndex === idx ? 'text-blue-500' : 'text-gray-400'
+                      }`} />
+                    </td>
                     <td className="py-3 px-4">
                       {editingPriority?.departmentId === department.id ? (
                         <div className="flex items-center gap-2">
