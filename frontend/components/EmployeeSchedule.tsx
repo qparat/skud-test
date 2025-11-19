@@ -1121,14 +1121,18 @@ export function EmployeeSchedule() {
         cell.font = { ...cell.font, name: 'Times New Roman' }
       })
       
-      // Выравниваем по центру столбцы: Пришел, Ушел, Часы работы
+      // Выравниваем по центру столбцы: Пришел, Ушел, Часы работы, Опоздание, Исключение
       const entryCell = excelRow.getCell('entry')
       const exitCell = excelRow.getCell('exit')
       const hoursCell = excelRow.getCell('hours')
+      const lateCell = excelRow.getCell('late')
+      const exceptionCell = excelRow.getCell('exception')
       
       entryCell.alignment = { horizontal: 'center', vertical: 'middle' }
       exitCell.alignment = { horizontal: 'center', vertical: 'middle' }
       hoursCell.alignment = { horizontal: 'center', vertical: 'middle' }
+      lateCell.alignment = { horizontal: 'center', vertical: 'middle' }
+      exceptionCell.alignment = { horizontal: 'center', vertical: 'middle' }
       
       // Применяем форматирование для отчета "По службам детально"
       if (exportSortType === 'department-detailed' && isRangeData) {
