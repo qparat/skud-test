@@ -1203,7 +1203,8 @@ export function EmployeeSchedule() {
           })
         } else if (rowType === 'empty') {
           // Окрашиваем пустые строки в белый цвет
-          excelRow.eachCell((cell: any) => {
+          // Используем eachCell с параметром true чтобы включить пустые ячейки
+          excelRow.eachCell({ includeEmpty: true }, (cell: any) => {
             cell.fill = {
               type: 'pattern',
               pattern: 'solid',
