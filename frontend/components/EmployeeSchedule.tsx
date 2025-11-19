@@ -842,7 +842,7 @@ export function EmployeeSchedule() {
             })
             
             // Строки с данными по датам - все даты под ФИО
-            employeeDays.forEach(day => {
+            employeeDays.forEach((day, dateIndex) => {
               excelData.push({
                 '№': globalRowIndex++,
                 'ФИО': `        ${day.date}`,
@@ -853,7 +853,8 @@ export function EmployeeSchedule() {
                 'Опоздание (мин)': day.is_late ? day.late_minutes : 0,
                 'Исключение': day.exception?.has_exception ? day.exception.reason : '-',
                 '_rowType': 'date',
-                '_employeeIndex': currentEmployeeIndex // Наследуем индекс сотрудника для фона
+                '_employeeIndex': currentEmployeeIndex, // Наследуем индекс сотрудника для фона
+                '_dateRowIndex': dateIndex // Индекс строки даты внутри сотрудника
               })
             })
             
@@ -1114,11 +1115,20 @@ export function EmployeeSchedule() {
         exception: row['Исключение']
       })
       
-      // Устанавливаем Times New Roman для всех ячеек
+      // Устанавливаем Times New Roman для всех ячеек и выравнивание
       excelRow.eachCell((cell) => {
         if (!cell.font) cell.font = {}
         cell.font = { ...cell.font, name: 'Times New Roman' }
       })
+      
+      // Выравниваем по центру столбцы: Пришел, Ушел, Часы работы
+      const entryCell = excelRow.getCell('entry')
+      const exitCell = excelRow.getCell('exit')
+      const hoursCell = excelRow.getCell('hours')
+      
+      entryCell.alignment = { horizontal: 'center', vertical: 'middle' }
+      exitCell.alignment = { horizontal: 'center', vertical: 'middle' }
+      hoursCell.alignment = { horizontal: 'center', vertical: 'middle' }
       
       // Применяем форматирование для отчета "По службам детально"
       if (exportSortType === 'department-detailed' && isRangeData) {
@@ -1161,8 +1171,18 @@ export function EmployeeSchedule() {
           }
           fioCell.alignment = { horizontal: 'right' }
           
-          // Чередующийся фон для строк с датами (как у родительского ФИО)
-          const backgroundColor = (employeeIndex % 2 === 0) ? 'FFFFFFFF' : 'FFF1F9FD'
+          // Чередующийся фон для строк с датами
+          // Если ФИО белое (четный индекс), первая дата белая, вторая #F1F9FD
+          // Если ФИО #F1F9FD (нечетный индекс), первая дата #F1F9FD, вторая белая
+          const dateRowIndex = row['_dateRowIndex'] || 0
+          let backgroundColor
+          if (employeeIndex % 2 === 0) {
+            // ФИО белое -> даты: белая, F1F9FD, белая, F1F9FD...
+            backgroundColor = (dateRowIndex % 2 === 0) ? 'FFFFFFFF' : 'FFF1F9FD'
+          } else {
+            // ФИО F1F9FD -> даты: F1F9FD, белая, F1F9FD, белая...
+            backgroundColor = (dateRowIndex % 2 === 0) ? 'FFF1F9FD' : 'FFFFFFFF'
+          }
           excelRow.eachCell((cell: any) => {
             cell.fill = {
               type: 'pattern',
