@@ -35,7 +35,6 @@ export function FileUpload() {
   const [dragOver, setDragOver] = useState(false)
   const [checkingFolder, setCheckingFolder] = useState(false)
   const [folderResult, setFolderResult] = useState<FolderCheckResponse | null>(null)
-  const [autoCheckEnabled, setAutoCheckEnabled] = useState(false)
   const [nextCheckIn, setNextCheckIn] = useState(0)
   const [logs, setLogs] = useState<Array<{time: string, message: string, type: 'info' | 'success' | 'error'}>>([])
 
@@ -160,37 +159,31 @@ export function FileUpload() {
 
   // Автоматическая проверка папки каждые 30 минут
   useEffect(() => {
-    let intervalId: NodeJS.Timeout
-    let countdownId: NodeJS.Timeout
-
-    if (autoCheckEnabled) {
-      addLog('🔄 Автопроверка включена (интервал: 30 минут)', 'info')
-      // Первая проверка сразу при включении
+    addLog('🔄 Автопроверка запущена (интервал: 30 минут)', 'info')
+    
+    // Первая проверка сразу при загрузке
+    checkPrishelFolder()
+    
+    // Устанавливаем таймер на 30 минут (1800000 мс)
+    setNextCheckIn(1800)
+    
+    // Интервал для проверки папки каждые 30 минут
+    const intervalId = setInterval(() => {
+      addLog('⏰ Автоматическая проверка по расписанию', 'info')
       checkPrishelFolder()
-      
-      // Устанавливаем таймер на 30 минут (1800000 мс)
       setNextCheckIn(1800)
-      
-      // Интервал для проверки папки каждые 30 минут
-      intervalId = setInterval(() => {
-        addLog('⏰ Автоматическая проверка по расписанию', 'info')
-        checkPrishelFolder()
-        setNextCheckIn(1800)
-      }, 30 * 60 * 1000)
-      
-      // Обратный отсчет каждую секунду
-      countdownId = setInterval(() => {
-        setNextCheckIn(prev => prev > 0 ? prev - 1 : 0)
-      }, 1000)
-    } else if (logs.length > 0 && logs[logs.length - 1].message.includes('Автопроверка включена')) {
-      addLog('⏸️ Автопроверка выключена', 'info')
-    }
+    }, 30 * 60 * 1000)
+    
+    // Обратный отсчет каждую секунду
+    const countdownId = setInterval(() => {
+      setNextCheckIn(prev => prev > 0 ? prev - 1 : 0)
+    }, 1000)
 
     return () => {
-      if (intervalId) clearInterval(intervalId)
-      if (countdownId) clearInterval(countdownId)
+      clearInterval(intervalId)
+      clearInterval(countdownId)
     }
-  }, [autoCheckEnabled])
+  }, [])
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60)
@@ -279,27 +272,13 @@ export function FileUpload() {
               {checkingFolder ? 'Проверка папки...' : 'Проверить сейчас'}
             </button>
 
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={autoCheckEnabled}
-                onChange={(e) => setAutoCheckEnabled(e.target.checked)}
-                className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500"
-              />
-              <span className="text-sm text-gray-700">
-                Автоматически каждые 30 минут
-              </span>
-            </label>
-          </div>
-
-          {autoCheckEnabled && (
             <div className="flex items-center gap-2 text-sm text-gray-600">
               <span className="inline-block w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
               <span>
-                Автопроверка включена. Следующая проверка через: <strong>{formatTime(nextCheckIn)}</strong>
+                Автопроверка активна. Следующая проверка через: <strong>{formatTime(nextCheckIn)}</strong>
               </span>
             </div>
-          )}
+          </div>
         </div>
 
         {/* Console Log */}
