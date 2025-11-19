@@ -1805,20 +1805,23 @@ export function EmployeeSchedule() {
                 </div>
               </label>
 
-              <label className="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
-                <input
-                  type="radio"
-                  name="exportType"
-                  value="department-detailed"
-                  checked={exportSortType === 'department-detailed'}
-                  onChange={(e) => setExportSortType('department-detailed')}
-                  className="form-radio h-4 w-4 text-blue-600"
-                />
-                <div className="ml-3">
-                  <span className="text-sm font-medium text-gray-900">По службам детально</span>
-                  <p className="text-xs text-gray-500">Служба → Сотрудник → Даты построчно (только для диапазона)</p>
-                </div>
-              </label>
+              {/* Показываем опцию "По службам детально" только для диапазона дат */}
+              {(startDate && endDate) && (
+                <label className="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+                  <input
+                    type="radio"
+                    name="exportType"
+                    value="department-detailed"
+                    checked={exportSortType === 'department-detailed'}
+                    onChange={(e) => setExportSortType('department-detailed')}
+                    className="form-radio h-4 w-4 text-blue-600"
+                  />
+                  <div className="ml-3">
+                    <span className="text-sm font-medium text-gray-900">По службам детально</span>
+                    <p className="text-xs text-gray-500">Служба → Сотрудник → Даты построчно</p>
+                  </div>
+                </label>
+              )}
             </div>
 
             <div className="flex space-x-3">
