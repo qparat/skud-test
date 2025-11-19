@@ -1200,6 +1200,15 @@ export function EmployeeSchedule() {
               fgColor: { argb: backgroundColor }
             }
           })
+        } else if (rowType === 'empty') {
+          // Окрашиваем пустые строки в белый цвет
+          excelRow.eachCell((cell: any) => {
+            cell.fill = {
+              type: 'pattern',
+              pattern: 'solid',
+              fgColor: { argb: 'FFFFFFFF' }
+            }
+          })
         }
       }
     })
