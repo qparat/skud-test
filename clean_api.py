@@ -168,6 +168,26 @@ def check_prishel_folder_background():
         for file_path in txt_files:
             filename = os.path.basename(file_path)
             try:
+                # Читаем файл с правильной кодировкой и пересохраняем
+                with open(file_path, 'rb') as f:
+                    content = f.read()
+                
+                # Пробуем разные кодировки
+                content_str = None
+                for encoding in ['windows-1251', 'utf-8', 'cp1251']:
+                    try:
+                        content_str = content.decode(encoding)
+                        break
+                    except UnicodeDecodeError:
+                        continue
+                
+                if content_str is None:
+                    content_str = content.decode('utf-8', errors='ignore')
+                
+                # Пересохраняем файл в правильной кодировке
+                with open(file_path, 'w', encoding='windows-1251') as f:
+                    f.write(content_str)
+                
                 result = integrator.process_skud_file(file_path)
                 
                 if result['success']:

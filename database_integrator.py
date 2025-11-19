@@ -563,11 +563,13 @@ class SkudDatabaseIntegrator:
             
             result = {
                 'success': True,
-                'processed_lines': total_lines,
-                'new_access_records': new_records,
-                'new_employees': new_employees,
-                'duplicates': duplicates,
-                'errors': errors
+                'details': {
+                    'processed_lines': total_lines,
+                    'new_access_records': new_records,
+                    'new_employees': new_employees,
+                    'duplicates': duplicates,
+                    'errors': errors
+                }
             }
             
             print(f"✅ Файл обработан: {new_records} новых записей, {new_employees} новых сотрудников")
