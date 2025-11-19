@@ -202,7 +202,7 @@ export function FileUpload() {
       <div className="bg-white rounded-lg shadow p-6">
         <h3 className="text-lg font-medium text-gray-900 mb-4">Автоматическая загрузка из папки</h3>
         <p className="text-sm text-gray-600 mb-4">
-          Сервер автоматически проверяет папку <code className="bg-gray-100 px-2 py-1 rounded">prishel_txt</code> каждые 30 минут
+          Сервер автоматически проверяет папку <code className="bg-gray-100 px-2 py-1 rounded">prishel_txt</code>
         </p>
         
         <div className="space-y-4">
@@ -223,7 +223,7 @@ export function FileUpload() {
             <div className="flex items-center gap-2 text-sm text-gray-600">
               <span className="inline-block w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
               <span>
-                Автопроверка активна на сервере (каждые 30 минут)
+                Автопроверка активна на сервере
               </span>
             </div>
           </div>
