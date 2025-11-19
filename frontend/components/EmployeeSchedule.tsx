@@ -790,6 +790,7 @@ export function EmployeeSchedule() {
         const sortedDeptNames = sortDepartmentNames(Object.keys(byDepartment), departmentPriorities)
         
         let globalRowIndex = 1
+        let employeeCounter = 0 // Счетчик для чередования цветов ФИО
         
         // Для каждого отдела
         sortedDeptNames.forEach(deptName => {
@@ -802,7 +803,8 @@ export function EmployeeSchedule() {
             'Часы работы': '',
             'Статус': '',
             'Опоздание (мин)': '',
-            'Исключение': ''
+            'Исключение': '',
+            '_rowType': 'department' // Метаданные для форматирования
           })
           
           // Получаем всех сотрудников этого отдела
@@ -823,6 +825,8 @@ export function EmployeeSchedule() {
             // Сортируем даты
             employeeDays.sort((a, b) => a.date.localeCompare(b.date))
             
+            const currentEmployeeIndex = employeeCounter++
+            
             // Строка с ФИО сотрудника (без данных)
             excelData.push({
               '№': '',
@@ -832,7 +836,9 @@ export function EmployeeSchedule() {
               'Часы работы': '',
               'Статус': '',
               'Опоздание (мин)': '',
-              'Исключение': ''
+              'Исключение': '',
+              '_rowType': 'employee',
+              '_employeeIndex': currentEmployeeIndex // Для чередования цветов
             })
             
             // Строки с данными по датам - все даты под ФИО
@@ -845,7 +851,9 @@ export function EmployeeSchedule() {
                 'Часы работы': day.work_hours !== null && day.work_hours !== undefined ? `${day.work_hours.toFixed(1)} ч` : '-',
                 'Статус': day.status || (day.is_late ? 'Опоздал' : 'В норме'),
                 'Опоздание (мин)': day.is_late ? day.late_minutes : 0,
-                'Исключение': day.exception?.has_exception ? day.exception.reason : '-'
+                'Исключение': day.exception?.has_exception ? day.exception.reason : '-',
+                '_rowType': 'date',
+                '_employeeIndex': currentEmployeeIndex // Наследуем индекс сотрудника для фона
               })
             })
             
@@ -858,7 +866,8 @@ export function EmployeeSchedule() {
               'Часы работы': '',
               'Статус': '',
               'Опоздание (мин)': '',
-              'Исключение': ''
+              'Исключение': '',
+              '_rowType': 'empty'
             })
           })
           
@@ -919,7 +928,7 @@ export function EmployeeSchedule() {
             // Заголовок отдела
             excelData.push({
               '№': '',
-              'ФИО': `=== ${deptName} ===`,
+              'ФИО': deptName,
               'Пришел': '',
               'Ушел': '',
               'Часы работы': '',
@@ -1026,7 +1035,7 @@ export function EmployeeSchedule() {
           // Заголовок отдела
           excelData.push({
             '№': '',
-            'ФИО': `=== ${deptName} ===`,
+            'ФИО': deptName,
             'Пришел': '',
             'Ушел': '',
             'Часы работы': '',
@@ -1111,30 +1120,56 @@ export function EmployeeSchedule() {
         cell.font = { ...cell.font, name: 'Times New Roman' }
       })
       
-      // Применяем синий цвет к строкам с ФИО сотрудников
+      // Применяем форматирование для отчета "По службам детально"
       if (exportSortType === 'department-detailed' && isRangeData) {
-        const fioValue = row['ФИО'] || row['ФИО/Должность']
-        if (fioValue && typeof fioValue === 'string') {
-          // Проверяем, что это строка с ФИО (начинается с 4 пробелами и не начинается с 8)
-          if (fioValue.startsWith('    ') && !fioValue.startsWith('        ') && !fioValue.startsWith('СЛУЖБА:')) {
-            // Окрашиваем ячейку с ФИО в синий цвет
-            const fioCell = excelRow.getCell('fio')
-            fioCell.font = {
-              name: 'Times New Roman',
-              color: { argb: 'FF0B10F7' }, // Синий цвет #0B10F7
-              bold: true
+        const rowType = (row as any)._rowType
+        const employeeIndex = (row as any)._employeeIndex
+        
+        if (rowType === 'department') {
+          // Окрашиваем фон всей строки службы в #B9E1D4
+          excelRow.eachCell((cell: any) => {
+            cell.fill = {
+              type: 'pattern',
+              pattern: 'solid',
+              fgColor: { argb: 'FFB9E1D4' }
             }
+          })
+        } else if (rowType === 'employee') {
+          // Окрашиваем ФИО в синий цвет
+          const fioCell = excelRow.getCell('fio')
+          fioCell.font = {
+            name: 'Times New Roman',
+            color: { argb: 'FF0B10F7' }, // Синий цвет #0B10F7
+            bold: true
           }
-          // Проверяем, что это строка с датой (начинается с 8 пробелами)
-          else if (fioValue.startsWith('        ')) {
-            // Окрашиваем даты в коричневый цвет и выравниваем по правому краю
-            const fioCell = excelRow.getCell('fio')
-            fioCell.font = {
-              name: 'Times New Roman',
-              color: { argb: 'FF1D5800' } // Коричневый цвет #1D5800
+          
+          // Чередующийся фон для ФИО: белый и #F1F9FD
+          const backgroundColor = (employeeIndex % 2 === 0) ? 'FFFFFFFF' : 'FFF1F9FD'
+          excelRow.eachCell((cell: any) => {
+            cell.fill = {
+              type: 'pattern',
+              pattern: 'solid',
+              fgColor: { argb: backgroundColor }
             }
-            fioCell.alignment = { horizontal: 'right' }
+          })
+        } else if (rowType === 'date') {
+          // Окрашиваем даты в коричневый цвет и выравниваем по правому краю
+          const fioCell = excelRow.getCell('fio')
+          fioCell.font = {
+            name: 'Times New Roman',
+            color: { argb: 'FF1D5800' } // Коричневый цвет #1D5800
           }
+          fioCell.alignment = { horizontal: 'right' }
+          
+          // Чередующийся фон для строк с датами (как у родительского ФИО)
+          const backgroundColor = (employeeIndex % 2 === 0) ? 'FFFFFFFF' : 'FFF1F9FD'
+          excelRow.eachCell((cell: any) => {
+            cell.fill = {
+              type: 'pattern',
+              pattern: 'solid',
+              fgColor: { argb: backgroundColor }
+            }
+          })
         }
       }
     })
