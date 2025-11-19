@@ -804,10 +804,13 @@ export default function SvodReportPage() {
                       onDragLeave={handleDragLeave}
                       onDrop={(e) => handleDrop(e, idx)}
                       onDragEnd={handleDragEnd}
-                      className={`hover:bg-gray-50 cursor-move transition-all duration-200
-                        ${emp.exception_type && emp.exception_type !== 'at_work' ? 'bg-blue-50' : ''}
-                        ${draggedIndex === idx ? 'opacity-40 scale-95 bg-gray-100' : ''}
-                        ${dragOverIndex === idx && draggedIndex !== idx ? 'bg-blue-50 border-l-4 border-blue-500' : ''}`}
+                      className={`border-b hover:bg-gray-50 cursor-move transition-all duration-200 ${
+                        draggedIndex === idx ? 'opacity-40 scale-95 bg-gray-100' : ''
+                      } ${
+                        dragOverIndex === idx && draggedIndex !== idx ? 'bg-blue-50 border-l-4 border-blue-500' : ''
+                      } ${
+                        emp.exception_type && emp.exception_type !== 'at_work' && dragOverIndex !== idx ? 'bg-blue-50' : ''
+                      }`}
                     >
                       <td className="px-2 py-3 text-center">
                         <GripVertical className={`h-4 w-4 mx-auto transition-colors duration-200 ${

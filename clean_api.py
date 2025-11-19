@@ -81,6 +81,9 @@ import sys
 import hashlib
 import secrets
 from functools import wraps
+from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.triggers.interval import IntervalTrigger
+import threading
 def hash_password(password: str) -> str:
     """Хеширует пароль с помощью SHA-256"""
     return hashlib.sha256(password.encode()).hexdigest()
@@ -96,6 +99,123 @@ sys.path.append(os.path.join(os.path.dirname(__file__)))
 app = FastAPI(title="СКУД API", description="API для системы контроля и управления доступом")
 
 from fastapi.responses import JSONResponse
+
+# Хранилище для логов проверки папки
+folder_check_logs = []
+folder_check_lock = threading.Lock()
+
+def add_folder_log(message: str, log_type: str = 'info'):
+    """Добавляет запись в лог проверки папки"""
+    with folder_check_lock:
+        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        folder_check_logs.append({
+            'time': timestamp,
+            'message': message,
+            'type': log_type
+        })
+        # Храним только последние 100 записей
+        if len(folder_check_logs) > 100:
+            folder_check_logs.pop(0)
+
+def check_prishel_folder_background():
+    """Фоновая задача для проверки папки prishel_txt"""
+    import glob
+    
+    try:
+        add_folder_log('🔄 Автоматическая проверка папки prishel_txt...', 'info')
+        folder_path = "prishel_txt"
+        
+        # Проверяем существование папки
+        if not os.path.exists(folder_path):
+            add_folder_log('✗ Папка prishel_txt не найдена', 'error')
+            return
+        
+        # Ищем txt файлы в папке
+        txt_files = glob.glob(os.path.join(folder_path, "*.txt"))
+        
+        if not txt_files:
+            add_folder_log('ℹ Папка пуста - файлы не найдены', 'info')
+            return
+        
+        # Обрабатываем каждый файл
+        from database_integrator import SkudDatabaseIntegrator
+        import configparser
+        
+        # Загружаем конфигурацию PostgreSQL
+        config = configparser.ConfigParser()
+        config.read('postgres_config.ini', encoding='utf-8')
+        
+        pg_config = {
+            'host': config.get('DATABASE', 'host', fallback='localhost'),
+            'port': config.getint('DATABASE', 'port', fallback=5432),
+            'database': config.get('DATABASE', 'database', fallback='skud_db'),
+            'user': config.get('DATABASE', 'user', fallback='postgres'),
+            'password': config.get('DATABASE', 'password', fallback='password')
+        }
+        
+        integrator = SkudDatabaseIntegrator(db_type="postgresql", **pg_config)
+        if not integrator.connect():
+            add_folder_log('✗ Ошибка подключения к базе данных', 'error')
+            return
+        
+        total_stats = {
+            'processed_lines': 0,
+            'new_employees': 0,
+            'new_access_records': 0
+        }
+        files_processed = 0
+        
+        for file_path in txt_files:
+            filename = os.path.basename(file_path)
+            try:
+                result = integrator.process_skud_file(file_path)
+                
+                if result['success']:
+                    details = result.get('details', {})
+                    total_stats['processed_lines'] += details.get('processed_lines', 0)
+                    total_stats['new_employees'] += details.get('new_employees', 0)
+                    total_stats['new_access_records'] += details.get('new_access_records', 0)
+                    
+                    add_folder_log(f'✓ {filename}: {details.get("processed_lines", 0)} строк обработано', 'success')
+                    files_processed += 1
+                    
+                    # Удаляем обработанный файл
+                    os.remove(file_path)
+                else:
+                    add_folder_log(f'✗ {filename}: {result.get("error", "Неизвестная ошибка")}', 'error')
+            except Exception as e:
+                add_folder_log(f'✗ {filename}: {str(e)}', 'error')
+        
+        if files_processed > 0:
+            add_folder_log(f'✓ Обработано файлов: {files_processed}', 'success')
+            add_folder_log(f'  → Строк: {total_stats["processed_lines"]} | Новых сотрудников: {total_stats["new_employees"]} | Записей доступа: {total_stats["new_access_records"]}', 'success')
+        
+    except Exception as e:
+        add_folder_log(f'✗ Ошибка проверки папки: {str(e)}', 'error')
+
+# Создаем и запускаем планировщик задач
+scheduler = BackgroundScheduler()
+scheduler.add_job(
+    func=check_prishel_folder_background,
+    trigger=IntervalTrigger(minutes=30),
+    id='check_prishel_folder',
+    name='Проверка папки prishel_txt каждые 30 минут',
+    replace_existing=True
+)
+
+@app.on_event("startup")
+async def startup_event():
+    """Запускается при старте приложения"""
+    add_folder_log('🚀 Сервер запущен. Автопроверка активирована (интервал: 30 минут)', 'info')
+    scheduler.start()
+    # Запускаем первую проверку сразу
+    check_prishel_folder_background()
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Запускается при остановке приложения"""
+    scheduler.shutdown()
+    add_folder_log('⏹ Сервер остановлен', 'info')
 
 @app.get("/employee-exceptions")
 async def get_employee_exceptions():
@@ -3317,100 +3437,30 @@ async def health_check():
     except Exception as e:
         raise HTTPException(status_code=503, detail=f"Проблемы с системой: {str(e)}")
 
-@app.get("/check-prishel-folder")
-async def check_prishel_folder(current_user: dict = Depends(get_current_user)):
-    """Проверяет папку prishel_txt и обрабатывает найденные файлы"""
-    import glob
-    
+@app.get("/folder-check-logs")
+async def get_folder_check_logs(current_user: dict = Depends(get_current_user)):
+    """Получить логи автоматической проверки папки"""
+    with folder_check_lock:
+        return {
+            "success": True,
+            "logs": list(folder_check_logs)
+        }
+
+@app.post("/check-prishel-folder-now")
+async def check_prishel_folder_now(current_user: dict = Depends(get_current_user)):
+    """Запустить немедленную проверку папки prishel_txt"""
     try:
-        folder_path = "prishel_txt"
-        
-        # Проверяем существование папки
-        if not os.path.exists(folder_path):
-            return {
-                "success": False,
-                "message": "Папка prishel_txt не найдена"
-            }
-        
-        # Ищем txt файлы в папке
-        txt_files = glob.glob(os.path.join(folder_path, "*.txt"))
-        
-        if not txt_files:
-            return {
-                "success": True,
-                "message": "В папке prishel_txt нет файлов для обработки",
-                "files_found": 0
-            }
-        
-        # Обрабатываем каждый файл
-        from database_integrator import SkudDatabaseIntegrator
-        import configparser
-        
-        # Загружаем конфигурацию PostgreSQL
-        config = configparser.ConfigParser()
-        config.read('postgres_config.ini', encoding='utf-8')
-        
-        pg_config = {
-            'host': config.get('DATABASE', 'host', fallback='localhost'),
-            'port': config.getint('DATABASE', 'port', fallback=5432),
-            'database': config.get('DATABASE', 'database', fallback='skud_db'),
-            'user': config.get('DATABASE', 'user', fallback='postgres'),
-            'password': config.get('DATABASE', 'password', fallback='password')
-        }
-        
-        integrator = SkudDatabaseIntegrator(db_type="postgresql", **pg_config)
-        if not integrator.connect():
-            raise HTTPException(status_code=500, detail="Ошибка подключения к PostgreSQL базе данных")
-        
-        results = []
-        total_stats = {
-            'processed_lines': 0,
-            'new_employees': 0,
-            'new_access_records': 0
-        }
-        
-        for file_path in txt_files:
-            filename = os.path.basename(file_path)
-            try:
-                result = integrator.process_skud_file(file_path)
-                
-                if result['success']:
-                    details = result.get('details', {})
-                    total_stats['processed_lines'] += details.get('processed_lines', 0)
-                    total_stats['new_employees'] += details.get('new_employees', 0)
-                    total_stats['new_access_records'] += details.get('new_access_records', 0)
-                    
-                    results.append({
-                        'filename': filename,
-                        'success': True,
-                        'stats': details
-                    })
-                    
-                    # Удаляем обработанный файл
-                    os.remove(file_path)
-                else:
-                    results.append({
-                        'filename': filename,
-                        'success': False,
-                        'error': result.get('error', 'Неизвестная ошибка')
-                    })
-            except Exception as e:
-                results.append({
-                    'filename': filename,
-                    'success': False,
-                    'error': str(e)
-                })
+        # Запускаем проверку в фоновом потоке
+        import threading
+        thread = threading.Thread(target=check_prishel_folder_background)
+        thread.start()
         
         return {
             "success": True,
-            "message": f"Обработано файлов: {len(results)}",
-            "files_processed": len(results),
-            "results": results,
-            "total_stats": total_stats
+            "message": "Проверка папки запущена"
         }
-        
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Ошибка проверки папки: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Ошибка запуска проверки: {str(e)}")
 
 @app.post("/upload-skud-file")
 async def upload_skud_file(file: UploadFile = File(..., description="СКУД файл (максимальный размер: 100MB)")):

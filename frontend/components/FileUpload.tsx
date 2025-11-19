@@ -16,17 +16,10 @@ interface UploadResponse {
   stats?: UploadStats
 }
 
-interface FolderCheckResponse {
-  success: boolean
+interface LogEntry {
+  time: string
   message: string
-  files_processed?: number
-  total_stats?: UploadStats
-  results?: Array<{
-    filename: string
-    success: boolean
-    stats?: UploadStats
-    error?: string
-  }>
+  type: 'info' | 'success' | 'error'
 }
 
 export function FileUpload() {
@@ -34,14 +27,7 @@ export function FileUpload() {
   const [result, setResult] = useState<UploadResponse | null>(null)
   const [dragOver, setDragOver] = useState(false)
   const [checkingFolder, setCheckingFolder] = useState(false)
-  const [folderResult, setFolderResult] = useState<FolderCheckResponse | null>(null)
-  const [nextCheckIn, setNextCheckIn] = useState(0)
-  const [logs, setLogs] = useState<Array<{time: string, message: string, type: 'info' | 'success' | 'error'}>>([])
-
-  const addLog = (message: string, type: 'info' | 'success' | 'error' = 'info') => {
-    const time = new Date().toLocaleTimeString('ru-RU')
-    setLogs(prev => [...prev, { time, message, type }].slice(-50)) // Храним последние 50 записей
-  }
+  const [logs, setLogs] = useState<LogEntry[]>([])
 
   const handleFileUpload = async (file: File) => {
     if (!file.name.endsWith('.txt')) {
@@ -117,79 +103,41 @@ export function FileUpload() {
 
   const checkPrishelFolder = async () => {
     setCheckingFolder(true)
-    setFolderResult(null)
-    addLog('Начало проверки папки prishel_txt...', 'info')
 
     try {
-      const data = await apiRequest('check-prishel-folder')
-      setFolderResult(data)
-      
-      if (data.success) {
-        if (data.files_processed === 0) {
-          addLog('Папка пуста - файлы не найдены', 'info')
-        } else {
-          addLog(`✓ Обработано файлов: ${data.files_processed}`, 'success')
-          if (data.total_stats) {
-            addLog(`  → Строк: ${data.total_stats.processed_lines} | Новых сотрудников: ${data.total_stats.new_employees} | Записей доступа: ${data.total_stats.new_access_records}`, 'success')
-          }
-          if (data.results) {
-            data.results.forEach((file: { filename: string; success: boolean; stats?: UploadStats; error?: string }) => {
-              if (file.success && file.stats) {
-                addLog(`  📄 ${file.filename}: ${file.stats.processed_lines} строк`, 'success')
-              } else if (!file.success) {
-                addLog(`  ✗ ${file.filename}: ${file.error}`, 'error')
-              }
-            })
-          }
-        }
-      } else {
-        addLog(`✗ Ошибка: ${data.message}`, 'error')
-      }
+      await apiRequest('check-prishel-folder-now', { method: 'POST' })
+      // Сразу загружаем свежие логи
+      fetchLogs()
     } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : 'Ошибка проверки папки'
-      addLog(`✗ ${errorMsg}`, 'error')
-      setFolderResult({
-        success: false,
-        message: errorMsg
-      })
+      console.error('Ошибка запуска проверки:', error)
     } finally {
       setCheckingFolder(false)
     }
   }
 
-  // Автоматическая проверка папки каждые 30 минут
+  const fetchLogs = async () => {
+    try {
+      const data = await apiRequest('folder-check-logs')
+      if (data.success && data.logs) {
+        setLogs(data.logs)
+      }
+    } catch (error) {
+      console.error('Ошибка получения логов:', error)
+    }
+  }
+
+  // Автоматическое обновление логов каждые 5 секунд
   useEffect(() => {
-    addLog('🔄 Автопроверка запущена (интервал: 30 минут)', 'info')
+    // Первая загрузка логов
+    fetchLogs()
     
-    // Первая проверка сразу при загрузке
-    checkPrishelFolder()
-    
-    // Устанавливаем таймер на 30 минут (1800000 мс)
-    setNextCheckIn(1800)
-    
-    // Интервал для проверки папки каждые 30 минут
-    const intervalId = setInterval(() => {
-      addLog('⏰ Автоматическая проверка по расписанию', 'info')
-      checkPrishelFolder()
-      setNextCheckIn(1800)
-    }, 30 * 60 * 1000)
-    
-    // Обратный отсчет каждую секунду
-    const countdownId = setInterval(() => {
-      setNextCheckIn(prev => prev > 0 ? prev - 1 : 0)
-    }, 1000)
+    // Обновляем логи каждые 5 секунд
+    const intervalId = setInterval(fetchLogs, 5000)
 
     return () => {
       clearInterval(intervalId)
-      clearInterval(countdownId)
     }
   }, [])
-
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60)
-    const secs = seconds % 60
-    return `${mins}:${secs.toString().padStart(2, '0')}`
-  }
 
   return (
     <div className="space-y-6">
@@ -254,7 +202,7 @@ export function FileUpload() {
       <div className="bg-white rounded-lg shadow p-6">
         <h3 className="text-lg font-medium text-gray-900 mb-4">Автоматическая загрузка из папки</h3>
         <p className="text-sm text-gray-600 mb-4">
-          Проверить папку <code className="bg-gray-100 px-2 py-1 rounded">prishel_txt</code> на наличие файлов для обработки
+          Сервер автоматически проверяет папку <code className="bg-gray-100 px-2 py-1 rounded">prishel_txt</code> каждые 30 минут
         </p>
         
         <div className="space-y-4">
@@ -269,13 +217,13 @@ export function FileUpload() {
               ) : (
                 <FolderOpen className="w-4 h-4 mr-2" />
               )}
-              {checkingFolder ? 'Проверка папки...' : 'Проверить сейчас'}
+              {checkingFolder ? 'Запуск проверки...' : 'Проверить сейчас'}
             </button>
 
             <div className="flex items-center gap-2 text-sm text-gray-600">
               <span className="inline-block w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
               <span>
-                Автопроверка активна. Следующая проверка через: <strong>{formatTime(nextCheckIn)}</strong>
+                Автопроверка активна на сервере (каждые 30 минут)
               </span>
             </div>
           </div>
