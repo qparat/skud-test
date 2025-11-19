@@ -217,16 +217,16 @@ def check_prishel_folder_background():
 scheduler = BackgroundScheduler()
 scheduler.add_job(
     func=check_prishel_folder_background,
-    trigger=IntervalTrigger(minutes=30),
+    trigger=IntervalTrigger(minutes=5),
     id='check_prishel_folder',
-    name='Проверка папки prishel_txt каждые 30 минут',
+    name='Проверка папки prishel_txt каждые 5 минут',
     replace_existing=True
 )
 
 @app.on_event("startup")
 async def startup_event():
     """Запускается при старте приложения"""
-    add_folder_log('🚀 Сервер запущен. Автопроверка активирована (интервал: 30 минут)', 'info')
+    add_folder_log('🚀 Сервер запущен. Автопроверка активирована (интервал: 5 минут)', 'info')
     scheduler.start()
     # Запускаем первую проверку сразу
     check_prishel_folder_background()
