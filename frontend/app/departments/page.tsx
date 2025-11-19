@@ -242,95 +242,109 @@ export default function DepartmentsPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredDepartments.map((department) => (
-          <div key={department.id} className="bg-white border rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex justify-between items-start mb-3">
-              <div className="flex-1">
-                <h3 className="text-xl font-semibold text-blue-600">
-                  <Link 
-                    href={`/departments/${department.id}`}
-                    className="hover:underline"
-                  >
-                    {department.name}
-                  </Link>
-                </h3>
-                
-                {editingPriority?.departmentId === department.id ? (
-                  <div className="mt-2 flex items-center gap-2">
-                    <input
-                      type="number"
-                      value={editingPriority.value}
-                      onChange={(e) => setEditingPriority({ departmentId: department.id, value: e.target.value })}
-                      className="w-20 border border-gray-300 rounded px-2 py-1 text-sm"
-                      placeholder="№"
-                      min="1"
-                      autoFocus
-                      disabled={updating}
-                    />
-                    <button
-                      onClick={() => updatePriority(department.id, editingPriority.value)}
-                      disabled={updating}
-                      className="bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded text-xs disabled:opacity-50"
-                    >
-                      ✓
-                    </button>
-                    <button
-                      onClick={() => setEditingPriority(null)}
-                      disabled={updating}
-                      className="bg-gray-400 hover:bg-gray-500 text-white px-2 py-1 rounded text-xs disabled:opacity-50"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                ) : (
-                  <div className="mt-1 flex items-center gap-2">
-                    {department.priority !== null && department.priority !== undefined ? (
-                      <span className="inline-block px-2 py-0.5 bg-purple-100 text-purple-800 text-xs font-medium rounded">
-                        Приоритет: {department.priority}
-                      </span>
-                    ) : (
-                      <span className="inline-block px-2 py-0.5 bg-gray-100 text-gray-600 text-xs font-medium rounded">
-                        Без приоритета
-                      </span>
-                    )}
-                    <button
-                      onClick={() => setEditingPriority({ 
-                        departmentId: department.id, 
-                        value: department.priority?.toString() || '' 
-                      })}
-                      className="text-purple-600 hover:text-purple-800 text-xs underline"
-                      title="Изменить приоритет"
-                    >
-                      изменить
-                    </button>
-                  </div>
-                )}
-              </div>
-              <button
-                onClick={() => deleteDepartment(department.id, department.name)}
-                className="text-red-500 hover:text-red-700 text-sm"
-                title="Удалить службу"
-              >
-                ✕
-              </button>
-            </div>
-            <div className="flex gap-2 mt-3">
-              <Link
-                href={`/departments/${department.id}`}
-                className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm"
-              >
-                Просмотр
-              </Link>
-              <Link
-                href={`/departments/${department.id}/edit`}
-                className="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded text-sm"
-              >
-                Редактировать
-              </Link>
-            </div>
+      <div className="bg-white border rounded-lg shadow-sm">
+        <div className="p-6">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b">
+                  <th className="text-left py-3 px-4 w-32">Приоритет</th>
+                  <th className="text-left py-3 px-4">Название службы</th>
+                  <th className="text-right py-3 px-4">Действия</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredDepartments.map((department: Department) => (
+                  <tr key={department.id} className="border-b hover:bg-gray-50">
+                    <td className="py-3 px-4">
+                      {editingPriority?.departmentId === department.id ? (
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="number"
+                            value={editingPriority.value}
+                            onChange={(e) => setEditingPriority({ departmentId: department.id, value: e.target.value })}
+                            className="w-20 border border-gray-300 rounded px-2 py-1 text-sm"
+                            placeholder="№"
+                            min="1"
+                            autoFocus
+                            disabled={updating}
+                          />
+                          <button
+                            onClick={() => updatePriority(department.id, editingPriority.value)}
+                            disabled={updating}
+                            className="bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded text-xs disabled:opacity-50"
+                          >
+                            ✓
+                          </button>
+                          <button
+                            onClick={() => setEditingPriority(null)}
+                            disabled={updating}
+                            className="bg-gray-400 hover:bg-gray-500 text-white px-2 py-1 rounded text-xs disabled:opacity-50"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          {department.priority !== null && department.priority !== undefined ? (
+                            <span className="inline-block px-2 py-0.5 bg-purple-100 text-purple-800 text-xs font-medium rounded">
+                              {department.priority}
+                            </span>
+                          ) : (
+                            <span className="inline-block px-2 py-0.5 bg-gray-100 text-gray-600 text-xs font-medium rounded">
+                              —
+                            </span>
+                          )}
+                          <button
+                            onClick={() => setEditingPriority({ 
+                              departmentId: department.id, 
+                              value: department.priority?.toString() || '' 
+                            })}
+                            className="text-purple-600 hover:text-purple-800 text-xs underline"
+                            title="Изменить приоритет"
+                          >
+                            изменить
+                          </button>
+                        </div>
+                      )}
+                    </td>
+                    <td className="py-3 px-4">
+                      <Link 
+                        href={`/departments/${department.id}`}
+                        className="text-blue-600 hover:underline font-medium"
+                      >
+                        {department.name}
+                      </Link>
+                    </td>
+                    <td className="py-3 px-4 text-right">
+                      <div className="flex gap-2 justify-end">
+                        <Link
+                          href={`/departments/${department.id}`}
+                          className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm"
+                        >
+                          Просмотр
+                        </Link>
+                        <Link
+                          href={`/departments/${department.id}/edit`}
+                          className="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded text-sm"
+                        >
+                          Редактировать
+                        </Link>
+                        <button
+                          onClick={() => deleteDepartment(department.id, department.name)}
+                          className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm"
+                          title="Удалить службу"
+                        >
+                          Удалить
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        ))}
+        </div>
       </div>
 
       {filteredDepartments.length === 0 && !loading && (
