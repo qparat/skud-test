@@ -799,14 +799,14 @@ export default function ExceptionsPage() {
             <div className="md:col-span-2 flex gap-2">
               <button
                 type="submit"
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+                className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
               >
                 {editingException ? 'Обновить' : 'Создать'}
               </button>
               <button
                 type="button"
                 onClick={resetForm}
-                className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400"
+                className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600"
               >
                 Отмена
               </button>
